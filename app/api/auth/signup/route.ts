@@ -31,6 +31,13 @@ export async function POST(req: Request) {
     }
     const { full_name, email, password, phone, skill_level } = parsed.data;
 
+    if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "Server is missing SESSION_SECRET. Set it in Vercel and redeploy." },
+        { status: 500 },
+      );
+    }
+
     if (!isSupabaseAdminConfigured) {
       return NextResponse.json(
         { error: "Signups are temporarily unavailable. Please message us on WhatsApp." },

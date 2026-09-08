@@ -26,6 +26,13 @@ export async function POST(req: Request) {
     }
     const { email, password } = parsed.data;
 
+    if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { error: "Server is missing SESSION_SECRET. Set it in Vercel and redeploy." },
+        { status: 500 },
+      );
+    }
+
     if (!isSupabaseConfigured) {
       return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503 });
     }
