@@ -16,7 +16,7 @@ export const SITE = {
 } as const;
 
 /** Sales/support rep — powers every "Chat with a rep" WhatsApp button. */
-export const WHATSAPP_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919830000000").replace(
+export const WHATSAPP_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919163132551").replace(
   /\D/g,
   "",
 );

@@ -6,7 +6,7 @@ import { query } from "@/lib/db";
  * database renders a complete site.
  */
 export const SETTING_DEFAULTS: Record<string, string> = {
-  whatsapp_number: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919830000000",
+  whatsapp_number: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919163132551",
   whatsapp_group_url: process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL ?? "",
   rep_name: "Team SuperPro",
   daily_game_price: "35000",
