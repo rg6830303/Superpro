@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ink: #0a0a0b;
+    --bone: #f7f6f3;
+    --gold: #c79620;
+    --volt: #d7f035;
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink text-bone/90 font-sans antialiased;
+    background-image:
+      radial-gradient(900px 500px at 12% -8%, rgba(199, 150, 32, 0.10), transparent 60%),
+      radial-gradient(700px 420px at 92% 0%, rgba(215, 240, 53, 0.06), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-gold text-ink;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display uppercase tracking-tight text-bone;
+    font-weight: 700;
+    line-height: 0.95;
+  }
+
+  /* Focus ring that is visible on both the dark page and the light panels. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-gold ring-offset-2 ring-offset-ink;
+  }
+
+  input, select, textarea {
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  .wrap {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .eyebrow {
+    @apply font-display text-xs uppercase tracking-wider2 text-gold;
+  }
+
+  .rule {
+    @apply h-px w-full bg-white/10;
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold
+           transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-gold {
+    @apply btn bg-gold text-ink hover:bg-gold-light hover:shadow-gold;
+  }
+  .btn-bone {
+    @apply btn bg-bone text-ink hover:bg-white;
+  }
+  .btn-outline {
+    @apply btn border border-white/25 text-bone hover:border-gold hover:text-gold;
+  }
+  .btn-ghost {
+    @apply btn text-bone/70 hover:bg-white/5 hover:text-bone;
+  }
+  .btn-danger {
+    @apply btn bg-danger/15 text-danger hover:bg-danger/25;
+  }
+  .btn-sm {
+    @apply px-4 py-2 text-xs;
+  }
+
+  /* ── Surfaces ────────────────────────────────────────────────────────── */
+  .card {
+    @apply rounded-2xl border border-white/10 bg-ink-800/80 backdrop-blur-sm;
+  }
+  .card-hover {
+    @apply card transition-all duration-300 hover:border-gold/50 hover:shadow-card;
+  }
+  .panel-light {
+    @apply rounded-2xl bg-bone text-ink;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1
+           text-[11px] font-semibold uppercase tracking-wider text-bone/70;
+  }
+  .chip-gold {
+    @apply chip border-gold/40 bg-gold/10 text-gold;
+  }
+  .chip-volt {
+    @apply chip border-volt/40 bg-volt/10 text-volt;
+  }
+  .chip-live {
+    @apply chip border-ok/40 bg-ok/10 text-ok;
+  }
+
+  /* ── Forms ───────────────────────────────────────────────────────────── */
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-bone/60;
+  }
+  .field {
+    @apply w-full rounded-xl border border-white/12 bg-ink-700/70 px-4 py-3 text-sm text-bone
+           placeholder:text-bone/30 transition-colors focus:border-gold focus:outline-none
+           focus:ring-1 focus:ring-gold;
+  }
+  .field-error {
+    @apply mt-1.5 text-xs font-medium text-danger;
+  }
+  .field-light {
+    @apply w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink
+           placeholder:text-ink/35 focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold;
+  }
+
+  /* Selectable tiles: venues, slots, coaches, payment methods. */
+  .tile {
+    @apply cursor-pointer rounded-xl border border-white/12 bg-ink-700/50 p-4 text-left
+           transition-all duration-200 hover:border-gold/60 hover:bg-ink-700;
+  }
+  .tile-selected {
+    @apply border-gold bg-gold/10 shadow-gold;
+  }
+  .tile-disabled {
+    @apply cursor-not-allowed border-white/5 bg-ink-800/40 text-bone/25 line-through
+           hover:border-white/5 hover:bg-ink-800/40;
+  }
+
+  .table-wrap {
+    @apply w-full overflow-x-auto rounded-2xl border border-white/10;
+  }
+  .tbl {
+    @apply w-full min-w-[640px] text-left text-sm;
+  }
+  .tbl thead th {
+    @apply whitespace-nowrap border-b border-white/10 bg-ink-800 px-4 py-3 text-[11px]
+           font-semibold uppercase tracking-wider text-bone/50;
+  }
+  .tbl tbody td {
+    @apply border-b border-white/5 px-4 py-3 align-middle text-bone/80;
+  }
+  .tbl tbody tr:hover td {
+    @apply bg-white/[0.03];
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  /* Diagonal court-line texture used behind section headers. */
+  .court-lines {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 11px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

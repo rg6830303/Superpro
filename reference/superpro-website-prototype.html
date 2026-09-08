@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperPro — Pickleball, Kolkata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#0f4d24;
+    --green-dark:#0a3a1a;
+    --gold:#EAB308;
+    --red:#DC2626;
+    --cream:#FDF8EC;
+    --ink:#1a1a1a;
+    --ink-soft:#4a4a42;
+    --line:#e4ddc9;
+    --white:#ffffff;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .display{font-family:'Bebas Neue',sans-serif;letter-spacing:0.3px;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;}
+
+  /* NAV */
+  header{
+    background:var(--green);
+    position:sticky;top:0;z-index:50;
+    border-bottom:3px solid var(--gold);
+  }
+  .nav-inner{
+    max-width:1080px;margin:0 auto;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;
+  }
+  .logo{
+    color:var(--cream);
+    font-family:'Bebas Neue',sans-serif;
+    font-size:28px;letter-spacing:1px;
+  }
+  .logo span{color:var(--gold);}
+  nav.tabs{display:flex;gap:4px;}
+  nav.tabs button{
+    color:#d8e6da;
+    font-size:14px;font-weight:600;
+    padding:9px 16px;border-radius:6px;
+    transition:background .15s, color .15s;
+  }
+  nav.tabs button:hover{background:rgba(255,255,255,0.08);color:var(--white);}
+  nav.tabs button.active{background:var(--gold);color:var(--green-dark);}
+
+  main{max-width:1080px;margin:0 auto;padding:40px 24px 80px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* HERO (home) */
+  .hero{
+    background:var(--green);
+    border-radius:16px;
+    padding:56px 40px;
+    color:var(--cream);
+    margin-bottom:36px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";position:absolute;right:-40px;top:-40px;
+    width:220px;height:220px;border-radius:50%;
+    background:rgba(234,179,8,0.12);
+  }
+  .hero h1{
+    font-size:56px;line-height:0.95;margin-bottom:14px;position:relative;
+  }
+  .hero p{max-width:480px;color:#cfe0d2;font-size:16px;position:relative;}
+  .hero-ctas{display:flex;gap:12px;margin-top:26px;position:relative;}
+  .btn{
+    display:inline-block;padding:12px 22px;border-radius:8px;
+    font-weight:600;font-size:14px;
+  }
+  .btn-gold{background:var(--gold);color:var(--green-dark);}
+  .btn-gold:hover{background:#d4a207;}
+  .btn-outline{border:1.5px solid rgba(253,248,236,0.5);color:var(--cream);}
+  .btn-outline:hover{border-color:var(--cream);}
+
+  .home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .home-card{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px;transition:border-color .15s;
+  }
+  .home-card:hover{border-color:var(--gold);}
+  .home-card .tag{font-size:12px;color:var(--red);font-weight:600;margin-bottom:8px;}
+  .home-card h3{font-size:19px;margin-bottom:6px;}
+  .home-card p{font-size:14px;color:var(--ink-soft);margin-bottom:14px;}
+  .home-card .link{font-size:13px;font-weight:600;color:var(--green);}
+
+  h2.section-title{font-size:34px;margin-bottom:6px;}
+  .section-sub{color:var(--ink-soft);font-size:15px;margin-bottom:28px;max-width:520px;}
+
+  /* PRODUCTS */
+  .product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  .product-card{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;display:flex;flex-direction:column;
+  }
+  .product-img{
+    height:150px;background:linear-gradient(135deg,var(--green) 0%, var(--green-dark) 100%);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:22px;
+  }
+  .product-body{padding:18px;flex:1;display:flex;flex-direction:column;}
+  .product-body h3{font-size:17px;margin-bottom:4px;}
+  .product-specs{font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;}
+  .product-price{font-size:18px;font-weight:700;color:var(--green);margin-top:auto;margin-bottom:12px;}
+  .product-body .btn{text-align:center;font-size:13px;padding:10px;}
+
+  /* DAILY GAMES */
+  .stepper{display:flex;align-items:center;margin-bottom:36px;}
+  .step-item{display:flex;align-items:center;flex:1;}
+  .step-dot{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--white);border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;color:var(--ink-soft);
+    flex-shrink:0;
+  }
+  .step-item.done .step-dot{background:var(--green);border-color:var(--green);color:var(--white);}
+  .step-item.current .step-dot{background:var(--gold);border-color:var(--gold);color:var(--green-dark);}
+  .step-label{font-size:13px;font-weight:600;margin-left:10px;color:var(--ink-soft);white-space:nowrap;}
+  .step-item.current .step-label, .step-item.done .step-label{color:var(--ink);}
+  .step-line{height:2px;background:var(--line);flex:1;margin:0 14px;}
+  .step-item.done + .step-line{background:var(--green);}
+
+  .card-panel{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    padding:32px;max-width:640px;
+  }
+  .form-row{margin-bottom:18px;}
+  .form-row label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;}
+  .form-row input, .form-row select{
+    width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:7px;
+    font-family:inherit;font-size:14px;background:var(--cream);
+  }
+  .form-row input:focus, .form-row select:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--gold);}
+  .form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .error-text{color:var(--red);font-size:12.5px;margin-top:5px;display:none;}
+
+  .venue-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+  .venue-card{
+    border:1.5px solid var(--line);border-radius:8px;padding:16px;cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .venue-card:hover{border-color:var(--gold);}
+  .venue-card.selected{border-color:var(--green);background:#eef5ee;}
+  .venue-card h4{font-size:15px;margin-bottom:3px;}
+  .venue-card p{font-size:12.5px;color:var(--ink-soft);}
+
+  .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px;}
+  .slot-btn{
+    border:1.5px solid var(--line);border-radius:7px;padding:10px 6px;
+    font-size:12.5px;font-weight:600;text-align:center;background:var(--white);
+    transition:border-color .15s, background .15s;
+  }
+  .slot-btn:hover:not(.taken){border-color:var(--gold);}
+  .slot-btn.selected{background:var(--green);color:var(--white);border-color:var(--green);}
+  .slot-btn.taken{background:#f0ede0;color:#b8b3a0;cursor:not-allowed;text-decoration:line-through;}
+
+  .summary-row{display:flex;justify-content:space-between;font-size:14px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .summary-row:last-of-type{border-bottom:none;}
+  .summary-row.total{font-weight:700;font-size:16px;padding-top:14px;}
+
+  .pay-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0;}
+  .pay-card{
+    border:1.5px solid var(--line);border-radius:8px;padding:18px;text-align:center;cursor:pointer;
+  }
+  .pay-card:hover{border-color:var(--gold);}
+  .pay-card.selected{border-color:var(--green);background:#eef5ee;}
+  .pay-card h4{font-size:15px;margin-bottom:4px;}
+  .pay-card p{font-size:12px;color:var(--ink-soft);}
+
+  .form-actions{display:flex;justify-content:space-between;margin-top:26px;}
+  .btn-secondary{background:none;border:1.5px solid var(--line);color:var(--ink);padding:11px 20px;border-radius:8px;font-size:14px;font-weight:600;}
+  .btn-secondary:hover{border-color:var(--ink-soft);}
+  .btn-primary{background:var(--green);color:var(--white);padding:11px 24px;border-radius:8px;font-size:14px;font-weight:600;}
+  .btn-primary:hover{background:var(--green-dark);}
+  .btn-primary:disabled{background:#c9c4b3;cursor:not-allowed;}
+
+  .confirm-box{text-align:center;padding:20px 0;}
+  .confirm-icon{
+    width:56px;height:56px;border-radius:50%;background:var(--green);color:var(--white);
+    display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;
+  }
+
+  /* TOURNAMENTS */
+  .tourn-list{display:flex;flex-direction:column;gap:18px;}
+  .tourn-card{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    display:flex;gap:20px;padding:22px;
+  }
+  .tourn-thumb{
+    width:120px;height:90px;border-radius:8px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--gold) 0%, #c99a06 100%);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Bebas Neue',sans-serif;color:var(--green-dark);font-size:15px;text-align:center;padding:6px;
+  }
+  .tourn-info{flex:1;}
+  .tourn-info .badge{
+    display:inline-block;font-size:11px;font-weight:700;color:var(--red);
+    border:1px solid var(--red);border-radius:4px;padding:2px 8px;margin-bottom:8px;
+  }
+  .tourn-info h3{font-size:18px;margin-bottom:4px;}
+  .tourn-info .meta{font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;}
+  .tourn-info .result{font-size:13px;color:var(--ink);}
+  .tourn-info .result b{color:var(--green);}
+
+  @media (max-width: 720px){
+    .nav-inner{flex-direction:column;gap:12px;align-items:flex-start;}
+    nav.tabs{flex-wrap:wrap;}
+    .hero h1{font-size:38px;}
+    .home-grid, .product-grid{grid-template-columns:1fr;}
+    .form-grid-2, .venue-options, .pay-options{grid-template-columns:1fr;}
+    .slot-grid{grid-template-columns:repeat(2,1fr);}
+    .tourn-card{flex-direction:column;}
+    .tourn-thumb{width:100%;height:80px;}
+    .card-panel{padding:22px;}
+    .stepper{flex-wrap:wrap;row-gap:10px;}
+    .step-label{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-inner">
+    <div class="logo">Super<span>Pro</span></div>
+    <nav class="tabs">
+      <button data-view="home" class="active">Home</button>
+      <button data-view="products">Products</button>
+      <button data-view="games">Daily games</button>
+      <button data-view="tournaments">Tournaments</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- HOME -->
+  <section id="home" class="view active">
+    <div class="hero">
+      <h1 class="display">Pickleball,<br>played properly.</h1>
+      <p>Kolkata's pickleball community — courts, coaching, gear, and tournaments, all under one roof at TurfXL, New Alipore.</p>
+      <div class="hero-ctas">
+        <button class="btn btn-gold" onclick="showView('games')">Book today's game</button>
+        <button class="btn btn-outline" onclick="showView('products')">Shop paddles</button>
+      </div>
+    </div>
+    <div class="home-grid">
+      <div class="home-card">
+        <div class="tag">Shop</div>
+        <h3>Products</h3>
+        <p>Champion Series paddles and gear, built for every level of play.</p>
+        <a class="link" onclick="showView('products')" href="javascript:void(0)">Browse gear →</a>
+      </div>
+      <div class="home-card">
+        <div class="tag">Play</div>
+        <h3>Daily games</h3>
+        <p>Register, pick a venue and slot, and check out in under a minute.</p>
+        <a class="link" onclick="showView('games')" href="javascript:void(0)">Book a slot →</a>
+      </div>
+      <div class="home-card">
+        <div class="tag">Compete</div>
+        <h3>Tournaments</h3>
+        <p>Events we've run and sponsored, with results and highlights.</p>
+        <a class="link" onclick="showView('tournaments')" href="javascript:void(0)">See tournaments →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section id="products" class="view">
+    <h2 class="section-title display">Products</h2>
+    <p class="section-sub">Paddles and gear from the Champion Series, available for pickup at TurfXL or delivery across Kolkata.</p>
+    <div class="product-grid">
+      <div class="product-card">
+        <div class="product-img">Toray T700</div>
+        <div class="product-body">
+          <h3>Champion Series T700</h3>
+          <p class="product-specs">16mm · Toray carbon face · honeycomb core</p>
+          <div class="product-price">₹9,000</div>
+          <button class="btn btn-primary">View details</button>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="product-img">Starter Pro</div>
+        <div class="product-body">
+          <h3>Champion Series Starter</h3>
+          <p class="product-specs">13mm · fiberglass face · beginner-friendly</p>
+          <div class="product-price">₹4,500</div>
+          <button class="btn btn-primary">View details</button>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="product-img">Grip &amp; Balls</div>
+        <div class="product-body">
+          <h3>Court essentials kit</h3>
+          <p class="product-specs">Overgrip, 3 outdoor balls, paddle cover</p>
+          <div class="product-price">₹1,200</div>
+          <button class="btn btn-primary">View details</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DAILY GAMES -->
+  <section id="games" class="view">
+    <h2 class="section-title display">Daily games</h2>
+    <p class="section-sub">Register, choose your venue and slot, then check out — pay online or at the venue.</p>
+
+    <div class="stepper" id="stepper"></div>
+
+    <!-- STEP 1: REGISTER -->
+    <div class="card-panel step-panel" id="step-1">
+      <div class="form-row">
+        <label for="reg-name">Full name</label>
+        <input type="text" id="reg-name" placeholder="e.g. Ishaan Sanghvi">
+        <div class="error-text" id="err-name">Enter your name to continue</div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label for="reg-phone">Phone number</label>
+          <input type="tel" id="reg-phone" placeholder="98xxxxxxxx">
+          <div class="error-text" id="err-phone">Enter a valid 10-digit number</div>
+        </div>
+        <div class="form-row">
+          <label for="reg-skill">Skill level</label>
+          <select id="reg-skill">
+            <option>Beginner</option>
+            <option>Intermediate</option>
+            <option>Advanced / DUPR rated</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <span></span>
+        <button class="btn-primary" onclick="goToStep(2)">Continue to slot selection</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: VENUE & SLOT -->
+    <div class="card-panel step-panel" id="step-2" style="display:none;">
+      <div class="form-row">
+        <label>Choose a venue</label>
+        <div class="venue-options" id="venue-options">
+          <div class="venue-card" data-venue="TurfXL, New Alipore">
+            <h4>TurfXL</h4>
+            <p>New Alipore · 4 courts · 6 AM–11 PM</p>
+          </div>
+          <div class="venue-card" data-venue="Sportsplex, indoor">
+            <h4>Sportsplex</h4>
+            <p>Indoor courts · 6 AM–11 PM</p>
+          </div>
+        </div>
+        <div class="error-text" id="err-venue">Pick a venue to see open slots</div>
+      </div>
+      <div class="form-row">
+        <label>Available slots today</label>
+        <div class="slot-grid" id="slot-grid">
+          <div class="slot-btn" data-slot="7:00 AM">7:00 AM</div>
+          <div class="slot-btn taken" data-slot="8:00 AM">8:00 AM</div>
+          <div class="slot-btn" data-slot="9:00 AM">9:00 AM</div>
+          <div class="slot-btn" data-slot="6:00 PM">6:00 PM</div>
+          <div class="slot-btn" data-slot="7:00 PM">7:00 PM</div>
+          <div class="slot-btn taken" data-slot="8:00 PM">8:00 PM</div>
+          <div class="slot-btn" data-slot="9:00 PM">9:00 PM</div>
+          <div class="slot-btn" data-slot="10:00 PM">10:00 PM</div>
+        </div>
+        <div class="error-text" id="err-slot">Pick an open slot to continue</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="goToStep(1)">Back</button>
+        <button class="btn-primary" onclick="goToStep(3)">Continue to checkout</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: CHECKOUT -->
+    <div class="card-panel step-panel" id="step-3" style="display:none;">
+      <div class="summary-row"><span>Player</span><span id="sum-name">—</span></div>
+      <div class="summary-row"><span>Venue</span><span id="sum-venue">—</span></div>
+      <div class="summary-row"><span>Slot</span><span id="sum-slot">—</span></div>
+      <div class="summary-row total"><span>Amount due</span><span>₹350</span></div>
+
+      <div class="form-row" style="margin-top:20px;">
+        <label>How would you like to pay?</label>
+        <div class="pay-options" id="pay-options">
+          <div class="pay-card" data-pay="Online">
+            <h4>Pay online</h4>
+            <p>UPI or card, confirms instantly</p>
+          </div>
+          <div class="pay-card" data-pay="Cash">
+            <h4>Pay at venue</h4>
+            <p>Cash on arrival, held for 20 min</p>
+          </div>
+        </div>
+        <div class="error-text" id="err-pay">Choose a payment method to continue</div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="goToStep(2)">Back</button>
+        <button class="btn-primary" onclick="confirmBooking()">Confirm booking</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: CONFIRMATION -->
+    <div class="card-panel step-panel confirm-box" id="step-4" style="display:none;">
+      <div class="confirm-icon">✓</div>
+      <h3 style="font-size:20px;margin-bottom:8px;" id="confirm-title">Booking confirmed</h3>
+      <p style="color:var(--ink-soft);font-size:14px;margin-bottom:22px;" id="confirm-sub">A confirmation has been sent to your phone.</p>
+      <button class="btn btn-gold" onclick="resetGames()">Book another slot</button>
+    </div>
+  </section>
+
+  <!-- TOURNAMENTS -->
+  <section id="tournaments" class="view">
+    <h2 class="section-title display">Tournaments</h2>
+    <p class="section-sub">Events SuperPro has organized or sponsored — results, formats, and highlights.</p>
+    <div class="tourn-list">
+      <div class="tourn-card">
+        <div class="tourn-thumb">Legends &amp; Challengers 2nd Ed.</div>
+        <div class="tourn-info">
+          <div class="badge">Organized</div>
+          <h3>Legends &amp; Challengers, 2nd Edition</h3>
+          <div class="meta">July 10–11, 2026 · TurfXL · 16 teams · split-age doubles</div>
+          <div class="result">Winners: <b>Vivek Burman &amp; Mayank Parakh</b></div>
+        </div>
+      </div>
+      <div class="tourn-card">
+        <div class="tourn-thumb">Trickshotz Rally</div>
+        <div class="tourn-info">
+          <div class="badge">Organized</div>
+          <h3>Trickshotz Rally</h3>
+          <div class="meta">August 15, 2026 · TurfXL · 16 teams · trick-shot format</div>
+          <div class="result">₹15,000 prize pool · DUPR aggregate cap 8.7</div>
+        </div>
+      </div>
+      <div class="tourn-card">
+        <div class="tourn-thumb">Beginners Doubles</div>
+        <div class="tourn-info">
+          <div class="badge">Organized</div>
+          <h3>Beginners Doubles Tournament</h3>
+          <div class="meta">June 5–6, 2026 · TurfXL · 19 teams</div>
+          <div class="result">₹10,800 prize pool</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ---------- NAV ----------
+  const tabButtons = document.querySelectorAll('nav.tabs button');
+  function showView(name){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(name).classList.add('active');
+    tabButtons.forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  tabButtons.forEach(b=>b.addEventListener('click', ()=>showView(b.dataset.view)));
+
+  // ---------- STEPPER ----------
+  const steps = ['Register','Venue & slot','Checkout','Confirmed'];
+  function renderStepper(current){
+    const el = document.getElementById('stepper');
+    el.innerHTML = '';
+    steps.forEach((label,i)=>{
+      const n = i+1;
+      const item = document.createElement('div');
+      item.className = 'step-item' + (n<current?' done':'') + (n===current?' current':'');
+      item.innerHTML = `<div class="step-dot">${n<current?'✓':n}</div><div class="step-label">${label}</div>`;
+      el.appendChild(item);
+      if(i<steps.length-1){
+        const line = document.createElement('div');
+        line.className = 'step-line';
+        el.appendChild(line);
+      }
+    });
+  }
+  let currentStep = 1;
+  function goToStep(target){
+    if(currentStep===1 && target===2){
+      const name = document.getElementById('reg-name').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      let ok = true;
+      document.getElementById('err-name').style.display = 'none';
+      document.getElementById('err-phone').style.display = 'none';
+      if(!name){ document.getElementById('err-name').style.display='block'; ok=false; }
+      if(!/^\d{10}$/.test(phone)){ document.getElementById('err-phone').style.display='block'; ok=false; }
+      if(!ok) return;
+    }
+    if(currentStep===2 && target===3){
+      let ok = true;
+      document.getElementById('err-venue').style.display = 'none';
+      document.getElementById('err-slot').style.display = 'none';
+      if(!selectedVenue){ document.getElementById('err-venue').style.display='block'; ok=false; }
+      if(!selectedSlot){ document.getElementById('err-slot').style.display='block'; ok=false; }
+      if(!ok) return;
+      document.getElementById('sum-name').textContent = document.getElementById('reg-name').value.trim();
+      document.getElementById('sum-venue').textContent = selectedVenue;
+      document.getElementById('sum-slot').textContent = selectedSlot;
+    }
+    document.querySelectorAll('.step-panel').forEach(p=>p.style.display='none');
+    document.getElementById('step-'+target).style.display='block';
+    currentStep = target;
+    renderStepper(target);
+  }
+
+  // ---------- VENUE / SLOT SELECTION ----------
+  let selectedVenue = null, selectedSlot = null;
+  document.querySelectorAll('.venue-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      document.querySelectorAll('.venue-card').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedVenue = card.dataset.venue;
+      document.getElementById('err-venue').style.display='none';
+    });
+  });
+  document.querySelectorAll('.slot-btn:not(.taken)').forEach(slot=>{
+    slot.addEventListener('click', ()=>{
+      document.querySelectorAll('.slot-btn').forEach(s=>s.classList.remove('selected'));
+      slot.classList.add('selected');
+      selectedSlot = slot.dataset.slot;
+      document.getElementById('err-slot').style.display='none';
+    });
+  });
+
+  // ---------- PAYMENT ----------
+  let selectedPay = null;
+  document.querySelectorAll('.pay-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      document.querySelectorAll('.pay-card').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedPay = card.dataset.pay;
+      document.getElementById('err-pay').style.display='none';
+    });
+  });
+  function confirmBooking(){
+    if(!selectedPay){ document.getElementById('err-pay').style.display='block'; return; }
+    const title = document.getElementById('confirm-title');
+    const sub = document.getElementById('confirm-sub');
+    if(selectedPay==='Online'){
+      title.textContent = 'Payment successful — booking confirmed';
+      sub.textContent = 'Your slot at ' + selectedVenue + ' is locked in. See you on court.';
+    } else {
+      title.textContent = 'Slot held — pay cash on arrival';
+      sub.textContent = 'Your slot is reserved for 20 minutes. Please arrive on time to confirm with cash.';
+    }
+    document.querySelectorAll('.step-panel').forEach(p=>p.style.display='none');
+    document.getElementById('step-4').style.display='block';
+    currentStep = 4;
+    renderStepper(4);
+  }
+  function resetGames(){
+    document.getElementById('reg-name').value='';
+    document.getElementById('reg-phone').value='';
+    selectedVenue=null; selectedSlot=null; selectedPay=null;
+    document.querySelectorAll('.venue-card,.slot-btn,.pay-card').forEach(c=>c.classList.remove('selected'));
+    document.querySelectorAll('.step-panel').forEach(p=>p.style.display='none');
+    document.getElementById('step-1').style.display='block';
+    currentStep=1;
+    renderStepper(1);
+  }
+
+  renderStepper(1);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+.next
+node_modules
+*.tsbuildinfo
+dist
+coverage
+.vercel
+.DS_Store
+
+# Never commit real secrets — .env.example is the only env file that ships.
+.env
+.env*
+!.env.example
