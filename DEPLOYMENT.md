@@ -27,7 +27,7 @@ Set these in **both** projects (Settings → Environment Variables → Productio
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<project-ref>.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable key — safe in the browser. |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secret.** Creates accounts, bypasses RLS. Server only. |
-| `SESSION_SECRET` | 32+ random chars — `openssl rand -hex 32`. Signs the session cookie. |
+| `SESSION_SECRET` | 32+ random chars — `openssl rand -hex 32`. Signs the session cookie. **Recommended, not required**: if it is unset the key is derived from `SUPABASE_SERVICE_ROLE_KEY`, so logins keep working. Setting it explicitly lets you rotate every session without touching Supabase. |
 | `ADMIN_USERNAME` | `ishaanchetani` |
 | `ADMIN_PASSWORD` | Bootstrap password for the first admin sign-in. |
 | `ADMIN_EMAIL_DOMAIN` | `superpro.in` — the username is expanded to `<username>@<domain>` for Supabase. |
@@ -69,8 +69,11 @@ verifies a sign-in, the app mints a short signed cookie so the Edge middleware
 can gate routes without a database round trip — and because the two surfaces sit
 on different domains, their sessions are completely separate.
 
-- **Players** sign up at `/signup`. The account is created in Supabase and
-  mirrored into `public.users` (same id) with their profile and wallet.
+- **Players** sign up at `/signup` with a DUPR ID and rating. Their category is
+  derived from the rating — below 3.5 beginner, 3.5–4.0 intermediate, 4.0+
+  advanced — on the client for live feedback and again on the server, which
+  never accepts a category from the browser. The account is created in Supabase
+  and mirrored into `public.users` (same id) with their profile and wallet.
 - **Admins** sign in at `/admin/login` with a **username**, which is expanded to
   `<username>@ADMIN_EMAIL_DOMAIN`. Two gates must pass: Supabase accepts the
   password, *and* the account carries an admin role. On the first sign-in with
@@ -81,7 +84,21 @@ Change the admin password afterwards in the Supabase dashboard
 (Authentication → Users), or by updating `ADMIN_PASSWORD` and signing in again —
 the bootstrap path re-syncs the password to the configured value.
 
-## 4. Wallet
+## 4. Running the club from the console
+
+Everything the club changes day to day is editable at `/admin`, no redeploy:
+
+| Page | What you can do |
+| --- | --- |
+| Players | Create accounts (provisions the Supabase sign-in), edit any field, reset passwords, grant console access, delete accounts, and credit/debit wallets |
+| Daily games | Bulk-build slots (dates × times × courts), edit or cancel a slot, add and edit venues, assign courts per player, and post the line-up to the WhatsApp group |
+| Coaching | Coach roster CRUD — rates, specialties, available days — plus confirming session requests |
+| Products | Full catalogue CRUD including stock, pricing, images and featured flags |
+| Tournaments | Create and edit events, review entries, auto-group teams by combined DUPR, and publish the draw |
+| Orders | Payment and fulfilment state |
+| WhatsApp | Outbox, group broadcast, and one-tap send for anything queued |
+
+## 5. Wallet
 
 Players hold prepaid credit in paise on `users.wallet_balance_paise`, with an
 immutable ledger in `wallet_transactions`. Admins top up or correct a balance
@@ -92,7 +109,7 @@ players. The debit is a single conditional `UPDATE` that refuses to go below
 zero, so two concurrent bookings can never spend the same rupee, and a booking
 that fails after the debit is auto-refunded.
 
-## 5. WhatsApp
+## 6. WhatsApp
 
 Meta's Cloud API cannot post into a group chat, so confirmed slots reach the
 group in three tiers, best available first:
@@ -106,7 +123,7 @@ group in three tiers, best available first:
 
 Nothing is ever lost: every attempt is recorded either way.
 
-## 6. Cron
+## 7. Cron
 
 `vercel.json` registers `/api/cron/daily-digest` at 01:30 UTC (07:00 IST). It
 rolls the schedule forward so there is always a week of open slots, then posts
