@@ -56,7 +56,7 @@ function create(): Sql {
     prepare: false,
     // Keep the socket warm between consecutive user actions, release when idle.
     idle_timeout: 30,
-    connect_timeout: 15,
+    connect_timeout: 5,
     ssl: "require",
     onnotice: () => {},
   });

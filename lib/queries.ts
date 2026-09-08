@@ -1,4 +1,4 @@
-import { query } from "@/lib/db";
+import { query, isDbConfigured } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { istToday, addDays } from "@/lib/dates";
 import type { Coach, GameSession, Product, Tournament, Venue } from "@/lib/types";
@@ -13,6 +13,7 @@ import type { Coach, GameSession, Product, Tournament, Venue } from "@/lib/types
  */
 
 async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+  if (!isDbConfigured) return fallback;
   try {
     await ensureSchema();
     return await fn();

@@ -3,33 +3,45 @@ import type { NextRequest } from "next/server";
 import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
 
 /**
- * Host-based separation between the two Vercel deployments.
+ * Domain separation between User Website (superpro.vercel.app) and Admin Console (superproadmin.vercel.app).
  *
- *   - NEXT_PUBLIC_ADMIN_HOST (e.g. superpro-admin.vercel.app) is the ONLY host
- *     where /admin is reachable. On that host "/" and any public path redirect
- *     straight to the console, so a customer who finds the URL never sees the
- *     shop, and every response is tagged noindex.
- *   - Every other host serves the public site and 404s /admin, so the console is
- *     invisible from the customer domain.
+ *   - Admin host (e.g. superproadmin.vercel.app or configured NEXT_PUBLIC_ADMIN_HOST):
+ *     Only serves /admin and /api/admin. Any public site path (e.g. "/", "/products")
+ *     automatically redirects to /admin console. Every response is tagged X-Robots-Tag: noindex.
  *
- * With NEXT_PUBLIC_ADMIN_HOST unset (local dev) both surfaces share one origin.
+ *   - User site host (e.g. superpro.vercel.app):
+ *     Serves the main customer website. Any attempt to access /admin or /admin/* is
+ *     domain-separated and returns a 404 Not Found so the admin console is completely hidden.
+ *
+ *   - Local dev (localhost):
+ *     Allows access to both surfaces on single origin when NEXT_PUBLIC_ADMIN_HOST is unset.
  */
-const ADMIN_HOST = process.env.NEXT_PUBLIC_ADMIN_HOST?.trim().toLowerCase();
+const CONFIG_ADMIN_HOST = process.env.NEXT_PUBLIC_ADMIN_HOST?.trim().toLowerCase();
 
-const PUBLIC_ASSET = /\.(png|jpg|jpeg|gif|svg|ico|webp|json|txt|xml|webmanifest)$/i;
+const PUBLIC_ASSET = /\.(png|jpg|jpeg|gif|svg|ico|webp|json|txt|xml|webmanifest|css|js)$/i;
 
 function hostOf(req: NextRequest): string {
   return (req.headers.get("host") ?? "").split(":")[0].toLowerCase();
 }
 
+function checkAdminHost(host: string): boolean {
+  if (!host) return false;
+  if (CONFIG_ADMIN_HOST && host === CONFIG_ADMIN_HOST) return true;
+  if (host === "superproadmin.vercel.app") return true;
+  if (host.startsWith("admin.") || host.startsWith("superproadmin.")) return true;
+  return false;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const host = hostOf(req);
-  const onAdminHost = Boolean(ADMIN_HOST) && host === ADMIN_HOST;
+  const isDev = process.env.NODE_ENV === "development" && host.includes("localhost");
+
+  const onAdminHost = checkAdminHost(host);
   const isAdminPath = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
 
   if (onAdminHost) {
-    // Any non-admin page on the admin host goes to the console.
+    // Any non-admin path on the dedicated admin domain goes straight to /admin console
     if (
       !isAdminPath &&
       !pathname.startsWith("/api/") &&
@@ -44,7 +56,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(dest);
     }
 
-    // Gate the console itself. Login page and asset-like paths stay open.
+    // Gate the admin console. /admin/login stays accessible.
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login") && !pathname.includes(".")) {
       const token = req.cookies.get(ADMIN_COOKIE)?.value;
       const payload = token ? await verifyToken(token) : null;
@@ -58,16 +70,17 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
+  // On non-admin host (e.g. superpro.vercel.app / public site):
   if (isAdminPath) {
-    if (ADMIN_HOST) {
-      // A dedicated admin host exists and this isn't it — the console is fully
-      // removed from the public domain.
+    if (!isDev) {
+      // Completely hide /admin on the public domain with a 404
       return new NextResponse(null, {
         status: 404,
         headers: { "X-Robots-Tag": "noindex, nofollow" },
       });
     }
-    // Single-domain (local dev): still gate the console.
+
+    // Single-domain local dev fallback
     if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login") && !pathname.includes(".")) {
       const token = req.cookies.get(ADMIN_COOKIE)?.value;
       const payload = token ? await verifyToken(token) : null;
@@ -77,7 +90,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Player dashboard gate.
+  // Player dashboard gate
   if (pathname.startsWith("/dashboard")) {
     const token = req.cookies.get(PLAYER_COOKIE)?.value;
     const payload = token ? await verifyToken(token) : null;
