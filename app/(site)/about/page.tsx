@@ -58,7 +58,7 @@ export default function AboutPage() {
 
       {/* Vision */}
       <section className="wrap py-20">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr]">
+        <div className="grid min-w-0 gap-12 lg:grid-cols-[1fr_1.1fr]">
           <Reveal>
             <div className="lg:sticky lg:top-28">
               <Target size={24} className="text-gold" />

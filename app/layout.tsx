@@ -60,6 +60,11 @@ export const viewport: Viewport = {
   themeColor: "#0A0A0B",
   width: "device-width",
   initialScale: 1,
+  // Never trap the reader at one zoom level — pinch-zoom stays available, which
+  // is also an accessibility requirement.
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

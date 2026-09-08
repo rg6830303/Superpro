@@ -115,7 +115,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <section className="mt-10 grid gap-5 lg:grid-cols-[1fr_1.4fr]">
+      <section className="mt-10 grid min-w-0 gap-5 lg:grid-cols-[1fr_1.4fr]">
         <div className="card flex flex-col p-6">
           <Wallet size={18} className="text-gold" />
           <p className="mt-3 text-[11px] uppercase tracking-wider text-bone/40">SuperPro wallet</p>

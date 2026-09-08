@@ -81,7 +81,7 @@ export function SectionHeading({
 /** Numbered progress rail used by the games / coaching / checkout flows. */
 export function Stepper({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <ol className="mb-8 flex items-center gap-2 overflow-x-auto no-scrollbar" aria-label="Progress">
+    <ol className="scroll-x mb-8 flex items-center gap-2 no-scrollbar" aria-label="Progress">
       {steps.map((label, i) => {
         const n = i + 1;
         const done = n < current;

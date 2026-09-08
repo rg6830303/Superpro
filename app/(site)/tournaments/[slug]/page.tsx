@@ -71,7 +71,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
         </dl>
       </header>
 
-      <div className="mt-12 grid gap-8 lg:grid-cols-[1.3fr_1fr]">
+      <div className="mt-12 grid min-w-0 gap-8 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-8">
           {t.description && (
             <section className="card p-7">
@@ -153,7 +153,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
           )}
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           {canRegister ? (
             <TournamentRegistration tournament={t} razorpayEnabled={isRazorpayEnabled} razorpayKeyId={razorpayKeyId} />
           ) : (

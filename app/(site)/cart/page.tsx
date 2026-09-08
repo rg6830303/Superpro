@@ -40,7 +40,7 @@ export default function CartPage() {
         {count} item{count === 1 ? "" : "s"}
       </p>
 
-      <div className="mt-9 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
+      <div className="mt-9 grid min-w-0 gap-8 lg:grid-cols-[1.5fr_1fr]">
         <ul className="space-y-3">
           {lines.map((l) => (
             <li key={l.product_id} className="card flex gap-4 p-4">
@@ -92,7 +92,7 @@ export default function CartPage() {
           ))}
         </ul>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <div className="card p-6">
             <h2 className="text-2xl">Summary</h2>
             <dl className="mt-5 space-y-3 text-sm">

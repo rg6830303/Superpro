@@ -13,6 +13,20 @@
 
   html {
     scroll-behavior: smooth;
+    /* Android/Chromium inflate text inside any block wider than the viewport
+       ("font boosting"), which renders body copy at ~2x while the cards around
+       it stay put. Pinning this to 100% opts out; the -webkit- prefix alone
+       (what Tailwind's preflight ships) is not honoured by every browser. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Nothing may make the document wider than the screen. `clip` (not `hidden`)
+     keeps position: sticky working on the header. */
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   body {
@@ -21,6 +35,15 @@
       radial-gradient(900px 500px at 12% -8%, rgba(199, 150, 32, 0.10), transparent 60%),
       radial-gradient(700px 420px at 92% 0%, rgba(215, 240, 53, 0.06), transparent 55%);
     background-attachment: fixed;
+  }
+
+  /* Mobile Chromium repaints a fixed background on every scroll frame, which
+     both janks the scroll and tears the sticky header's backdrop-blur. Pin the
+     wash to the page instead — visually identical, no repaint cost. */
+  @media (max-width: 1024px), (hover: none) {
+    body {
+      background-attachment: scroll;
+    }
   }
 
   ::selection {
@@ -45,7 +68,15 @@
 
 @layer components {
   .wrap {
-    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+    @apply mx-auto w-full min-w-0 max-w-6xl px-5 sm:px-8;
+  }
+
+  /* Horizontal scroller. `min-w-0` is the load-bearing part: a grid or flex
+     child defaults to min-width:auto, so without it the scroller's content
+     width props the whole column open and pushes the page off-screen. */
+  .scroll-x {
+    @apply min-w-0 max-w-full overflow-x-auto overscroll-x-contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .eyebrow {
@@ -82,7 +113,8 @@
 
   /* ── Surfaces ────────────────────────────────────────────────────────── */
   .card {
-    @apply rounded-2xl border border-white/10 bg-ink-800/80 backdrop-blur-sm;
+    @apply min-w-0 rounded-2xl border border-white/10 bg-ink-800/80 backdrop-blur-sm;
+    overflow-wrap: anywhere;
   }
   .card-hover {
     @apply card transition-all duration-300 hover:border-gold/50 hover:shadow-card;
@@ -136,7 +168,7 @@
   }
 
   .table-wrap {
-    @apply w-full overflow-x-auto rounded-2xl border border-white/10;
+    @apply w-full min-w-0 max-w-full overflow-x-auto rounded-2xl border border-white/10;
   }
   .tbl {
     @apply w-full min-w-[640px] text-left text-sm;

@@ -119,7 +119,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+    <form onSubmit={submit} className="grid min-w-0 gap-8 lg:grid-cols-[1.4fr_1fr]">
       <div className="space-y-8">
         <section className="card p-6">
           <h2 className="text-2xl">Your details</h2>
@@ -223,7 +223,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
         </section>
       </div>
 
-      <aside className="lg:sticky lg:top-24 lg:self-start">
+      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <div className="card p-6">
           <h2 className="text-2xl">Order summary</h2>
           <ul className="mt-5 space-y-3">

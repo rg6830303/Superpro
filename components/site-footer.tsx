@@ -35,7 +35,7 @@ const COLUMNS = [
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-white/10 bg-ink-900">
-      <div className="wrap grid gap-10 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div className="wrap grid min-w-0 gap-10 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div>
           <Logo height={40} href={null} />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-bone/50">

@@ -297,7 +297,7 @@ export function CoachingFlow({
 
           <div className="mt-6">
             <span className="label">Preferred first date</span>
-            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            <div className="scroll-x flex gap-2 pb-2 no-scrollbar">
               {dates.map((d) => (
                 <button
                   key={d}

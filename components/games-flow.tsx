@@ -264,8 +264,8 @@ export function GamesFlow({
 
       {/* ── Step 2 — slot picking ─────────────────────────────────────── */}
       {step === 2 && (
-        <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-          <div className="card p-6">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[1.6fr_1fr]">
+          <div className="card min-w-0 p-6">
             <h2 className="text-2xl">This week&apos;s slots</h2>
             <p className="mt-1.5 text-sm text-bone/50">
               Pick as many as you like — one tap each. Full slots are greyed out.
@@ -281,9 +281,11 @@ export function GamesFlow({
               </div>
             ) : (
               <>
-                <div className="mt-6 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                <div className="scroll-x mt-6 flex gap-2 pb-2 no-scrollbar">
                   {dates.map((d) => {
-                    const open = (byDate.get(d) ?? []).filter((s) => spotsLeft(s) > 0).length;
+                    const open = (byDate.get(d) ?? []).filter(
+                      (s) => spotsLeft(s) > 0 && !isPast(s.session_date, s.start_time),
+                    ).length;
                     const isActive = d === shownDate;
                     return (
                       <button
@@ -348,7 +350,7 @@ export function GamesFlow({
             )}
           </div>
 
-          <aside className="lg:sticky lg:top-24 lg:self-start">
+          <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
             <div className="card p-6">
               <h3 className="text-xl">Your picks</h3>
               {pickedSessions.length === 0 ? (

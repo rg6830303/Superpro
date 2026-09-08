@@ -38,7 +38,7 @@ export default async function HomePage() {
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="court-lines absolute inset-0" aria-hidden />
-        <div className="wrap relative grid items-center gap-10 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
+        <div className="wrap relative grid min-w-0 items-center gap-10 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
           <div>
             <p className="eyebrow animate-fade-up">Kolkata · Est. 2024</p>
             <h1 className="mt-4 animate-fade-up text-[clamp(3rem,9vw,5.75rem)] leading-[0.88]">
