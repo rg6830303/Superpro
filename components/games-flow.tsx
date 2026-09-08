@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, MapPin, MessageCircle, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, MapPin, MessageCircle, Users, Wallet } from "lucide-react";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, Spinner, Stepper } from "@/components/ui";
 import { formatDate, formatTime, formatTimeRange, isPast } from "@/lib/dates";
@@ -37,11 +37,14 @@ export function GamesFlow({
   sessions,
   razorpayEnabled,
   razorpayKeyId,
+  walletPaise = 0,
   defaults,
 }: {
   sessions: GameSession[];
   razorpayEnabled: boolean;
   razorpayKeyId: string;
+  /** Signed-in player's wallet balance; 0 (or signed out) hides the option. */
+  walletPaise?: number;
   defaults?: { name?: string; phone?: string; email?: string; skill?: SkillLevel };
 }) {
   const [step, setStep] = useState(1);
@@ -51,7 +54,7 @@ export function GamesFlow({
   const [skill, setSkill] = useState<SkillLevel>(defaults?.skill ?? "beginner");
   const [players, setPlayers] = useState(1);
   const [picked, setPicked] = useState<string[]>([]);
-  const [pay, setPay] = useState<"razorpay" | "venue">(razorpayEnabled ? "razorpay" : "venue");
+  const [pay, setPay] = useState<"razorpay" | "venue" | "wallet">(razorpayEnabled ? "razorpay" : "venue");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -422,6 +425,22 @@ export function GamesFlow({
           <div className="mt-6">
             <span className="label">Payment</span>
             <div className="grid gap-3 sm:grid-cols-2">
+              {walletPaise > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPay("wallet")}
+                  disabled={walletPaise < totalPaise}
+                  className={`tile ${pay === "wallet" ? "tile-selected" : ""} ${walletPaise < totalPaise ? "opacity-40" : ""}`}
+                >
+                  <Wallet size={18} className="text-gold" />
+                  <p className="mt-2 font-display text-lg uppercase text-bone">SuperPro wallet</p>
+                  <p className="mt-1 text-xs text-bone/50">
+                    {walletPaise < totalPaise
+                      ? `Only ${formatPaise(walletPaise)} left — top up with a rep.`
+                      : `${formatPaise(walletPaise)} available. Confirms instantly.`}
+                  </p>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => razorpayEnabled && setPay("razorpay")}
@@ -453,7 +472,13 @@ export function GamesFlow({
             </button>
             <button type="button" onClick={confirmBooking} disabled={busy} className="btn-gold">
               {busy ? <Spinner /> : null}
-              {busy ? "Confirming…" : pay === "razorpay" ? `Pay ${formatPaise(totalPaise)}` : "Confirm booking"}
+              {busy
+                ? "Confirming…"
+                : pay === "razorpay"
+                  ? `Pay ${formatPaise(totalPaise)}`
+                  : pay === "wallet"
+                    ? `Pay ${formatPaise(totalPaise)} from wallet`
+                    : "Confirm booking"}
             </button>
           </div>
         </div>
@@ -466,13 +491,17 @@ export function GamesFlow({
             <Check size={28} />
           </div>
           <h2 className="mt-5 text-4xl">
-            {confirmation.payment_method === "razorpay" ? "Paid & confirmed" : "Slot confirmed"}
+            {confirmation.payment_method === "razorpay" || confirmation.payment_method === "wallet"
+              ? "Paid & confirmed"
+              : "Slot confirmed"}
           </h2>
           <p className="mt-3 text-sm text-bone/55">
             Reference <span className="font-semibold text-gold">{confirmation.reference}</span>.
             {confirmation.payment_method === "razorpay"
               ? " See you on court."
-              : " Pay at the venue — your spot is held for 20 minutes from the start time."}
+              : confirmation.payment_method === "wallet"
+                ? " Paid from your SuperPro wallet. See you on court."
+                : " Pay at the venue — your spot is held for 20 minutes from the start time."}
           </p>
 
           <ul className="mt-7 space-y-3 border-t border-white/10 pt-6 text-left">

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import bcrypt from "bcryptjs";
-import { queryOne } from "@/lib/db";
-import { ensureSchema } from "@/lib/schema";
+import { syncUserRow, verifyCredentials } from "@/lib/accounts";
 import { signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
+import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, loginSchema } from "@/lib/validation";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
+/** Player sign-in. Credentials are checked by Supabase Auth, never here. */
 export async function POST(req: Request) {
   try {
     const rl = await checkRateLimit(`login:${getClientIp(req)}`, 10, 15 * 60 * 1000);
@@ -25,21 +26,28 @@ export async function POST(req: Request) {
     }
     const { email, password } = parsed.data;
 
-    await ensureSchema();
-
-    const user = await queryOne<{ id: string; email: string; full_name: string; password_hash: string }>(
-      "SELECT id, email, full_name, password_hash FROM users WHERE email = $1 LIMIT 1",
-      [email],
-    );
-
-    const ok = user ? await bcrypt.compare(password, user.password_hash) : false;
-    if (!user || !ok) {
-      // Fixed delay blunts credential stuffing and hides "no such user" timing.
-      await new Promise((r) => setTimeout(r, 500));
-      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
+    if (!isSupabaseConfigured) {
+      return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503 });
     }
 
-    const token = await signToken({ id: user.id, email: user.email, name: user.full_name, role: "user" });
+    const auth = await verifyCredentials(email, password);
+    if (!auth.ok) {
+      // Fixed delay blunts credential stuffing and hides "no such user" timing.
+      await new Promise((r) => setTimeout(r, 400));
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    await ensureSchema();
+    const row = await syncUserRow({
+      id: auth.id,
+      email: auth.email,
+      full_name: (auth.metadata.full_name as string) ?? null,
+      phone: (auth.metadata.phone as string) ?? null,
+      skill_level: (auth.metadata.skill_level as string) ?? null,
+    });
+
+    const name = row?.full_name ?? (auth.metadata.full_name as string) ?? auth.email.split("@")[0];
+    const token = await signToken({ id: auth.id, email: auth.email, name, role: "user" });
     (await cookies()).set(PLAYER_COOKIE, token, {
       ...secureCookieOptions,
       sameSite: "lax",

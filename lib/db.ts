@@ -50,13 +50,16 @@ declare global {
 function create(): Sql {
   if (!PG_URL) throw new Error("POSTGRES_URL is not set");
   return postgres(PG_URL, {
-    // One connection per warm instance — the Supabase pooler multiplexes.
-    max: 1,
+    // A small pool, not a single socket. With max:1 one slow query blocks every
+    // other query on the instance (head-of-line blocking), which is what made
+    // page loads hang. The Supabase transaction pooler multiplexes these onto a
+    // handful of real backends, so a few per instance is cheap.
+    max: 5,
     // pgbouncer transaction mode cannot hold prepared statements.
     prepare: false,
     // Keep the socket warm between consecutive user actions, release when idle.
     idle_timeout: 30,
-    connect_timeout: 5,
+    connect_timeout: 10,
     ssl: "require",
     onnotice: () => {},
   });
@@ -68,6 +71,23 @@ export function getSql(): Sql {
 }
 
 /**
+ * postgres.js only builds array literals in tagged-template mode; through
+ * `unsafe()` a JS array is sent as a bare scalar and Postgres rejects it with
+ * `malformed array literal`. So encode arrays ourselves — every call site pairs
+ * the placeholder with an explicit cast (`$1::uuid[]`, `$1::text[]`), which is
+ * what tells Postgres how to read the literal.
+ */
+function encodeParam(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+  const items = value.map((el) => {
+    if (el === null || el === undefined) return "NULL";
+    const escaped = String(el).split("\\").join("\\\\").split('"').join('\\"');
+    return `"${escaped}"`;
+  });
+  return `{${items.join(",")}}`;
+}
+
+/**
  * Run a parameterised statement with `$1, $2, …` placeholders.
  * Returns plain rows so callers never depend on the driver's result shape.
  */
@@ -76,7 +96,7 @@ export async function query<T = Record<string, unknown>>(
   params: unknown[] = [],
 ): Promise<T[]> {
   const sql = getSql();
-  const rows = await sql.unsafe(text, params as never[]);
+  const rows = await sql.unsafe(text, params.map(encodeParam) as never[]);
   return rows as unknown as T[];
 }
 
@@ -106,5 +126,28 @@ export async function dbPing(): Promise<{ ok: boolean; latencyMs: number; error?
       latencyMs: Date.now() - started,
       error: err instanceof Error ? err.message : String(err),
     };
+  }
+}
+
+/**
+ * Run a database read with a hard ceiling, falling back rather than hanging the
+ * page. Server components render inside the request, so one slow query that
+ * never resolves is a blank page for the visitor — always give reads a bound.
+ */
+export async function withTimeout<T>(
+  label: string,
+  run: () => Promise<T>,
+  fallback: T,
+  ms = 8000,
+): Promise<T> {
+  if (!isDbConfigured) return fallback;
+  try {
+    return await Promise.race([
+      run(),
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Query timeout")), ms)),
+    ]);
+  } catch (err) {
+    console.error(`[db:${label}]`, err instanceof Error ? err.message : err);
+    return fallback;
   }
 }

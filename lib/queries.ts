@@ -5,9 +5,10 @@ import type { Coach, GameSession, Product, Tournament, Venue } from "@/lib/types
 /**
  * Read helpers used by server components.
  *
- * Every function is defensive with a strict 2-second timeout. If the database
- * is unreachable or still cold, it returns default seed/fallback data instantly
- * rather than hanging or throwing a 504/ERR_CONNECTION_ABORTED.
+ * Every function is defensive with an 8-second timeout. If the database is
+ * unreachable or still cold it returns fallback content rather than hanging.
+ * The timeout must stay comfortably above the cross-region round trip to
+ * Supabase — too low and every page silently renders placeholder data.
  */
 
 async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
@@ -15,7 +16,7 @@ async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promis
   try {
     const queryPromise = fn();
     const timeoutPromise = new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error("Query timeout")), 2000),
+      setTimeout(() => reject(new Error("Query timeout")), 8000),
     );
     const result = await Promise.race([queryPromise, timeoutPromise]);
     if (Array.isArray(result) && result.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
@@ -239,7 +240,7 @@ export async function getWeekSessions(days = 7): Promise<GameSession[]> {
     "getWeekSessions",
     async () =>
       query<GameSession>(
-        `SELECT s.*, v.name AS venue_name, v.area AS venue_area,
+        `SELECT s.*, s.session_date::text AS session_date, v.name AS venue_name, v.area AS venue_area,
                 COALESCE(r.booked, 0)::int AS booked
          FROM game_sessions s
          JOIN venues v ON v.id = s.venue_id
@@ -263,7 +264,7 @@ export async function getSessionsByIds(ids: string[]): Promise<GameSession[]> {
     "getSessionsByIds",
     async () =>
       query<GameSession>(
-        `SELECT s.*, v.name AS venue_name, v.area AS venue_area,
+        `SELECT s.*, s.session_date::text AS session_date, v.name AS venue_name, v.area AS venue_area,
                 COALESCE(r.booked, 0)::int AS booked
          FROM game_sessions s
          JOIN venues v ON v.id = s.venue_id

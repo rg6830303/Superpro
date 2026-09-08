@@ -127,7 +127,7 @@ async function settleGame(p: Payload) {
     venue_name: string;
   }>(
     `SELECT r.id, r.session_id, r.player_name, r.player_phone, r.amount_paise, r.razorpay_order_id,
-            s.session_date, s.start_time, s.end_time, s.court_number, v.name AS venue_name
+            s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, v.name AS venue_name
      FROM game_registrations r
      JOIN game_sessions s ON s.id = r.session_id
      JOIN venues v ON v.id = s.venue_id

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CalendarDays, Clock, MapPin, Users } from "lucide-react";
 import { GamesFlow } from "@/components/games-flow";
 import { getPlayerSession } from "@/lib/auth";
+import { getUserRow } from "@/lib/accounts";
 import { getVenues, getWeekSessions } from "@/lib/queries";
 import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { getSettings } from "@/lib/settings";
@@ -21,6 +22,10 @@ export default async function GamesPage() {
     getPlayerSession(),
     getSettings(),
   ]);
+
+  // Wallet is only an option for a signed-in player with credit on it.
+  const profile = session ? await getUserRow(session.id) : null;
+  const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
 
   return (
     <div className="wrap py-14">
@@ -69,7 +74,12 @@ export default async function GamesPage() {
           sessions={sessions}
           razorpayEnabled={isRazorpayEnabled}
           razorpayKeyId={razorpayKeyId}
-          defaults={session ? { name: session.name, email: session.email } : undefined}
+          walletPaise={walletPaise}
+          defaults={
+            session
+              ? { name: profile?.full_name ?? session.name, email: session.email, phone: profile?.phone ?? undefined }
+              : undefined
+          }
         />
       </div>
 

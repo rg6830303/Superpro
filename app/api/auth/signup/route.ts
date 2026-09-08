@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import bcrypt from "bcryptjs";
-import { query, queryOne } from "@/lib/db";
-import { ensureSchema } from "@/lib/schema";
+import { createAuthUser, getUserRowByEmail, syncUserRow } from "@/lib/accounts";
 import { signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
+import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, signupSchema } from "@/lib/validation";
+import { isSupabaseAdminConfigured } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
+/**
+ * Player signup — the account itself is created in Supabase Auth, and the
+ * app-level profile (name, phone, skill, wallet) is mirrored into `users` with
+ * the same id. We then mint our own session cookie so the middleware can gate
+ * /dashboard without calling Supabase on every request.
+ */
 export async function POST(req: Request) {
   try {
     const rl = await checkRateLimit(`signup:${getClientIp(req)}`, 8, 15 * 60 * 1000);
@@ -25,9 +31,16 @@ export async function POST(req: Request) {
     }
     const { full_name, email, password, phone, skill_level } = parsed.data;
 
+    if (!isSupabaseAdminConfigured) {
+      return NextResponse.json(
+        { error: "Signups are temporarily unavailable. Please message us on WhatsApp." },
+        { status: 503 },
+      );
+    }
+
     await ensureSchema();
 
-    const existing = await queryOne<{ id: string }>("SELECT id FROM users WHERE email = $1", [email]);
+    const existing = await getUserRowByEmail(email);
     if (existing) {
       return NextResponse.json(
         { error: "An account with that email already exists. Sign in instead." },
@@ -35,22 +48,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
-    const rows = await query<{ id: string }>(
-      `INSERT INTO users (email, password_hash, full_name, phone, skill_level)
-       VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-      [email, passwordHash, full_name, phone, skill_level],
-    );
-    const user = rows[0];
+    const created = await createAuthUser({ email, password, full_name, phone, skill_level });
+    if (!created.ok) {
+      return NextResponse.json({ error: created.error }, { status: created.status });
+    }
 
-    const token = await signToken({ id: user.id, email, name: full_name, role: "user" });
+    await syncUserRow({ id: created.id, email, full_name, phone, skill_level, role: "player" });
+
+    const token = await signToken({ id: created.id, email, name: full_name, role: "user" });
     (await cookies()).set(PLAYER_COOKIE, token, {
       ...secureCookieOptions,
       sameSite: "lax",
       maxAge: PLAYER_SESSION_MAX_AGE,
     });
 
-    return NextResponse.json({ ok: true, id: user.id });
+    return NextResponse.json({ ok: true, id: created.id });
   } catch (err) {
     console.error("[signup]", err);
     return NextResponse.json({ error: "Could not create your account. Please try again." }, { status: 500 });

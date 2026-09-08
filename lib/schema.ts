@@ -4,10 +4,9 @@ import { query, isDbConfigured } from "@/lib/db";
  * Single source of truth for the SuperPro database schema.
  *
  * Used by:
- *   - `npm run db:dump` → writes supabase/schema.sql for the Supabase SQL editor
- *   - POST /api/db-init  → explicit bootstrap + seed
- *   - ensureSchema()     → lazy auto-heal called from critical routes, so a fresh
- *                          Supabase project never silently drops a signup.
+ *   - POST /api/db-init → explicit bootstrap + seed (run once after deploy)
+ *   - ensureSchema()    → lazy auto-heal called from write routes, so a fresh
+ *                         Supabase project never silently drops a signup.
  *
  * Money is stored in PAISE as integers everywhere. Never use floats for money.
  * Tables run first, then column migrations, then indexes — an index on a column
@@ -302,6 +301,20 @@ export const SCHEMA_TABLES: string[] = [
     window_start BIGINT NOT NULL
   )`,
 
+  `CREATE TABLE IF NOT EXISTS wallet_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    delta_paise INTEGER NOT NULL,
+    balance_after_paise INTEGER NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'adjustment'
+      CHECK (kind IN ('topup','refund','adjustment','booking','order','coaching','tournament','bonus')),
+    reason TEXT,
+    ref_table TEXT,
+    ref_id UUID,
+    created_by TEXT NOT NULL DEFAULT 'system',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
   `CREATE TABLE IF NOT EXISTS audit_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_email TEXT,
@@ -321,6 +334,34 @@ export const SCHEMA_MIGRATIONS: string[] = [
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS seed INTEGER`,
   `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS reference TEXT`,
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS reference TEXT`,
+
+  // Supabase Auth owns passwords from here on: `users` mirrors auth.users with
+  // the app-level profile, so password_hash is legacy and must be nullable.
+  `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'player'`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT NOT NULL DEFAULT 'supabase'`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance_paise INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ`,
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
+  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('player','staff','admin'))`,
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_wallet_non_negative`,
+  `ALTER TABLE users ADD CONSTRAINT users_wallet_non_negative CHECK (wallet_balance_paise >= 0)`,
+
+  // Wallet becomes a payment method everywhere money is taken. The CHECK
+  // constraints were created with Postgres' default naming, so they can be
+  // dropped and re-added by that name.
+  `ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_payment_method_check`,
+  `ALTER TABLE orders ADD CONSTRAINT orders_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet'))`,
+  `ALTER TABLE game_registrations DROP CONSTRAINT IF EXISTS game_registrations_payment_method_check`,
+  `ALTER TABLE game_registrations ADD CONSTRAINT game_registrations_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet'))`,
+  `ALTER TABLE coaching_bookings DROP CONSTRAINT IF EXISTS coaching_bookings_payment_method_check`,
+  `ALTER TABLE coaching_bookings ADD CONSTRAINT coaching_bookings_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet'))`,
+  `ALTER TABLE tournament_registrations DROP CONSTRAINT IF EXISTS tournament_registrations_payment_method_check`,
+  `ALTER TABLE tournament_registrations ADD CONSTRAINT tournament_registrations_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet'))`,
 ];
 
 export const SCHEMA_INDEXES: string[] = [
@@ -336,6 +377,8 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_coaching_created ON coaching_bookings(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_tourn_reg_tournament ON tournament_registrations(tournament_id)`,
   `CREATE INDEX IF NOT EXISTS idx_outbox_status ON whatsapp_outbox(status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_wallet_user ON wallet_transactions(user_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
 ];
 
 let ensured = false;

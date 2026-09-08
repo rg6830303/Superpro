@@ -1,4 +1,4 @@
-import { query } from "@/lib/db";
+import { query, withTimeout } from "@/lib/db";
 
 /**
  * Operator-editable key/value settings, changed from the admin console without
@@ -19,14 +19,16 @@ export const SETTING_DEFAULTS: Record<string, string> = {
 export type Settings = Record<string, string>;
 
 export async function getSettings(): Promise<Settings> {
-  try {
-    const rows = await query<{ key: string; value: string | null }>("SELECT key, value FROM settings");
-    const out: Settings = { ...SETTING_DEFAULTS };
-    for (const r of rows) if (r.value !== null) out[r.key] = r.value;
-    return out;
-  } catch {
-    return { ...SETTING_DEFAULTS };
-  }
+  return withTimeout(
+    "settings",
+    async () => {
+      const rows = await query<{ key: string; value: string | null }>("SELECT key, value FROM settings");
+      const out: Settings = { ...SETTING_DEFAULTS };
+      for (const r of rows) if (r.value !== null) out[r.key] = r.value;
+      return out;
+    },
+    { ...SETTING_DEFAULTS },
+  );
 }
 
 export async function getSetting(key: string): Promise<string> {

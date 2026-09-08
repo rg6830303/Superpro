@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, GraduationCap, Package, Trophy } from "lucide-react";
+import { CalendarDays, GraduationCap, Package, Trophy, UserCog, Wallet } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { EmptyState } from "@/components/ui";
 import { getPlayerSession } from "@/lib/auth";
+import { getUserRow } from "@/lib/accounts";
+import { listWalletTransactions } from "@/lib/wallet";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { formatDate, formatTime } from "@/lib/dates";
@@ -51,7 +53,7 @@ export default async function DashboardPage() {
 
   const [games, coaching, orders] = await Promise.all([
     query<GameRow>(
-      `SELECT r.id, s.session_date, s.start_time, v.name AS venue_name,
+      `SELECT r.id, s.session_date::text AS session_date, s.start_time, v.name AS venue_name,
               COALESCE(r.court_number, s.court_number) AS court_number,
               r.status, r.payment_status, r.amount_paise
        FROM game_registrations r
@@ -75,7 +77,13 @@ export default async function DashboardPage() {
     ).catch(() => []),
   ]);
 
+  const [profile, walletTx] = await Promise.all([
+    getUserRow(session.id),
+    listWalletTransactions(session.id, 6),
+  ]);
+
   const upcoming = games.filter((g) => g.status === "confirmed").length;
+  const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
 
   return (
     <div className="wrap py-14">
@@ -85,7 +93,12 @@ export default async function DashboardPage() {
           <h1 className="mt-2 text-[clamp(2.25rem,6vw,3.5rem)]">{session.name}</h1>
           <p className="mt-1 text-sm text-bone/45">{session.email}</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/profile" className="btn-outline btn-sm">
+            <UserCog size={14} /> Profile
+          </Link>
+          <LogoutButton />
+        </div>
       </div>
 
       <div className="mt-9 grid gap-4 sm:grid-cols-3">
@@ -101,6 +114,51 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      <section className="mt-10 grid gap-5 lg:grid-cols-[1fr_1.4fr]">
+        <div className="card flex flex-col p-6">
+          <Wallet size={18} className="text-gold" />
+          <p className="mt-3 text-[11px] uppercase tracking-wider text-bone/40">SuperPro wallet</p>
+          <p className="mt-1 font-display text-5xl text-gold">{formatPaise(walletPaise)}</p>
+          <p className="mt-2 text-xs leading-relaxed text-bone/45">
+            Prepaid credit you can spend on court slots and gear. Top it up with any SuperPro rep at the
+            venue — it lands here instantly.
+          </p>
+          <Link href="/dashboard/profile" className="btn-outline btn-sm mt-auto self-start pt-2">
+            Manage account
+          </Link>
+        </div>
+
+        <div className="card p-6">
+          <h2 className="text-2xl">Wallet activity</h2>
+          {walletTx.length === 0 ? (
+            <p className="mt-3 text-sm text-bone/45">
+              No wallet movements yet. Ask a rep to load credit and it shows up here.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {walletTx.map((t) => (
+                <li key={t.id} className="flex items-start justify-between gap-3 border-b border-white/5 pb-3 last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-sm capitalize text-bone">{t.kind}</p>
+                    <p className="truncate text-xs text-bone/45">{t.reason ?? "—"}</p>
+                    <p className="mt-0.5 text-[11px] text-bone/30">
+                      {new Date(t.created_at).toLocaleDateString("en-IN")}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-ok" : "text-danger"}`}>
+                      {t.delta_paise > 0 ? "+" : "−"}
+                      {formatPaise(Math.abs(t.delta_paise))}
+                    </p>
+                    <p className="text-[11px] text-bone/35">{formatPaise(t.balance_after_paise)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
 
       <section className="mt-12">
         <h2 className="mb-5 text-3xl">Game bookings</h2>

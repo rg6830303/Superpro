@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const date = params.get("date") ?? (sessionId ? null : istToday());
 
     const registrations = await query(
-      `SELECT r.*, s.session_date, s.start_time, s.end_time, s.court_number AS session_court,
+      `SELECT r.*, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number AS session_court,
               v.name AS venue_name
        FROM game_registrations r
        JOIN game_sessions s ON s.id = r.session_id

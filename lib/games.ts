@@ -17,7 +17,7 @@ export async function postSlotToGroup(sessionId: string): Promise<{ ok: boolean;
     court_number: number;
     venue_name: string;
   }>(
-    `SELECT s.session_date, s.start_time, s.end_time, s.court_number, v.name AS venue_name
+    `SELECT s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, v.name AS venue_name
      FROM game_sessions s JOIN venues v ON v.id = s.venue_id WHERE s.id = $1`,
     [sessionId],
   );

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout-form";
 import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
+import { getPlayerSession } from "@/lib/auth";
+import { getUserRow } from "@/lib/accounts";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +12,9 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  const session = await getPlayerSession();
+  const profile = session ? await getUserRow(session.id) : null;
   return (
     <div className="wrap py-14">
       <p className="eyebrow">Checkout</p>
@@ -20,7 +24,16 @@ export default function CheckoutPage() {
       </p>
 
       <div className="mt-10">
-        <CheckoutForm razorpayEnabled={isRazorpayEnabled} razorpayKeyId={razorpayKeyId} />
+        <CheckoutForm
+          razorpayEnabled={isRazorpayEnabled}
+          razorpayKeyId={razorpayKeyId}
+          walletPaise={Number(profile?.wallet_balance_paise ?? 0)}
+          defaults={
+            profile
+              ? { name: profile.full_name, phone: profile.phone ?? "", email: profile.email }
+              : undefined
+          }
+        />
       </div>
     </div>
   );

@@ -4,24 +4,30 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Banknote, CreditCard, ShoppingBag, Store, Truck } from "lucide-react";
+import { Banknote, CreditCard, ShoppingBag, Store, Truck, Wallet } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, EmptyState, Spinner } from "@/components/ui";
 import { formatPaise, shippingFor } from "@/lib/money";
 
-type Props = { razorpayEnabled: boolean; razorpayKeyId: string };
+type Props = {
+  razorpayEnabled: boolean;
+  razorpayKeyId: string;
+  /** Signed-in customer's wallet balance; 0 (or signed out) hides the option. */
+  walletPaise?: number;
+  defaults?: { name?: string; phone?: string; email?: string };
+};
 
 type DeliveryMode = "pickup" | "delivery";
-type PayMethod = "razorpay" | "cod";
+type PayMethod = "razorpay" | "cod" | "wallet";
 
-export function CheckoutForm({ razorpayEnabled, razorpayKeyId }: Props) {
+export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, defaults }: Props) {
   const { lines, subtotalPaise, clear, ready } = useCart();
   const router = useRouter();
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(defaults?.name ?? "");
+  const [phone, setPhone] = useState(defaults?.phone ?? "");
+  const [email, setEmail] = useState(defaults?.email ?? "");
   const [mode, setMode] = useState<DeliveryMode>("pickup");
   const [address, setAddress] = useState({ line1: "", line2: "", city: "Kolkata", pincode: "" });
   const [pay, setPay] = useState<PayMethod>(razorpayEnabled ? "razorpay" : "cod");
@@ -192,6 +198,22 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId }: Props) {
               </p>
               <p className="mt-1 text-xs text-bone/50">Cash or UPI when you collect it.</p>
             </button>
+            {walletPaise > 0 && (
+              <button
+                type="button"
+                onClick={() => setPay("wallet")}
+                disabled={walletPaise < total}
+                className={`tile sm:col-span-2 ${pay === "wallet" ? "tile-selected" : ""} ${walletPaise < total ? "opacity-40" : ""}`}
+              >
+                <Wallet size={18} className="text-gold" />
+                <p className="mt-2 font-display text-lg uppercase text-bone">SuperPro wallet</p>
+                <p className="mt-1 text-xs text-bone/50">
+                  {walletPaise < total
+                    ? `Only ${formatPaise(walletPaise)} left — not enough for this order.`
+                    : `${formatPaise(walletPaise)} available. Paid instantly, nothing else to do.`}
+                </p>
+              </button>
+            )}
           </div>
 
           <div className="mt-5">
@@ -242,7 +264,13 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId }: Props) {
 
           <button type="submit" disabled={busy} className="btn-gold mt-6 w-full">
             {busy ? <Spinner /> : null}
-            {busy ? "Placing order…" : pay === "razorpay" ? `Pay ${formatPaise(total)}` : "Place order"}
+            {busy
+              ? "Placing order…"
+              : pay === "razorpay"
+                ? `Pay ${formatPaise(total)}`
+                : pay === "wallet"
+                  ? `Pay ${formatPaise(total)} from wallet`
+                  : "Place order"}
           </button>
           <p className="mt-3 text-center text-[11px] text-bone/35">
             You&apos;ll get a WhatsApp confirmation with your order number.

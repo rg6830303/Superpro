@@ -8,6 +8,7 @@ import { createRazorpayOrder, isRazorpayEnabled } from "@/lib/razorpay";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, orderSchema } from "@/lib/validation";
 import { orderReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
+import { adjustWallet, chargeWallet } from "@/lib/wallet";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,7 @@ export const runtime = "nodejs";
  * display state only, so a tampered price never reaches the payment gateway.
  */
 export async function POST(req: Request) {
+  let refundOnFailure: { userId: string; amountPaise: number; orderNo: string } | null = null;
   try {
     const rl = await checkRateLimit(`order:${getClientIp(req)}`, 12, 10 * 60 * 1000);
     if (!rl.ok) {
@@ -57,17 +59,42 @@ export async function POST(req: Request) {
     const shipping = shippingFor(subtotal, input.delivery_mode);
     const total = subtotal + shipping;
 
-    // Razorpay is only used when it is configured AND the customer chose it.
-    const wantsOnline = input.payment_method === "razorpay" && isRazorpayEnabled;
-    const method = wantsOnline ? "razorpay" : "cod";
     const orderNo = newRef("SP");
     const session = await getPlayerSession();
+
+    // Wallet is only offered to signed-in customers, and it is debited before
+    // the order row is written so a short balance never creates a paid order.
+    const wantsWallet = input.payment_method === "wallet";
+    if (wantsWallet && !session) {
+      return NextResponse.json({ error: "Sign in to pay from your wallet." }, { status: 401 });
+    }
+    if (wantsWallet && session) {
+      const charge = await chargeWallet({
+        userId: session.id,
+        amountPaise: total,
+        kind: "order",
+        reason: `Shop order ${orderNo}`,
+        refTable: "orders",
+      });
+      if (!charge.ok) {
+        return NextResponse.json(
+          { error: charge.error, wallet_balance_paise: charge.balancePaise },
+          { status: 409 },
+        );
+      }
+      refundOnFailure = { userId: session.id, amountPaise: total, orderNo };
+    }
+
+    // Razorpay is only used when it is configured AND the customer chose it.
+    const wantsOnline = !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled;
+    const method = wantsWallet ? "wallet" : wantsOnline ? "razorpay" : "cod";
+    const paymentStatus = wantsWallet ? "paid" : "pending";
 
     const inserted = await query<{ id: string }>(
       `INSERT INTO orders (order_no, user_id, customer_name, customer_phone, customer_email, items,
          subtotal_paise, shipping_paise, total_paise, delivery_mode, address, payment_method,
          payment_status, fulfillment_status, notes)
-       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11::jsonb,$12,'pending','new',$13)
+       VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11::jsonb,$12,$14,'new',$13)
        RETURNING id`,
       [
         orderNo,
@@ -83,6 +110,7 @@ export async function POST(req: Request) {
         input.address ? JSON.stringify(input.address) : null,
         method,
         input.notes ?? null,
+        paymentStatus,
       ],
     );
     const orderId = inserted[0].id;
@@ -107,6 +135,7 @@ export async function POST(req: Request) {
     // Online orders wait for /api/payments/verify.
     if (!razorpayOrderId) {
       await decrementStock(lines);
+      // Best-effort receipt: the order is recorded either way.
       await sendWhatsApp({
         kind: "order_receipt",
         target: "number",
@@ -123,6 +152,8 @@ export async function POST(req: Request) {
       });
     }
 
+    refundOnFailure = null;
+
     return NextResponse.json({
       ok: true,
       order_id: orderId,
@@ -132,6 +163,16 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[orders]", err);
+    // Money must never leave the wallet without an order to show for it.
+    if (refundOnFailure) {
+      await adjustWallet({
+        userId: refundOnFailure.userId,
+        deltaPaise: refundOnFailure.amountPaise,
+        kind: "refund",
+        reason: `Auto-refund — order ${refundOnFailure.orderNo} failed`,
+        createdBy: "system",
+      }).catch((e) => console.error("[orders] auto-refund failed:", e));
+    }
     return NextResponse.json({ error: "Could not place the order. Please try again." }, { status: 500 });
   }
 }

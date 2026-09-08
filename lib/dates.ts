@@ -4,14 +4,32 @@
  */
 export const IST_TZ = "Asia/Kolkata";
 
+/**
+ * Postgres DATE / TIMESTAMPTZ columns arrive as JS `Date` objects through the
+ * driver, while form input and seeds are "YYYY-MM-DD" strings. Every formatter
+ * below funnels through here so either shape works — passing a Date to a
+ * function that assumed a string was the cause of a live booking failure.
+ */
+export type DateInput = string | Date | null | undefined;
+
+export function toIsoDate(value: DateInput): string {
+  if (!value) return "";
+  if (value instanceof Date) {
+    // The column holds a calendar date, so read it back in UTC to avoid the
+    // local timezone shifting it to the previous day.
+    return value.toISOString().slice(0, 10);
+  }
+  return String(value).slice(0, 10);
+}
+
 /** YYYY-MM-DD for "now" in IST. */
 export function istToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: IST_TZ }).format(new Date());
 }
 
 /** Add days to a YYYY-MM-DD string without tripping over DST or local time. */
-export function addDays(isoDate: string, days: number): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
+export function addDays(isoDate: DateInput, days: number): string {
+  const [y, m, d] = toIsoDate(isoDate).split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   dt.setUTCDate(dt.getUTCDate() + days);
   return dt.toISOString().slice(0, 10);
@@ -22,16 +40,18 @@ export function upcomingDates(count = 7, from: string = istToday()): string[] {
   return Array.from({ length: count }, (_, i) => addDays(from, i));
 }
 
-export function dayName(isoDate: string, style: "short" | "long" = "short"): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
+export function dayName(isoDate: DateInput, style: "short" | "long" = "short"): string {
+  const [y, m, d] = toIsoDate(isoDate).split("-").map(Number);
   return new Intl.DateTimeFormat("en-IN", { weekday: style, timeZone: "UTC" }).format(
     new Date(Date.UTC(y, m - 1, d)),
   );
 }
 
 /** "Mon, 14 Sep" */
-export function formatDate(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
+export function formatDate(isoDate: DateInput): string {
+  const iso = toIsoDate(isoDate);
+  if (!iso) return "Date TBA";
+  const [y, m, d] = iso.split("-").map(Number);
   return new Intl.DateTimeFormat("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -41,9 +61,10 @@ export function formatDate(isoDate: string): string {
 }
 
 /** "14 September 2026" */
-export function formatDateLong(isoDate: string | null): string {
-  if (!isoDate) return "Date TBA";
-  const [y, m, d] = isoDate.slice(0, 10).split("-").map(Number);
+export function formatDateLong(isoDate: DateInput): string {
+  const iso = toIsoDate(isoDate);
+  if (!iso) return "Date TBA";
+  const [y, m, d] = iso.split("-").map(Number);
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "long",
@@ -53,11 +74,13 @@ export function formatDateLong(isoDate: string | null): string {
 }
 
 /** "10–11 Jul 2026" or a single date when there's no end. */
-export function formatDateRange(start: string | null, end: string | null): string {
-  if (!start) return "Dates to be announced";
-  if (!end || end === start) return formatDateLong(start);
-  const s = start.slice(0, 10).split("-").map(Number);
-  const e = end.slice(0, 10).split("-").map(Number);
+export function formatDateRange(start: DateInput, end: DateInput): string {
+  const startIso = toIsoDate(start);
+  const endIso = toIsoDate(end);
+  if (!startIso) return "Dates to be announced";
+  if (!endIso || endIso === startIso) return formatDateLong(startIso);
+  const s = startIso.split("-").map(Number);
+  const e = endIso.split("-").map(Number);
   const sameMonth = s[0] === e[0] && s[1] === e[1];
   const fmt = (parts: number[], opts: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat("en-IN", { ...opts, timeZone: "UTC" }).format(
@@ -69,19 +92,20 @@ export function formatDateRange(start: string | null, end: string | null): strin
 }
 
 /** "7:00 AM" from "07:00". */
-export function formatTime(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
+export function formatTime(hhmm: string | null | undefined): string {
+  if (!hhmm) return "—";
+  const [h, m] = String(hhmm).split(":").map(Number);
   const suffix = h >= 12 ? "PM" : "AM";
   const hour = h % 12 === 0 ? 12 : h % 12;
   return `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
 }
 
-export function formatTimeRange(start: string, end: string): string {
+export function formatTimeRange(start: string | null | undefined, end: string | null | undefined): string {
   return `${formatTime(start)} – ${formatTime(end)}`;
 }
 
 /** True when the slot has already started in IST — used to grey out today's past slots. */
-export function isPast(isoDate: string, startTime: string): boolean {
+export function isPast(isoDate: DateInput, startTime: string): boolean {
   const nowParts = new Intl.DateTimeFormat("en-GB", {
     timeZone: IST_TZ,
     hour12: false,
@@ -93,7 +117,8 @@ export function isPast(isoDate: string, startTime: string): boolean {
   }).formatToParts(new Date());
   const get = (t: string) => nowParts.find((p) => p.type === t)?.value ?? "00";
   const today = `${get("year")}-${get("month")}-${get("day")}`;
-  if (isoDate < today) return true;
-  if (isoDate > today) return false;
+  const iso = toIsoDate(isoDate);
+  if (iso < today) return true;
+  if (iso > today) return false;
   return startTime <= `${get("hour")}:${get("minute")}`;
 }

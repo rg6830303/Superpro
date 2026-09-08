@@ -9,7 +9,7 @@ export const phoneSchema = z
 export const emailSchema = z.string().trim().toLowerCase().email("Enter a valid email address");
 
 export const skillSchema = z.enum(["beginner", "intermediate", "advanced", "pro"]);
-export const paymentMethodSchema = z.enum(["razorpay", "cod", "venue"]);
+export const paymentMethodSchema = z.enum(["razorpay", "cod", "venue", "wallet"]);
 
 export const signupSchema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(80),

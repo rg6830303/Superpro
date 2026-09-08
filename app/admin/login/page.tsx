@@ -7,7 +7,7 @@ import { Alert, Spinner } from "@/components/ui";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/admin/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: username, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Invalid credentials.");
@@ -48,15 +48,17 @@ export default function AdminLoginPage() {
 
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="label" htmlFor="admin-email">Email Address</label>
+            <label className="label" htmlFor="admin-username">Username</label>
             <input
-              id="admin-email"
-              type="email"
-              autoComplete="email"
+              id="admin-username"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               className="field"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@superpro.in"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="ishaanchetani"
               required
             />
           </div>

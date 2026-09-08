@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     const from = params.get("from") ?? istToday();
     const to = params.get("to") ?? addDays(from, 13);
     const sessions = await query(
-      `SELECT s.*, v.name AS venue_name, v.area AS venue_area,
+      `SELECT s.*, s.session_date::text AS session_date, v.name AS venue_name, v.area AS venue_area,
               COALESCE((SELECT SUM(players_count) FROM game_registrations r
                         WHERE r.session_id = s.id AND r.status <> 'cancelled'), 0)::int AS booked
        FROM game_sessions s JOIN venues v ON v.id = s.venue_id

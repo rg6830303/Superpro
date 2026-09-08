@@ -8,6 +8,7 @@ import { createRazorpayOrder, isRazorpayEnabled } from "@/lib/razorpay";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, playerRegistrationSchema } from "@/lib/validation";
 import { bookingReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
+import { adjustWallet, chargeWallet } from "@/lib/wallet";
 import { postSlotToGroup } from "@/lib/games";
 
 export const runtime = "nodejs";
@@ -31,6 +32,7 @@ type SessionRow = {
  * so two people racing for the last spot cannot both be confirmed.
  */
 export async function POST(req: Request) {
+  let refundOnFailure: { userId: string; amountPaise: number; reference: string } | null = null;
   try {
     const rl = await checkRateLimit(`game-reg:${getClientIp(req)}`, 15, 10 * 60 * 1000);
     if (!rl.ok) {
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
     await ensureSchema();
 
     const sessions = await query<SessionRow>(
-      `SELECT s.id, s.session_date, s.start_time, s.end_time, s.court_number, s.capacity,
+      `SELECT s.id, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, s.capacity,
               s.price_paise, s.status, v.name AS venue_name,
               COALESCE((SELECT SUM(players_count) FROM game_registrations r
                         WHERE r.session_id = s.id AND r.status <> 'cancelled'), 0)::int AS booked
@@ -75,17 +77,40 @@ export async function POST(req: Request) {
     }
 
     const total = sessions.reduce((sum, s) => sum + s.price_paise * input.players_count, 0);
-    const wantsOnline = input.payment_method === "razorpay" && isRazorpayEnabled;
-    const method = wantsOnline ? "razorpay" : "venue";
     const reference = newRef("SPG");
     const session = await getPlayerSession();
+
+    // Wallet is only offered to signed-in players, and the debit happens BEFORE
+    // the rows are written so an insufficient balance never leaves a half-paid
+    // booking behind.
+    const wantsWallet = input.payment_method === "wallet";
+    if (wantsWallet && !session) {
+      return NextResponse.json({ error: "Sign in to pay from your wallet." }, { status: 401 });
+    }
+    if (wantsWallet && session) {
+      const charge = await chargeWallet({
+        userId: session.id,
+        amountPaise: total,
+        kind: "booking",
+        reason: `Daily games — ${sessions.length} slot${sessions.length > 1 ? "s" : ""} (${reference})`,
+        refTable: "game_registrations",
+      });
+      if (!charge.ok) {
+        return NextResponse.json({ error: charge.error, wallet_balance_paise: charge.balancePaise }, { status: 409 });
+      }
+      refundOnFailure = { userId: session.id, amountPaise: total, reference };
+    }
+
+    const wantsOnline = !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled;
+    const method = wantsWallet ? "wallet" : wantsOnline ? "razorpay" : "venue";
+    const paymentStatus = wantsWallet ? "paid" : "pending";
 
     for (const s of sessions) {
       await query(
         `INSERT INTO game_registrations (reference, session_id, user_id, player_name, player_phone,
            player_email, skill_level, players_count, court_number, amount_paise, payment_method,
            payment_status, status, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'pending','confirmed',$12)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,'confirmed',$12)
          ON CONFLICT (session_id, player_phone) DO UPDATE
            SET players_count = EXCLUDED.players_count,
                status = 'confirmed',
@@ -105,6 +130,7 @@ export async function POST(req: Request) {
           s.price_paise * input.players_count,
           method,
           input.notes ?? null,
+          paymentStatus,
         ],
       );
     }
@@ -140,14 +166,15 @@ export async function POST(req: Request) {
     // Pay-at-venue bookings are confirmed now; online ones confirm after
     // /api/payments/verify so we never announce an unpaid slot.
     if (!razorpayOrderId) {
-      await confirmComms({
-        reference,
-        input,
-        sessions,
-        total,
-        method,
-      });
+      // Receipts and the group post are best-effort: the slot is already
+      // booked and (for wallet) already paid, so a WhatsApp hiccup must never
+      // turn into an error the player sees.
+      await confirmComms({ reference, input, sessions, total, method }).catch((err) =>
+        console.error("[games] confirmation comms failed:", err),
+      );
     }
+
+    refundOnFailure = null;
 
     return NextResponse.json({
       ok: true,
@@ -159,6 +186,17 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[games/register]", err);
+    // If money left the wallet but the booking did not complete, put it back
+    // rather than leaving the player short with nothing to show for it.
+    if (refundOnFailure) {
+      await adjustWallet({
+        userId: refundOnFailure.userId,
+        deltaPaise: refundOnFailure.amountPaise,
+        kind: "refund",
+        reason: `Auto-refund — booking ${refundOnFailure.reference} failed`,
+        createdBy: "system",
+      }).catch((e) => console.error("[games] auto-refund failed:", e));
+    }
     return NextResponse.json({ error: "Could not complete the booking. Please try again." }, { status: 500 });
   }
 }
@@ -182,7 +220,8 @@ async function confirmComms(args: {
           `${formatDate(s.session_date)} · ${formatTimeRange(s.start_time, s.end_time)} · ${s.venue_name} Court ${s.court_number}`,
       ),
       totalPaise: args.total,
-      payMethod: args.method === "razorpay" ? "paid online" : "pay at venue",
+      payMethod:
+        args.method === "razorpay" ? "paid online" : args.method === "wallet" ? "paid from wallet" : "pay at venue",
     }),
     refTable: "game_registrations",
   });
