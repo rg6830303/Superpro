@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createAuthUser, getUserRowByEmail, syncUserRow } from "@/lib/accounts";
-import { signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
+import { hasSigningSecret, signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
 import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, signupSchema } from "@/lib/validation";
 import { isSupabaseAdminConfigured } from "@/lib/supabase";
+import { normaliseDuprId, skillFromDupr } from "@/lib/dupr";
 
 export const runtime = "nodejs";
 
@@ -29,11 +30,14 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
-    const { full_name, email, password, phone, skill_level } = parsed.data;
+    const { full_name, email, password, phone, dupr } = parsed.data;
+    // Category is derived from the rating, never self-declared.
+    const skill_level = skillFromDupr(dupr);
+    const dupr_id = normaliseDuprId(parsed.data.dupr_id);
 
-    if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+    if (!hasSigningSecret()) {
       return NextResponse.json(
-        { error: "Server is missing SESSION_SECRET. Set it in Vercel and redeploy." },
+        { error: "Server cannot sign sessions. Set SESSION_SECRET in Vercel and redeploy." },
         { status: 500 },
       );
     }
@@ -60,7 +64,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: created.error }, { status: created.status });
     }
 
-    await syncUserRow({ id: created.id, email, full_name, phone, skill_level, role: "player" });
+    await syncUserRow({
+      id: created.id,
+      email,
+      full_name,
+      phone,
+      skill_level,
+      dupr_id,
+      dupr: dupr ?? null,
+      role: "player",
+    });
 
     const token = await signToken({ id: created.id, email, name: full_name, role: "user" });
     (await cookies()).set(PLAYER_COOKIE, token, {

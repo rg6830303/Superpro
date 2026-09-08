@@ -8,7 +8,7 @@ import {
   syncUserRow,
   verifyCredentials,
 } from "@/lib/accounts";
-import { signToken, ADMIN_COOKIE, ADMIN_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
+import { hasSigningSecret, signToken, ADMIN_COOKIE, ADMIN_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
 import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -55,9 +55,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid details." }, { status: 400 });
     }
 
-    if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+    if (!hasSigningSecret()) {
       return NextResponse.json(
-        { error: "Server is missing SESSION_SECRET. Set it in Vercel and redeploy." },
+        { error: "Server cannot sign sessions. Set SESSION_SECRET in Vercel and redeploy." },
         { status: 500 },
       );
     }

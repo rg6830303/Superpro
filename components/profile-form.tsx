@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { MessageCircle, Wallet } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
+import { DUPR_BANDS, skillFromDupr } from "@/lib/dupr";
 import { formatPaise } from "@/lib/money";
 import { waLink } from "@/lib/site";
 import type { WalletTransaction } from "@/lib/wallet";
-import type { SkillLevel } from "@/lib/types";
 
 type Profile = {
   email: string;
@@ -15,16 +15,10 @@ type Profile = {
   skill_level: string;
   city: string;
   dupr: number | null;
+  dupr_id: string | null;
   whatsapp_opt_in: boolean;
   wallet_balance_paise: number;
 };
-
-const SKILLS: Array<{ value: SkillLevel; label: string }> = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
-  { value: "pro", label: "DUPR rated" },
-];
 
 export function ProfileForm({
   profile,
@@ -36,11 +30,16 @@ export function ProfileForm({
   const [form, setForm] = useState({
     full_name: profile.full_name,
     phone: profile.phone ?? "",
-    skill_level: (profile.skill_level as SkillLevel) ?? "beginner",
     city: profile.city ?? "Kolkata",
     dupr: profile.dupr != null ? String(profile.dupr) : "",
+    dupr_id: profile.dupr_id ?? "",
     whatsapp_opt_in: profile.whatsapp_opt_in,
   });
+
+  // Category follows the rating — it is shown, never picked.
+  const rating = Number(form.dupr);
+  const hasRating = form.dupr.trim() !== "" && Number.isFinite(rating);
+  const derived = skillFromDupr(hasRating ? rating : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -57,9 +56,9 @@ export function ProfileForm({
         body: JSON.stringify({
           full_name: form.full_name,
           phone: form.phone,
-          skill_level: form.skill_level,
           city: form.city,
-          dupr: form.dupr ? Number(form.dupr) : null,
+          dupr: hasRating ? rating : null,
+          dupr_id: form.dupr_id,
           whatsapp_opt_in: form.whatsapp_opt_in,
         }),
       });
@@ -138,7 +137,18 @@ export function ProfileForm({
             />
           </div>
           <div>
-            <label className="label" htmlFor="p-dupr">DUPR rating (optional)</label>
+            <label className="label" htmlFor="p-duprid">DUPR ID</label>
+            <input
+              id="p-duprid"
+              className="field"
+              value={form.dupr_id}
+              onChange={(e) => setForm({ ...form, dupr_id: e.target.value })}
+              placeholder="K9X2LM"
+              autoCapitalize="characters"
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="p-dupr">DUPR rating</label>
             <input
               id="p-dupr"
               className="field"
@@ -150,24 +160,14 @@ export function ProfileForm({
           </div>
         </div>
 
-        <div className="mt-5">
-          <span className="label">Skill level</span>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {SKILLS.map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                onClick={() => setForm({ ...form, skill_level: s.value })}
-                className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                  form.skill_level === s.value
-                    ? "border-gold bg-gold/10 text-gold"
-                    : "border-white/12 text-bone/60 hover:border-white/25"
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+        <div className="mt-5 rounded-xl border border-white/10 bg-ink-700/40 p-4">
+          <p className="text-[11px] uppercase tracking-wider text-bone/40">Category</p>
+          <p className="mt-1 font-display text-2xl uppercase text-gold">
+            {DUPR_BANDS.find((b) => b.level === derived)?.label}
+          </p>
+          <p className="mt-1 text-xs text-bone/45">
+            Set automatically from your DUPR rating: below 3.5 beginner, 3.5&ndash;4.0 intermediate, 4.0+ advanced.
+          </p>
         </div>
 
         <label className="mt-5 flex items-start gap-3 text-sm text-bone/60">

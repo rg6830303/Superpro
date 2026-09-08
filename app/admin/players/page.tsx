@@ -1,23 +1,37 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search, Wallet, X } from "lucide-react";
+import { KeyRound, Pencil, Search, Wallet } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
+import {
+  AddButton,
+  Drawer,
+  ListState,
+  RecordEditor,
+  submitResource,
+  type FieldDef,
+  type RecordValues,
+} from "@/components/admin/crud";
 import { Alert, Spinner } from "@/components/ui";
+import { DUPR_BANDS, skillFromDupr } from "@/lib/dupr";
 import { formatPaise } from "@/lib/money";
 
-type Player = {
-  id: string | null;
+type User = {
+  id: string;
+  email: string;
   full_name: string;
-  email: string | null;
   phone: string | null;
-  skill_level: string | null;
+  skill_level: string;
   dupr: number | null;
-  role: string | null;
+  dupr_id: string | null;
+  city: string | null;
+  role: "player" | "staff" | "admin";
   wallet_balance_paise: number;
+  whatsapp_opt_in: boolean;
   games: number;
-  last_seen: string | null;
-  has_account: boolean;
+  orders: number;
+  created_at: string;
+  last_login_at: string | null;
 };
 
 type WalletTx = {
@@ -30,23 +44,55 @@ type WalletTx = {
   created_at: string;
 };
 
+const ROLE_OPTIONS = [
+  { value: "player", label: "Player" },
+  { value: "staff", label: "Staff" },
+  { value: "admin", label: "Admin (console access)" },
+];
+
+const CREATE_FIELDS: FieldDef[] = [
+  { name: "full_name", label: "Full name", required: true, full: true },
+  { name: "email", label: "Email", required: true, placeholder: "player@example.com" },
+  { name: "phone", label: "WhatsApp number", placeholder: "98xxxxxxxx" },
+  { name: "password", label: "Password", required: true, hint: "At least 8 characters. Share it with the player." },
+  { name: "city", label: "City" },
+  { name: "dupr_id", label: "DUPR ID", placeholder: "K9X2LM" },
+  { name: "dupr", label: "DUPR rating", type: "number", hint: "Sets the category automatically." },
+  { name: "role", label: "Role", type: "select", options: ROLE_OPTIONS },
+  { name: "wallet_rupees", label: "Opening wallet (₹)", type: "number", hint: "Optional. Recorded in the wallet ledger." },
+];
+
+const EDIT_FIELDS: FieldDef[] = [
+  { name: "full_name", label: "Full name", required: true, full: true },
+  { name: "email", label: "Email", full: true, hint: "Changing this also changes their sign-in email." },
+  { name: "phone", label: "WhatsApp number" },
+  { name: "city", label: "City" },
+  { name: "dupr_id", label: "DUPR ID" },
+  { name: "dupr", label: "DUPR rating", type: "number", hint: "Category follows the rating." },
+  { name: "role", label: "Role", type: "select", options: ROLE_OPTIONS },
+  { name: "password", label: "New password", full: true, hint: "Leave blank to keep the current password." },
+  { name: "whatsapp_opt_in", label: "Send WhatsApp confirmations", type: "checkbox" },
+];
+
 export default function AdminPlayersPage() {
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [active, setActive] = useState<Player | null>(null);
+  const [q, setQ] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<User | null>(null);
+  const [walletFor, setWalletFor] = useState<User | null>(null);
 
   const load = useCallback(async (search = "") => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/players${search ? `?q=${encodeURIComponent(search)}` : ""}`);
+      const res = await fetch(`/api/admin/users${search ? `?q=${encodeURIComponent(search)}` : ""}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not load players.");
-      setPlayers(data.players ?? []);
+      if (!res.ok) throw new Error(data.error ?? "Could not load accounts.");
+      setUsers(data.users ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load players.");
+      setError(err instanceof Error ? err.message : "Could not load accounts.");
     } finally {
       setLoading(false);
     }
@@ -56,19 +102,20 @@ export default function AdminPlayersPage() {
     load();
   }, [load]);
 
-  const accounts = players.filter((p) => p.has_account);
-  const walletTotal = accounts.reduce((sum, p) => sum + Number(p.wallet_balance_paise ?? 0), 0);
+  const walletTotal = users.reduce((sum, u) => sum + Number(u.wallet_balance_paise ?? 0), 0);
+  const admins = users.filter((u) => u.role === "admin" || u.role === "staff").length;
 
   return (
     <div>
       <AdminHeader
-        title="Players"
-        sub="Registered accounts and guest bookers. Wallet balances are editable in place."
+        title="Player accounts"
+        sub="Create, edit and remove accounts, and manage wallet balances."
+        action={<AddButton label="New account" onClick={() => setCreating(true)} />}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatTile label="Registered accounts" value={accounts.length} />
-        <StatTile label="Guest bookers" value={players.length - accounts.length} />
+        <StatTile label="Accounts" value={users.length} />
+        <StatTile label="Staff & admins" value={admins} />
         <StatTile label="Wallet float held" value={formatPaise(walletTotal)} tone="gold" hint="Total unspent credit" />
       </div>
 
@@ -86,7 +133,7 @@ export default function AdminPlayersPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by name, email or phone"
-            aria-label="Search players"
+            aria-label="Search accounts"
           />
         </div>
         <button type="submit" className="btn-outline">
@@ -94,82 +141,124 @@ export default function AdminPlayersPage() {
         </button>
       </form>
 
-      {error && (
-        <div className="mb-5">
-          <Alert>{error}</Alert>
-        </div>
-      )}
+      <ListState loading={loading} error={error} empty={users.length === 0} emptyLabel="No accounts yet." />
 
-      {loading ? (
-        <div className="flex h-48 items-center justify-center">
-          <Spinner size={22} />
-        </div>
-      ) : (
+      {!loading && !error && users.length > 0 && (
         <div className="table-wrap">
           <table className="tbl">
             <thead>
               <tr>
                 <th>Player</th>
                 <th>Contact</th>
-                <th>Level</th>
+                <th>DUPR</th>
+                <th>Category</th>
                 <th>Games</th>
                 <th>Wallet</th>
-                <th>Type</th>
+                <th>Role</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {players.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-bone/45">
-                    No players yet.
+              {users.map((u) => (
+                <tr key={u.id}>
+                  <td className="font-semibold text-bone">{u.full_name}</td>
+                  <td>
+                    <span className="block text-xs text-bone/70">{u.email}</span>
+                    <span className="block text-xs text-bone/45">{u.phone ?? "—"}</span>
+                  </td>
+                  <td>
+                    {u.dupr != null ? (
+                      <>
+                        <span className="block text-bone">{Number(u.dupr).toFixed(2)}</span>
+                        <span className="block text-[11px] text-bone/40">{u.dupr_id ?? "no ID"}</span>
+                      </>
+                    ) : (
+                      <span className="text-bone/35">Unrated</span>
+                    )}
+                  </td>
+                  <td className="capitalize">{u.skill_level}</td>
+                  <td>{u.games}</td>
+                  <td className={Number(u.wallet_balance_paise) > 0 ? "font-semibold text-gold" : "text-bone/40"}>
+                    {formatPaise(u.wallet_balance_paise)}
+                  </td>
+                  <td>
+                    <span className={u.role === "player" ? "chip" : "chip-gold"}>{u.role}</span>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setEditing(u)} className="btn-outline btn-sm">
+                        <Pencil size={13} /> Edit
+                      </button>
+                      <button type="button" onClick={() => setWalletFor(u)} className="btn-outline btn-sm">
+                        <Wallet size={13} /> Wallet
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                players.map((p) => (
-                  <tr key={p.id ?? `guest-${p.phone}`}>
-                    <td className="font-semibold text-bone">
-                      {p.full_name}
-                      {p.role === "admin" && <span className="chip-gold ml-2 py-0 text-[9px]">Admin</span>}
-                    </td>
-                    <td>
-                      <span className="block text-xs text-bone/70">{p.email ?? "—"}</span>
-                      <span className="block text-xs text-bone/45">{p.phone ?? "—"}</span>
-                    </td>
-                    <td className="capitalize">{p.skill_level ?? "—"}</td>
-                    <td>{p.games}</td>
-                    <td className={Number(p.wallet_balance_paise) > 0 ? "font-semibold text-gold" : "text-bone/40"}>
-                      {p.has_account ? formatPaise(p.wallet_balance_paise) : "—"}
-                    </td>
-                    <td>
-                      <span className={p.has_account ? "chip-live" : "chip"}>
-                        {p.has_account ? "Account" : "Guest"}
-                      </span>
-                    </td>
-                    <td>
-                      {p.has_account && (
-                        <button type="button" onClick={() => setActive(p)} className="btn-outline btn-sm">
-                          <Wallet size={13} /> Wallet
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
-      {active?.id && (
+      {creating && (
+        <RecordEditor
+          title="New account"
+          sub="Creates the sign-in in Supabase and the player profile together."
+          fields={CREATE_FIELDS}
+          initial={{ role: "player", city: "Kolkata" }}
+          submitLabel="Create account"
+          onClose={() => setCreating(false)}
+          onSubmit={async (values) => {
+            const err = await submitResource("/api/admin/users", "POST", cleanUser(values));
+            if (!err) await load(q);
+            return err;
+          }}
+        />
+      )}
+
+      {editing && (
+        <RecordEditor
+          title={editing.full_name}
+          sub={`Joined ${new Date(editing.created_at).toLocaleDateString("en-IN")} · ${editing.orders} orders`}
+          fields={EDIT_FIELDS}
+          initial={{
+            full_name: editing.full_name,
+            email: editing.email,
+            phone: editing.phone ?? "",
+            city: editing.city ?? "",
+            dupr_id: editing.dupr_id ?? "",
+            dupr: editing.dupr != null ? Number(editing.dupr) : null,
+            role: editing.role,
+            password: "",
+            whatsapp_opt_in: editing.whatsapp_opt_in,
+          }}
+          submitLabel="Save changes"
+          deleteLabel="Delete account"
+          onClose={() => setEditing(null)}
+          onSubmit={async (values) => {
+            const err = await submitResource("/api/admin/users", "PATCH", {
+              id: editing.id,
+              ...cleanUser(values),
+            });
+            if (!err) await load(q);
+            return err;
+          }}
+          onDelete={async () => {
+            const err = await submitResource(`/api/admin/users?id=${editing.id}`, "DELETE");
+            if (!err) await load(q);
+            return err;
+          }}
+        />
+      )}
+
+      {walletFor && (
         <WalletDrawer
-          player={active}
-          onClose={() => setActive(null)}
+          user={walletFor}
+          onClose={() => setWalletFor(null)}
           onChanged={(balance) => {
-            setPlayers((prev) =>
-              prev.map((p) => (p.id === active.id ? { ...p, wallet_balance_paise: balance } : p)),
-            );
-            setActive((prev) => (prev ? { ...prev, wallet_balance_paise: balance } : prev));
+            setUsers((prev) => prev.map((u) => (u.id === walletFor.id ? { ...u, wallet_balance_paise: balance } : u)));
+            setWalletFor((prev) => (prev ? { ...prev, wallet_balance_paise: balance } : prev));
           }}
         />
       )}
@@ -177,12 +266,22 @@ export default function AdminPlayersPage() {
   );
 }
 
+/** Drop blanks so a cleared optional field is not sent as an empty string. */
+function cleanUser(values: RecordValues): RecordValues {
+  const out: RecordValues = {};
+  for (const [k, v] of Object.entries(values)) {
+    if (v === "" || v === undefined) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
 function WalletDrawer({
-  player,
+  user,
   onClose,
   onChanged,
 }: {
-  player: Player;
+  user: User;
   onClose: () => void;
   onChanged: (balancePaise: number) => void;
 }) {
@@ -198,13 +297,13 @@ function WalletDrawer({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/wallet?user_id=${player.id}`);
+      const res = await fetch(`/api/admin/wallet?user_id=${user.id}`);
       const data = await res.json();
       if (res.ok) setTransactions(data.transactions ?? []);
     } finally {
       setLoading(false);
     }
-  }, [player.id]);
+  }, [user.id]);
 
   useEffect(() => {
     load();
@@ -224,7 +323,7 @@ function WalletDrawer({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          user_id: player.id,
+          user_id: user.id,
           amount_rupees: value * sign,
           kind: sign === 1 ? kind : "adjustment",
           reason,
@@ -245,101 +344,79 @@ function WalletDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60" role="dialog" aria-modal="true">
-      <div className="h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-ink-900 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow">Wallet</p>
-            <h2 className="mt-1 text-3xl">{player.full_name}</h2>
-            <p className="mt-1 text-xs text-bone/45">{player.email ?? player.phone}</p>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-bone/60 hover:bg-white/5">
-            <X size={18} />
+    <Drawer title="Wallet" sub={`${user.full_name} · ${user.email}`} onClose={onClose}>
+      <div className="card p-5">
+        <p className="text-[11px] uppercase tracking-wider text-bone/40">Current balance</p>
+        <p className="mt-1 font-display text-5xl text-gold">{formatPaise(user.wallet_balance_paise)}</p>
+        <p className="mt-2 text-xs text-bone/45">
+          {DUPR_BANDS.find((b) => b.level === skillFromDupr(user.dupr))?.label} ·{" "}
+          {user.dupr != null ? `DUPR ${Number(user.dupr).toFixed(2)}` : "unrated"}
+        </p>
+      </div>
+
+      <div className="mt-6 space-y-4">
+        <div>
+          <label className="label" htmlFor="w-amount">Amount (₹)</label>
+          <input id="w-amount" className="field" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500" />
+        </div>
+        <div>
+          <label className="label" htmlFor="w-kind">Reason type</label>
+          <select id="w-kind" className="field" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="topup">Top-up</option>
+            <option value="refund">Refund</option>
+            <option value="bonus">Bonus / promo</option>
+            <option value="adjustment">Correction</option>
+          </select>
+        </div>
+        <div>
+          <label className="label" htmlFor="w-reason">Note (optional)</label>
+          <input id="w-reason" className="field" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Cash received at TurfXL" />
+        </div>
+
+        {error && <Alert>{error}</Alert>}
+        {done && <Alert tone="ok">{done}</Alert>}
+
+        <div className="flex gap-3">
+          <button type="button" onClick={() => submit(1)} disabled={busy} className="btn-gold flex-1">
+            {busy ? <Spinner /> : null} Credit
+          </button>
+          <button type="button" onClick={() => submit(-1)} disabled={busy} className="btn-danger flex-1">
+            Debit
           </button>
         </div>
-
-        <div className="card mt-6 p-5">
-          <p className="text-[11px] uppercase tracking-wider text-bone/40">Current balance</p>
-          <p className="mt-1 font-display text-5xl text-gold">{formatPaise(player.wallet_balance_paise)}</p>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          <div>
-            <label className="label" htmlFor="w-amount">Amount (₹)</label>
-            <input
-              id="w-amount"
-              className="field"
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="500"
-            />
-          </div>
-          <div>
-            <label className="label" htmlFor="w-kind">Reason type</label>
-            <select id="w-kind" className="field" value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="topup">Top-up</option>
-              <option value="refund">Refund</option>
-              <option value="bonus">Bonus / promo</option>
-              <option value="adjustment">Correction</option>
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="w-reason">Note (optional)</label>
-            <input
-              id="w-reason"
-              className="field"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Cash received at TurfXL"
-            />
-          </div>
-
-          {error && <Alert>{error}</Alert>}
-          {done && <Alert tone="ok">{done}</Alert>}
-
-          <div className="flex gap-3">
-            <button type="button" onClick={() => submit(1)} disabled={busy} className="btn-gold flex-1">
-              {busy ? <Spinner /> : null} Credit
-            </button>
-            <button type="button" onClick={() => submit(-1)} disabled={busy} className="btn-danger flex-1">
-              Debit
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-8">
-          <h3 className="text-xl">History</h3>
-          {loading ? (
-            <div className="flex h-24 items-center justify-center">
-              <Spinner />
-            </div>
-          ) : transactions.length === 0 ? (
-            <p className="mt-3 text-sm text-bone/40">No wallet movements yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {transactions.map((t) => (
-                <li key={t.id} className="flex items-start justify-between gap-3 border-b border-white/5 pb-3">
-                  <div className="min-w-0">
-                    <p className="text-sm capitalize text-bone">{t.kind}</p>
-                    <p className="truncate text-xs text-bone/45">{t.reason ?? "—"}</p>
-                    <p className="mt-0.5 text-[11px] text-bone/30">
-                      {new Date(t.created_at).toLocaleString("en-IN")} · {t.created_by}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-ok" : "text-danger"}`}>
-                      {t.delta_paise > 0 ? "+" : "−"}
-                      {formatPaise(Math.abs(t.delta_paise))}
-                    </p>
-                    <p className="text-[11px] text-bone/35">{formatPaise(t.balance_after_paise)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
-    </div>
+
+      <div className="mt-8">
+        <h3 className="text-xl">History</h3>
+        {loading ? (
+          <div className="flex h-24 items-center justify-center">
+            <Spinner />
+          </div>
+        ) : transactions.length === 0 ? (
+          <p className="mt-3 text-sm text-bone/40">No wallet movements yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {transactions.map((t) => (
+              <li key={t.id} className="flex items-start justify-between gap-3 border-b border-white/5 pb-3">
+                <div className="min-w-0">
+                  <p className="text-sm capitalize text-bone">{t.kind}</p>
+                  <p className="truncate text-xs text-bone/45">{t.reason ?? "—"}</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-bone/30">
+                    <KeyRound size={9} /> {new Date(t.created_at).toLocaleString("en-IN")} · {t.created_by}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-ok" : "text-danger"}`}>
+                    {t.delta_paise > 0 ? "+" : "−"}
+                    {formatPaise(Math.abs(t.delta_paise))}
+                  </p>
+                  <p className="text-[11px] text-bone/35">{formatPaise(t.balance_after_paise)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Drawer>
   );
 }

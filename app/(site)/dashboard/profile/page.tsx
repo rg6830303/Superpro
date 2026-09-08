@@ -44,6 +44,7 @@ export default async function ProfilePage() {
             skill_level: profile?.skill_level ?? "beginner",
             city: profile?.city ?? "Kolkata",
             dupr: profile?.dupr ?? null,
+            dupr_id: profile?.dupr_id ?? null,
             whatsapp_opt_in: profile?.whatsapp_opt_in ?? true,
             wallet_balance_paise: Number(profile?.wallet_balance_paise ?? 0),
           }}

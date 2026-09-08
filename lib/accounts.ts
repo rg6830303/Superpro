@@ -25,6 +25,7 @@ export type UserRow = {
   phone: string | null;
   skill_level: string;
   dupr: number | null;
+  dupr_id: string | null;
   city: string | null;
   role: "player" | "staff" | "admin";
   wallet_balance_paise: number;
@@ -58,6 +59,8 @@ export async function syncUserRow(input: {
   full_name?: string | null;
   phone?: string | null;
   skill_level?: string | null;
+  dupr?: number | null;
+  dupr_id?: string | null;
   role?: "player" | "staff" | "admin";
 }): Promise<UserRow | null> {
   const email = input.email.toLowerCase();
@@ -65,17 +68,29 @@ export async function syncUserRow(input: {
 
   try {
     await query(
-      `INSERT INTO users (id, email, full_name, phone, skill_level, role, auth_provider, password_hash)
-       VALUES ($1,$2,$3,$4,COALESCE($5,'beginner'),COALESCE($6,'player'),'supabase',NULL)
+      `INSERT INTO users (id, email, full_name, phone, skill_level, dupr, dupr_id, role,
+         auth_provider, password_hash)
+       VALUES ($1,$2,$3,$4,COALESCE($5,'beginner'),$6,$7,COALESCE($8,'player'),'supabase',NULL)
        ON CONFLICT (id) DO UPDATE SET
          email = EXCLUDED.email,
          full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), users.full_name),
          phone = COALESCE(EXCLUDED.phone, users.phone),
          skill_level = COALESCE(EXCLUDED.skill_level, users.skill_level),
+         dupr = COALESCE(EXCLUDED.dupr, users.dupr),
+         dupr_id = COALESCE(EXCLUDED.dupr_id, users.dupr_id),
          role = CASE WHEN EXCLUDED.role = 'admin' THEN 'admin' ELSE users.role END,
          last_login_at = now(),
          updated_at = now()`,
-      [input.id, email, fullName, input.phone ?? null, input.skill_level ?? null, input.role ?? null],
+      [
+        input.id,
+        email,
+        fullName,
+        input.phone ?? null,
+        input.skill_level ?? null,
+        input.dupr ?? null,
+        input.dupr_id ?? null,
+        input.role ?? null,
+      ],
     );
   } catch (err) {
     // A pre-Supabase row may still occupy this email with a different id.

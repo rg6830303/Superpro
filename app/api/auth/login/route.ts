@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { syncUserRow, verifyCredentials } from "@/lib/accounts";
-import { signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
+import { hasSigningSecret, signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
 import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, loginSchema } from "@/lib/validation";
@@ -26,9 +26,9 @@ export async function POST(req: Request) {
     }
     const { email, password } = parsed.data;
 
-    if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+    if (!hasSigningSecret()) {
       return NextResponse.json(
-        { error: "Server is missing SESSION_SECRET. Set it in Vercel and redeploy." },
+        { error: "Server cannot sign sessions. Set SESSION_SECRET in Vercel and redeploy." },
         { status: 500 },
       );
     }

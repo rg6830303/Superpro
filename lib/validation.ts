@@ -11,12 +11,32 @@ export const emailSchema = z.string().trim().toLowerCase().email("Enter a valid 
 export const skillSchema = z.enum(["beginner", "intermediate", "advanced", "pro"]);
 export const paymentMethodSchema = z.enum(["razorpay", "cod", "venue", "wallet"]);
 
+/**
+ * Signup collects DUPR, not a self-declared level: the category is derived from
+ * the rating (lib/dupr.ts) so the two can never drift apart. Both fields are
+ * optional — an unrated player joins as a beginner.
+ */
+export const duprIdSchema = z
+  .string()
+  .trim()
+  .max(24, "That DUPR ID looks too long")
+  .optional()
+  .or(z.literal(""));
+
+export const duprRatingSchema = z
+  .number()
+  .min(2, "DUPR ratings start at 2.0")
+  .max(8, "DUPR ratings top out at 8.0")
+  .nullable()
+  .optional();
+
 export const signupSchema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(80),
   email: emailSchema,
   password: z.string().min(8, "Password must be at least 8 characters").max(128),
   phone: phoneSchema,
-  skill_level: skillSchema.default("beginner"),
+  dupr_id: duprIdSchema,
+  dupr: duprRatingSchema,
 });
 
 export const loginSchema = z.object({

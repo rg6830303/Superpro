@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasSigningSecret, signingSecretSource } from "@/lib/auth";
 import { dbConnInfo } from "@/lib/db";
 import { isRazorpayEnabled } from "@/lib/razorpay";
 import { isSupabaseAdminConfigured, isSupabaseConfigured } from "@/lib/supabase";
@@ -15,18 +16,20 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const has = (name: string) => Boolean(process.env[name]?.trim());
-  const sessionSecret = process.env.SESSION_SECRET ?? process.env.JWT_SECRET ?? "";
+
 
   const required = {
     POSTGRES_URL: has("POSTGRES_URL"),
     NEXT_PUBLIC_SUPABASE_URL: has("NEXT_PUBLIC_SUPABASE_URL"),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: has("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     SUPABASE_SERVICE_ROLE_KEY: has("SUPABASE_SERVICE_ROLE_KEY"),
-    // Signing fails outright below 32 chars, so length is part of "present".
-    SESSION_SECRET: sessionSecret.length >= 32,
+    // Sessions can also be signed from a derived Supabase secret, so report
+    // whether signing WORKS, not merely whether the variable is set.
+    SESSION_SIGNING: hasSigningSecret(),
   };
 
   const optional = {
+    SESSION_SECRET_EXPLICIT: has("SESSION_SECRET"),
     ADMIN_USERNAME: has("ADMIN_USERNAME"),
     ADMIN_PASSWORD: has("ADMIN_PASSWORD"),
     NEXT_PUBLIC_ADMIN_HOST: has("NEXT_PUBLIC_ADMIN_HOST"),
@@ -47,6 +50,7 @@ export async function GET() {
       missing,
       required,
       optional,
+      signing_key: signingSecretSource(),
       surface: process.env.NEXT_PUBLIC_ADMIN_HOST ? "admin" : "public",
       db: dbConnInfo(),
       supabase: { auth: isSupabaseConfigured, adminApi: isSupabaseAdminConfigured },

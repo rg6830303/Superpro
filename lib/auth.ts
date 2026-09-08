@@ -3,15 +3,63 @@ import { cookies } from "next/headers";
 
 const DEV_FALLBACK = "superpro-dev-only-secret-change-me-64-chars-long-or-more-please";
 
-function loadSecret(): Uint8Array {
-  const raw = process.env.SESSION_SECRET ?? process.env.JWT_SECRET;
-  if (raw && raw.length >= 32) return new TextEncoder().encode(raw);
-  if (process.env.NODE_ENV === "production") {
+/**
+ * Cookie signing key.
+ *
+ * SESSION_SECRET is the intended source. When it is absent we DERIVE a key from
+ * a Supabase secret the deployment already holds, rather than refusing to sign —
+ * one unset variable should not take every login on the site offline. Derivation
+ * runs the material through SHA-256 with a domain-separation prefix, so the
+ * Supabase secret is never used directly as the HMAC key and cannot be
+ * recovered from an issued cookie.
+ *
+ * Still set SESSION_SECRET when you can: it lets you rotate every session
+ * without touching the Supabase credentials.
+ */
+function secretSource(): { source: "session-secret" | "derived" | "dev" | "none"; material: string } {
+  const explicit = process.env.SESSION_SECRET ?? process.env.JWT_SECRET;
+  if (explicit && explicit.length >= 32) return { source: "session-secret", material: explicit };
+
+  const derived =
+    process.env.SUPABASE_JWT_SECRET ??
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_SECRET_KEY ??
+    "";
+  if (derived.length >= 32) return { source: "derived", material: derived };
+
+  if (process.env.NODE_ENV !== "production") return { source: "dev", material: DEV_FALLBACK };
+  return { source: "none", material: "" };
+}
+
+/** True when a session cookie can actually be signed in this deployment. */
+export function hasSigningSecret(): boolean {
+  return secretSource().source !== "none";
+}
+
+/** Which tier of the chain is in use — surfaced by /api/health/config. */
+export function signingSecretSource(): string {
+  return secretSource().source;
+}
+
+// The middleware runs on the Edge runtime, so derivation uses Web Crypto rather
+// than node:crypto — the same code then works in both runtimes. The derived key
+// is cached because it never changes for the life of the process.
+let derivedKey: Uint8Array | null = null;
+
+async function loadSecret(): Promise<Uint8Array> {
+  const { source, material } = secretSource();
+  if (source === "none") {
     throw new Error(
-      "SESSION_SECRET must be at least 32 chars in production. Generate one with: openssl rand -hex 32",
+      "No session signing secret. Set SESSION_SECRET (32+ chars), or SUPABASE_SERVICE_ROLE_KEY, in the environment.",
     );
   }
-  return new TextEncoder().encode(DEV_FALLBACK);
+  if (source === "session-secret") return new TextEncoder().encode(material);
+
+  if (!derivedKey) {
+    const bytes = new TextEncoder().encode(`superpro:session:v1:${material}`);
+    derivedKey = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  }
+  return derivedKey;
 }
 
 export const PLAYER_COOKIE = "superpro_player_session";
@@ -36,14 +84,14 @@ export async function signToken(
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
-    .sign(loadSecret());
+    .sign(await loadSecret());
 }
 
 export async function verifyToken(token: string): Promise<SessionPayload | null> {
   try {
     // Pin the algorithm — without this a token forged with alg:"none" would be
     // accepted (alg-confusion attack).
-    const { payload } = await jwtVerify(token, loadSecret(), { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, await loadSecret(), { algorithms: ["HS256"] });
     return payload as unknown as SessionPayload;
   } catch {
     return null;

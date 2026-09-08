@@ -5,7 +5,8 @@ import { getPlayerSession } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { listWalletTransactions } from "@/lib/wallet";
-import { phoneSchema, skillSchema } from "@/lib/validation";
+import { phoneSchema } from "@/lib/validation";
+import { normaliseDuprId, skillFromDupr } from "@/lib/dupr";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,9 +14,9 @@ export const dynamic = "force-dynamic";
 const patchSchema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(80).optional(),
   phone: phoneSchema.optional(),
-  skill_level: skillSchema.optional(),
   city: z.string().trim().max(60).optional(),
   dupr: z.number().min(2).max(8).nullable().optional(),
+  dupr_id: z.string().trim().max(24).optional(),
   whatsapp_opt_in: z.boolean().optional(),
 });
 
@@ -56,7 +57,10 @@ export async function PATCH(req: Request) {
 
   await ensureSchema();
 
-  // Explicit column list — a player can never patch their own role or wallet.
+  // The category is derived from the rating, so it is never accepted from the
+  // client. Explicit column list — a player cannot patch their role or wallet.
+  const skillLevel = patch.dupr != null ? skillFromDupr(patch.dupr) : null;
+
   await query(
     `UPDATE users SET
        full_name = COALESCE($1, full_name),
@@ -64,15 +68,17 @@ export async function PATCH(req: Request) {
        skill_level = COALESCE($3, skill_level),
        city = COALESCE($4, city),
        dupr = COALESCE($5, dupr),
-       whatsapp_opt_in = COALESCE($6, whatsapp_opt_in),
+       dupr_id = COALESCE($6, dupr_id),
+       whatsapp_opt_in = COALESCE($7, whatsapp_opt_in),
        updated_at = now()
-     WHERE id = $7`,
+     WHERE id = $8`,
     [
       patch.full_name ?? null,
       patch.phone ?? null,
-      patch.skill_level ?? null,
+      skillLevel,
       patch.city ?? null,
       patch.dupr ?? null,
+      normaliseDuprId(patch.dupr_id),
       patch.whatsapp_opt_in ?? null,
       session.id,
     ],

@@ -4,15 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Alert, Spinner } from "@/components/ui";
-import type { SkillLevel } from "@/lib/types";
-
-const SKILLS: Array<{ value: SkillLevel; label: string }> = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
-  { value: "pro", label: "DUPR rated" },
-];
-
+import { DUPR_BANDS, skillFromDupr } from "@/lib/dupr";
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -89,10 +81,17 @@ export function SignupForm() {
     email: "",
     phone: "",
     password: "",
-    skill_level: "beginner" as SkillLevel,
+    dupr_id: "",
+    dupr: "",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The category is never chosen — it follows the rating, live as you type.
+  const rating = Number(form.dupr);
+  const hasRating = form.dupr.trim() !== "" && Number.isFinite(rating);
+  const derived = skillFromDupr(hasRating ? rating : null);
+  const ratingOutOfRange = hasRating && (rating < 2 || rating > 8);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +101,14 @@ export function SignupForm() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          full_name: form.full_name,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+          dupr_id: form.dupr_id,
+          dupr: hasRating ? rating : null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not create your account.");
@@ -139,22 +145,49 @@ export function SignupForm() {
         </div>
       </div>
 
-      <div className="mt-5">
-        <span className="label">Skill level</span>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {SKILLS.map((s) => (
-            <button
-              key={s.value}
-              type="button"
-              onClick={() => setForm({ ...form, skill_level: s.value })}
-              className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                form.skill_level === s.value ? "border-gold bg-gold/10 text-gold" : "border-white/12 text-bone/60 hover:border-white/25"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor="s-duprid">DUPR ID (optional)</label>
+          <input
+            id="s-duprid"
+            className="field"
+            value={form.dupr_id}
+            onChange={(e) => setForm({ ...form, dupr_id: e.target.value })}
+            placeholder="e.g. K9X2LM"
+            autoCapitalize="characters"
+          />
         </div>
+        <div>
+          <label className="label" htmlFor="s-dupr">DUPR rating (optional)</label>
+          <input
+            id="s-dupr"
+            className="field"
+            inputMode="decimal"
+            value={form.dupr}
+            onChange={(e) => setForm({ ...form, dupr: e.target.value })}
+            placeholder="3.75"
+          />
+          {ratingOutOfRange && <p className="field-error">DUPR ratings run from 2.0 to 8.0.</p>}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-white/10 bg-ink-700/40 p-4">
+        <p className="text-[11px] uppercase tracking-wider text-bone/40">Your category</p>
+        <p className="mt-1 font-display text-2xl uppercase text-gold">
+          {DUPR_BANDS.find((b) => b.level === derived)?.label}
+        </p>
+        <p className="mt-1 text-xs text-bone/45">
+          {hasRating && !ratingOutOfRange
+            ? `Set automatically from DUPR ${rating.toFixed(2)}.`
+            : "Not rated yet? You'll start as a beginner — add your DUPR any time from your profile."}
+        </p>
+        <ul className="mt-3 space-y-1 text-[11px] text-bone/35">
+          {DUPR_BANDS.map((b) => (
+            <li key={b.level} className={b.level === derived ? "text-gold" : undefined}>
+              {b.label} — {b.range}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {error && (
