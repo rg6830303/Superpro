@@ -16,9 +16,9 @@ export default async function CheckoutPage() {
   const session = await getPlayerSession();
   const profile = session ? await getUserRow(session.id) : null;
   return (
-    <div className="wrap py-14">
+    <div className="wrap section">
       <p className="eyebrow">Checkout</p>
-      <h1 className="mt-3 text-[clamp(2.25rem,6vw,3.5rem)]">Almost on court</h1>
+      <h1 className="mt-3 headline-page">Almost on court</h1>
       <p className="mt-3 max-w-xl text-sm text-ink/65">
         One screen. No account needed — we&apos;ll confirm everything on WhatsApp.
       </p>

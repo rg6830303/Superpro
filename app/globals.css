@@ -72,7 +72,7 @@
 
 @layer components {
   .wrap {
-    @apply mx-auto w-full min-w-0 max-w-[1180px] px-5 sm:px-8;
+    @apply mx-auto w-full min-w-0 max-w-[1180px] px-5 sm:px-8 lg:px-10;
   }
 
   /* A scroller that cannot prop its column open. `min-w-0` is load bearing:
@@ -80,6 +80,33 @@
   .scroll-x {
     @apply min-w-0 max-w-full overflow-x-auto overscroll-x-contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+
+  /* ── Type scale ───────────────────────────────────────────────────────
+     Stepped at breakpoints, never fluid. Viewport-based clamp() rescales
+     type continuously as the window moves, which is what makes a layout
+     feel like a zooming page rather than a fixed product surface. Each
+     size below is a deliberate step, and every page uses the same three.
+     -------------------------------------------------------------------- */
+  .headline-hero {
+    @apply font-display text-[2.625rem] leading-[0.98] sm:text-[3.5rem] lg:text-[4.25rem] xl:text-[4.75rem];
+  }
+  .headline-page {
+    @apply font-display text-[2rem] leading-[1.04] sm:text-[2.625rem] lg:text-[3.125rem];
+  }
+  .headline-section {
+    @apply font-display text-[1.75rem] leading-[1.06] sm:text-[2.125rem] lg:text-[2.5rem];
+  }
+
+  /* ── Vertical rhythm ─────────────────────────────────────────────────
+     Three section heights, so the page breathes at the same rate on every
+     route instead of six ad-hoc paddings. ------------------------------- */
+  .section {
+    @apply py-14 sm:py-16 lg:py-20;
+  }
+  .section-tight {
+    @apply py-10 sm:py-12 lg:py-14;
   }
 
   /* ── Type ─────────────────────────────────────────────────────────────── */
@@ -101,7 +128,7 @@
 
   /* ── Buttons ──────────────────────────────────────────────────────────── */
   .btn {
-    @apply relative inline-flex select-none items-center justify-center gap-2 rounded-pill px-6 py-3
+    @apply relative inline-flex min-h-[44px] select-none items-center justify-center gap-2 rounded-pill px-6 py-3
            text-sm font-semibold transition-[transform,background-color,color,box-shadow,border-color]
            duration-200 ease-out active:translate-y-px disabled:pointer-events-none disabled:opacity-45;
   }
@@ -121,7 +148,7 @@
     @apply btn bg-signal/10 text-signal hover:bg-signal/20;
   }
   .btn-sm {
-    @apply px-4 py-2 text-[13px];
+    @apply min-h-[40px] px-4 py-2 text-[13px];
   }
 
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
@@ -160,7 +187,9 @@
     @apply mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55;
   }
   .field {
-    @apply w-full rounded-xl border border-line bg-paper px-4 py-3 text-[15px] text-ink
+    /* 16px on mobile is not a style choice: below it, iOS zooms the viewport
+       on focus and never zooms back. Desktop can take the tighter 15px. */
+    @apply w-full rounded-xl border border-line bg-paper px-4 py-3 text-base text-ink sm:text-[15px]
            transition-[border-color,box-shadow] duration-150 placeholder:text-ink/35
            focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/10;
   }
@@ -185,6 +214,15 @@
   /* ── Tables ───────────────────────────────────────────────────────────── */
   .table-wrap {
     @apply w-full min-w-0 max-w-full overflow-x-auto rounded-card border border-line bg-paper;
+    background-image:
+      linear-gradient(to right, #fff 30%, rgba(255, 255, 255, 0)),
+      linear-gradient(to left, #fff 30%, rgba(255, 255, 255, 0)),
+      radial-gradient(farthest-side at 0 50%, rgba(6, 38, 61, 0.14), rgba(6, 38, 61, 0)),
+      radial-gradient(farthest-side at 100% 50%, rgba(6, 38, 61, 0.14), rgba(6, 38, 61, 0));
+    background-position: 0 0, 100% 0, 0 0, 100% 0;
+    background-repeat: no-repeat;
+    background-size: 44px 100%, 44px 100%, 16px 100%, 16px 100%;
+    background-attachment: local, local, scroll, scroll;
   }
   .tbl {
     @apply w-full min-w-[640px] text-left text-sm;
@@ -194,7 +232,7 @@
            font-medium uppercase tracking-[0.14em] text-ink/55;
   }
   .tbl tbody td {
-    @apply border-b border-line/70 px-4 py-3 align-middle text-ink/80;
+    @apply border-b border-line/70 px-4 py-3.5 align-middle text-ink/80 sm:py-3;
   }
   .tbl tbody tr:last-child td {
     @apply border-b-0;
@@ -359,5 +397,27 @@
   }
   .route-shell::before {
     display: none;
+  }
+}
+
+/* Every text-entry control clears the 16px iOS zoom threshold on small
+   screens, including the dense inline selects in admin tables. Element
+   selectors with :not() outrank the utility classes, so no !important is
+   needed and desktop keeps its tighter sizing. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Touch devices get full-size hit areas on the small controls that sit
+   inside tables and toolbars. */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  [role="button"],
+  select {
+    min-height: 40px;
   }
 }

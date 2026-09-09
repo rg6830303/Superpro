@@ -28,9 +28,9 @@ export default async function GamesPage() {
   const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
 
   return (
-    <div className="wrap py-14">
+    <div className="wrap section">
       <p className="eyebrow">Daily games</p>
-      <h1 className="mt-3 text-[clamp(2.5rem,7vw,4.25rem)]">Turn up and play</h1>
+      <h1 className="mt-3 headline-page">Turn up and play</h1>
       <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
         Open play across {venues.length || 2} venues, seven days a week. Register once, pick your slots for
         the week, and your name and court number are posted to the SuperPro WhatsApp group.

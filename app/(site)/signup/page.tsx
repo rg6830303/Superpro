@@ -12,7 +12,7 @@ export default async function SignupPage() {
   if (session) redirect("/dashboard");
 
   return (
-    <div className="wrap max-w-xl py-16">
+    <div className="wrap max-w-xl section">
       <SignupForm />
     </div>
   );

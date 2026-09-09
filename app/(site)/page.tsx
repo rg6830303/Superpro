@@ -38,7 +38,7 @@ export default async function HomePage() {
           <div>
             <p className="eyebrow animate-wipe-in">Kolkata · since 2024</p>
 
-            <h1 className="mt-5 animate-rise-in text-[clamp(2.75rem,7.4vw,5rem)] leading-[0.95]">
+            <h1 className="mt-5 animate-rise-in headline-hero">
               Pickleball,
               <br />
               played <span className="marker">properly</span>.
@@ -109,11 +109,11 @@ export default async function HomePage() {
       )}
 
       {/* ── Next on court ─────────────────────────────────────────────────── */}
-      <section className="wrap py-20">
+      <section className="wrap section">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <h2 className="rule-head text-4xl sm:text-5xl">Next on court</h2>
+              <h2 className="rule-head headline-section">Next on court</h2>
               <p className="lede mt-4 max-w-xl">
                 Register once, pick your slots, turn up. Your name and court number reach the games group
                 before you leave the house.
@@ -168,11 +168,11 @@ export default async function HomePage() {
       {/* ── The ladder ─────────────────────────────────────────────────────
           Replaces the usual three feature cards with something a player can
           actually locate themselves on. ─────────────────────────────────── */}
-      <section className="border-y border-line bg-mist py-20">
+      <section className="section border-y border-line bg-mist">
         <div className="wrap grid min-w-0 gap-14 lg:grid-cols-[0.85fr_1.15fr]">
           <Reveal variant="left">
             <div className="lg:sticky lg:top-28">
-              <h2 className="rule-head text-4xl sm:text-5xl">Find your rung</h2>
+              <h2 className="rule-head headline-section">Find your rung</h2>
               <p className="lede mt-5">
                 Every session, coach and draw is banded by DUPR, so you always know which court you belong on —
                 and what it takes to move up one.
@@ -206,10 +206,10 @@ export default async function HomePage() {
 
       {/* ── Shop ──────────────────────────────────────────────────────────── */}
       {featured.length > 0 && (
-        <section className="wrap py-20">
+        <section className="wrap section">
           <Reveal>
             <div className="flex flex-wrap items-end justify-between gap-6">
-              <h2 className="rule-head text-4xl sm:text-5xl">The kit</h2>
+              <h2 className="rule-head headline-section">The kit</h2>
               <div className="flex flex-wrap gap-2">
                 {PRODUCT_CATEGORIES.map((c) => (
                   <Link
@@ -267,7 +267,7 @@ export default async function HomePage() {
       )}
 
       {/* ── Coaching & tournaments ────────────────────────────────────────── */}
-      <section className="wrap grid min-w-0 gap-5 pb-24 lg:grid-cols-2">
+      <section className="wrap grid min-w-0 gap-5 pb-16 sm:pb-20 lg:grid-cols-2">
         <Reveal>
           <div className="panel flex h-full flex-col p-8">
             <h2 className="font-display text-3xl text-ink">Coaching</h2>

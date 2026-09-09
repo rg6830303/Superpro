@@ -75,9 +75,9 @@ export default async function TournamentsPage() {
   const past = tournaments.filter((t) => t.status === "completed");
 
   return (
-    <div className="wrap py-14">
+    <div className="wrap section">
       <p className="eyebrow">Tournaments</p>
-      <h1 className="mt-3 text-[clamp(2.5rem,7vw,4.25rem)]">Play for something</h1>
+      <h1 className="mt-3 headline-page">Play for something</h1>
       <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
         Every draw we run, and every event around Kolkata we put our name behind. Published formats, published
         prize money, published results.

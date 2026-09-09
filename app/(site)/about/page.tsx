@@ -42,9 +42,9 @@ export default function AboutPage() {
     <>
       {/* Statement opener: one sentence, set large, with room around it. */}
       <section className="border-b border-line">
-        <div className="wrap py-16 lg:py-24">
+        <div className="wrap section">
           <p className="eyebrow">About {SITE.name}</p>
-          <h1 className="mt-6 max-w-4xl text-[clamp(2.25rem,5.6vw,4.25rem)] leading-[1.02]">
+          <h1 className="mt-6 max-w-4xl headline-page">
             We built the club we wanted to play at.
           </h1>
           <p className="lede mt-8 max-w-2xl">
@@ -57,11 +57,11 @@ export default function AboutPage() {
       </section>
 
       {/* Vision — a two-column read, product image anchoring the left rail. */}
-      <section className="wrap py-20">
+      <section className="wrap section">
         <div className="grid min-w-0 gap-14 lg:grid-cols-[0.9fr_1.1fr]">
           <Reveal variant="left">
             <div className="lg:sticky lg:top-28">
-              <h2 className="rule-head text-4xl sm:text-5xl">Our vision</h2>
+              <h2 className="rule-head headline-section">Our vision</h2>
               <p className="mt-6 text-xl leading-[1.4] text-ink">
                 Make Kolkata the easiest city in India to start playing pickleball — and the hardest one to
                 stop.
@@ -100,10 +100,10 @@ export default function AboutPage() {
       </section>
 
       {/* Timeline as an actual horizontal track, marked on a line. */}
-      <section className="border-y border-line bg-mist py-20">
+      <section className="section border-y border-line bg-mist">
         <div className="wrap">
           <Reveal>
-            <h2 className="rule-head text-4xl sm:text-5xl">How we got here</h2>
+            <h2 className="rule-head headline-section">How we got here</h2>
           </Reveal>
 
           <div className="scroll-x mt-12 pb-2">
@@ -131,7 +131,7 @@ export default function AboutPage() {
       </section>
 
       {/* Close on the one thing a reader here would actually want next. */}
-      <section className="wrap py-20">
+      <section className="wrap section">
         <Reveal>
           <div className="flex flex-col gap-6 border-t-2 border-ink pt-8 sm:flex-row sm:items-end sm:justify-between">
             <div>

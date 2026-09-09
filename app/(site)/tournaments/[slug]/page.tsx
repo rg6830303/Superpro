@@ -32,7 +32,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
   const canRegister = t.status === "open" && t.registration_open;
 
   return (
-    <div className="wrap py-10">
+    <div className="wrap section-tight">
       <Link href="/tournaments" className="inline-flex items-center gap-1.5 text-sm text-ink/65 hover:text-volt-deep">
         <ChevronLeft size={16} /> All tournaments
       </Link>
@@ -47,7 +47,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
           {t.status === "closed" && <span className="chip">Entries closed</span>}
         </div>
 
-        <h1 className="mt-4 max-w-3xl text-[clamp(2.25rem,6vw,4rem)]">{t.title}</h1>
+        <h1 className="mt-4 max-w-3xl headline-page">{t.title}</h1>
 
         {t.summary && <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">{t.summary}</p>}
 

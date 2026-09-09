@@ -13,7 +13,7 @@ export default async function LoginPage() {
   if (session) redirect("/dashboard");
 
   return (
-    <div className="wrap max-w-md py-16">
+    <div className="wrap max-w-md section">
       <Suspense fallback={<p className="text-sm text-ink/55">Loading…</p>}>
         <LoginForm />
       </Suspense>

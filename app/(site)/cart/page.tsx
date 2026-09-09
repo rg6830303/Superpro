@@ -11,12 +11,12 @@ export default function CartPage() {
   const { lines, setQty, remove, subtotalPaise, count, ready } = useCart();
 
   if (!ready) {
-    return <div className="wrap py-20 text-sm text-ink/55">Loading your cart…</div>;
+    return <div className="wrap section text-sm text-ink/55">Loading your cart…</div>;
   }
 
   if (lines.length === 0) {
     return (
-      <div className="wrap py-20">
+      <div className="wrap section">
         <h1 className="mb-8 text-5xl">Cart</h1>
         <EmptyState
           title="Nothing in the cart yet"
@@ -34,8 +34,8 @@ export default function CartPage() {
   const remaining = FREE_SHIPPING_THRESHOLD_PAISE - subtotalPaise;
 
   return (
-    <div className="wrap py-14">
-      <h1 className="text-[clamp(2.5rem,7vw,4rem)]">Cart</h1>
+    <div className="wrap section">
+      <h1 className="headline-page">Cart</h1>
       <p className="mt-2 text-sm text-ink/65">
         {count} item{count === 1 ? "" : "s"}
       </p>

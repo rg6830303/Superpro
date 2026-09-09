@@ -34,7 +34,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const specs = Array.isArray(product.specs) ? product.specs : [];
 
   return (
-    <div className="wrap py-10">
+    <div className="wrap section-tight">
       <Link
         href={`/products?category=${product.category}`}
         className="inline-flex items-center gap-1.5 text-sm text-ink/65 hover:text-volt-deep"
@@ -47,7 +47,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
         <div>
           <p className="eyebrow">{product.category}</p>
-          <h1 className="mt-3 text-[clamp(2.25rem,5vw,3.5rem)]">{product.name}</h1>
+          <h1 className="mt-3 headline-page">{product.name}</h1>
           {product.tagline && <p className="mt-4 text-lg leading-relaxed text-ink/70">{product.tagline}</p>}
 
           <ProductBuyBox product={product} />

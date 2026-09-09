@@ -23,7 +23,7 @@ export function SectionHeading({
     <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
         {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
-        <h2 className="rule-head text-4xl sm:text-5xl">{title}</h2>
+        <h2 className="rule-head headline-section">{title}</h2>
         {sub && <p className="lede mt-4">{sub}</p>}
       </div>
       {action}

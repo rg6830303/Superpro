@@ -86,11 +86,11 @@ export default async function DashboardPage() {
   const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
 
   return (
-    <div className="wrap py-14">
+    <div className="wrap section">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">My account</p>
-          <h1 className="mt-2 text-[clamp(2.25rem,6vw,3.5rem)]">{session.name}</h1>
+          <h1 className="mt-2 headline-page">{session.name}</h1>
           <p className="mt-1 text-sm text-ink/55">{session.email}</p>
         </div>
         <div className="flex items-center gap-2">

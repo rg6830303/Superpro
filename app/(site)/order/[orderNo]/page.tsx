@@ -45,7 +45,7 @@ export default async function OrderConfirmationPage({
   const items = Array.isArray(order.items) ? order.items : [];
 
   return (
-    <div className="wrap max-w-2xl py-16">
+    <div className="wrap max-w-2xl section">
       <div className="card relative overflow-hidden p-8 text-center">
         <CelebrationMark />
         <h1 className="mt-5 text-4xl">{paid ? "Payment received" : "Order placed"}</h1>

@@ -27,9 +27,9 @@ export default async function ProductsPage({
   const active = PRODUCT_CATEGORIES.find((c) => c.slug === valid);
 
   return (
-    <div className="wrap py-14">
+    <div className="wrap section">
       <p className="eyebrow">The shop</p>
-      <h1 className="mt-3 text-[clamp(2.5rem,7vw,4.25rem)]">{active ? active.label : "Champion Series"}</h1>
+      <h1 className="mt-3 headline-page">{active ? active.label : "Champion Series"}</h1>
       <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
         {active
           ? active.blurb

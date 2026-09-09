@@ -23,13 +23,13 @@ export default async function ProfilePage() {
   ]);
 
   return (
-    <div className="wrap max-w-3xl py-14">
+    <div className="wrap max-w-3xl section">
       <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-ink/65 hover:text-volt-deep">
         <ChevronLeft size={16} /> My account
       </Link>
 
       <p className="eyebrow mt-6">Profile &amp; wallet</p>
-      <h1 className="mt-2 text-[clamp(2.25rem,6vw,3.5rem)]">Your details</h1>
+      <h1 className="mt-2 headline-page">Your details</h1>
       <p className="mt-3 text-sm text-ink/65">
         Kept in step with your SuperPro account. Your email is managed by sign-in and cannot be changed here —
         message a rep if you need it moved.
