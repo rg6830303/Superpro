@@ -68,3 +68,18 @@ export async function PATCH(req: Request) {
     return serverError("coaching:update", err);
   }
 }
+
+/** Remove a coaching booking outright — used for spam and duplicate requests. */
+export async function DELETE(req: Request) {
+  const gate = await adminGate();
+  if (gate instanceof NextResponse) return gate;
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return badRequest("Missing booking id.");
+    await query(`DELETE FROM coaching_bookings WHERE id = $1`, [id]);
+    await audit(gate, "coaching.delete", "coaching_bookings", id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return serverError("coaching:delete", err);
+  }
+}

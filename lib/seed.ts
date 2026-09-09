@@ -528,7 +528,16 @@ export async function seedAll(): Promise<Record<string, unknown>> {
   await seedTournaments();
   await seedTimeSlots();
   await seedAnnouncements();
-  const sessions = await seedSessions(7);
+  // Deliberately no game sessions: the schedule is the club's to compose from
+  // the console, and seeding one would fight whatever the admin has already
+  // built. The reusable time-slot library above is what the builder needs.
   const admin = await seedAdmin();
-  return { products: PRODUCTS.length, venues: VENUES.length, coaches: COACHES.length, tournaments: TOURNAMENTS.length, sessions, admin };
+  return {
+    products: PRODUCTS.length,
+    venues: VENUES.length,
+    coaches: COACHES.length,
+    tournaments: TOURNAMENTS.length,
+    timeSlots: 7,
+    admin,
+  };
 }

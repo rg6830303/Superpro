@@ -55,7 +55,7 @@ export default async function HomePage() {
               </Link>
               <Link
                 href="/products"
-                className="group inline-flex items-center gap-1.5 text-sm font-semibold text-ink underline-offset-4 hover:underline"
+                className="link-underline group inline-flex items-center gap-1.5 text-sm font-semibold text-ink"
               >
                 Shop the Champion Series
                 <ArrowUpRight
@@ -86,7 +86,7 @@ export default async function HomePage() {
           </div>
 
           <div className="relative">
-            <div aria-hidden className="court-grid absolute inset-x-0 bottom-8 top-8 -z-10 rounded-card" />
+            <div aria-hidden className="court-grid court-grid-drift absolute inset-x-0 bottom-8 top-8 -z-10 rounded-card" />
             <Paddle3D priority />
           </div>
         </div>

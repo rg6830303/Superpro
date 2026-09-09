@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import { AddButton, ListState, RecordEditor, submitResource, type FieldDef } from "@/components/admin/crud";
 import { formatDate } from "@/lib/dates";
@@ -180,6 +180,7 @@ export default function AdminCoachingPage() {
                 <th>Amount</th>
                 <th>Payment</th>
                 <th>Status</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -217,6 +218,19 @@ export default function AdminCoachingPage() {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      aria-label={`Delete booking ${b.booking_no}`}
+                      onClick={async () => {
+                        await submitResource(`/api/admin/coaching?id=${b.id}`, "DELETE");
+                        load();
+                      }}
+                      className="rounded-md p-2 text-ink/40 transition-colors hover:bg-signal/10 hover:text-signal"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -258,7 +272,7 @@ export default function AdminCoachingPage() {
                 }
           }
           submitLabel={editing ? "Save coach" : "Add coach"}
-          deleteLabel="Remove from site"
+          deleteLabel="Delete or hide"
           onClose={() => {
             setCreating(false);
             setEditing(null);
@@ -273,9 +287,15 @@ export default function AdminCoachingPage() {
           onDelete={
             editing
               ? async () => {
-                  const err = await submitResource(`/api/admin/coaches?id=${editing.id}`, "DELETE");
-                  if (!err) await load();
-                  return err;
+                  // A coach who never took a booking is deleted outright;
+                  // otherwise the API refuses and we hide them instead.
+                  const purge = await submitResource(`/api/admin/coaches?id=${editing.id}&purge=1`, "DELETE");
+                  if (purge) {
+                    const hidden = await submitResource(`/api/admin/coaches?id=${editing.id}`, "DELETE");
+                    if (hidden) return hidden;
+                  }
+                  await load();
+                  return null;
                 }
               : undefined
           }

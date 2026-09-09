@@ -96,12 +96,31 @@ export async function DELETE(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
-    const id = new URL(req.url).searchParams.get("id");
+    const params = new URL(req.url).searchParams;
+    const id = params.get("id");
     if (!id) return badRequest("Missing coach id.");
-    // Coaching bookings reference the coach, so deactivate rather than delete.
+
+    // Bookings reference the coach with ON DELETE RESTRICT, so deactivating is
+    // the default. `purge=1` removes a coach who never took a booking.
+    if (params.get("purge") === "1") {
+      const booked = await query<{ n: number }>(
+        `SELECT COUNT(*)::int AS n FROM coaching_bookings WHERE coach_id = $1`,
+        [id],
+      );
+      if (Number(booked[0]?.n ?? 0) > 0) {
+        return NextResponse.json(
+          { error: "This coach has bookings on record. Hide them from the site instead of deleting." },
+          { status: 409 },
+        );
+      }
+      await query(`DELETE FROM coaches WHERE id = $1`, [id]);
+      await audit(gate, "coach.delete", "coaches", id);
+      return NextResponse.json({ ok: true, deleted: true });
+    }
+
     await query(`UPDATE coaches SET active = false WHERE id = $1`, [id]);
     await audit(gate, "coach.deactivate", "coaches", id);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, deactivated: true });
   } catch (err) {
     return serverError("coaches:delete", err);
   }

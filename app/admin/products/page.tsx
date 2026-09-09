@@ -175,7 +175,7 @@ export default function AdminProductsPage() {
                 }
           }
           submitLabel={editing ? "Save product" : "Add product"}
-          deleteLabel="Archive"
+          deleteLabel="Delete or archive"
           onClose={() => {
             setCreating(false);
             setEditing(null);
@@ -190,9 +190,15 @@ export default function AdminProductsPage() {
           onDelete={
             editing
               ? async () => {
-                  const err = await submitResource(`/api/admin/products?id=${editing.id}`, "DELETE");
-                  if (!err) await load();
-                  return err;
+                  // Try a true delete first; the API refuses with 409 when the
+                  // row is referenced, and we archive instead of failing.
+                  const purge = await submitResource(`/api/admin/products?id=${editing.id}&purge=1`, "DELETE");
+                  if (purge) {
+                    const archived = await submitResource(`/api/admin/products?id=${editing.id}`, "DELETE");
+                    if (archived) return archived;
+                  }
+                  await load();
+                  return null;
                 }
               : undefined
           }

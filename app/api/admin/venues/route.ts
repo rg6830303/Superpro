@@ -51,3 +51,35 @@ export async function PATCH(req: Request) {
     return serverError("venues:update", err);
   }
 }
+
+/**
+ * Delete a venue. Refused while games still reference it, because the cascade
+ * would silently take those sessions and their bookings with it — deactivate
+ * instead, which hides it from the site and keeps the history.
+ */
+export async function DELETE(req: Request) {
+  const gate = await adminGate();
+  if (gate instanceof NextResponse) return gate;
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return badRequest("Missing venue id.");
+    const used = await query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM game_sessions WHERE venue_id = $1`,
+      [id],
+    );
+    if (Number(used[0]?.n ?? 0) > 0) {
+      await query(`UPDATE venues SET active = false WHERE id = $1`, [id]);
+      await audit(gate, "venue.deactivate", "venues", id);
+      return NextResponse.json({
+        ok: true,
+        deactivated: true,
+        message: `${used[0].n} games use this venue, so it was hidden rather than deleted.`,
+      });
+    }
+    await query(`DELETE FROM venues WHERE id = $1`, [id]);
+    await audit(gate, "venue.delete", "venues", id);
+    return NextResponse.json({ ok: true, deleted: true });
+  } catch (err) {
+    return serverError("venues:delete", err);
+  }
+}

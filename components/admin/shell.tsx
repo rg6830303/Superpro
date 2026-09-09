@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  BellRing,
   CalendarDays,
   GraduationCap,
   LayoutDashboard,
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/admin/coaching", label: "Coaching", icon: GraduationCap },
   { href: "/admin/tournaments", label: "Tournaments", icon: Trophy },
   { href: "/admin/players", label: "Players", icon: Users },
+  { href: "/admin/announcements", label: "Announcements", icon: BellRing },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageSquare },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import { ListState, submitResource } from "@/components/admin/crud";
+import { Trash2 } from "lucide-react";
 import { formatPaise } from "@/lib/money";
 
 type Order = {
@@ -162,6 +163,20 @@ export default function AdminOrdersPage() {
                     </option>
                   ))}
                 </select>
+
+                <button
+                  type="button"
+                  aria-label={`Delete order ${o.order_no}`}
+                  title="Delete this order record"
+                  onClick={async () => {
+                    const err = await submitResource(`/api/admin/orders?id=${o.id}`, "DELETE");
+                    if (err) setError(err);
+                    load(filter);
+                  }}
+                  className="ml-auto rounded-md p-2 text-ink/40 transition-colors hover:bg-signal/10 hover:text-signal"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
           ))}

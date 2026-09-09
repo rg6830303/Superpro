@@ -324,3 +324,40 @@ export function ScoreMeter({
     </div>
   );
 }
+
+/**
+ * Reading progress for long routes. Uses a transform on a fixed bar rather than
+ * animating width, so it stays on the compositor and never triggers layout.
+ */
+export function ReadProgress() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || prefersReducedMotion()) return;
+
+    let frame: number | null = null;
+    const update = () => {
+      frame = null;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? Math.min(1, window.scrollY / max) : 0;
+      el.style.transform = `scaleX(${pct})`;
+      // Hide it entirely on pages too short to scroll.
+      el.style.opacity = max > 240 ? "1" : "0";
+    };
+    const onScroll = () => {
+      if (frame === null) frame = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  return <div ref={ref} aria-hidden className="read-progress w-full" style={{ transform: "scaleX(0)" }} />;
+}

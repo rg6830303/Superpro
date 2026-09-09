@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarPlus, MapPin, MessageSquare, Pencil, Users } from "lucide-react";
+import { CalendarPlus, MapPin, MessageSquare, Pencil, Trash2, Users } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import {
   AddButton,
@@ -463,12 +463,13 @@ export default function AdminGamesPage() {
                   <th>Players</th>
                   <th>Payment</th>
                   <th>Status</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
                 {registrations.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-ink/55">
+                    <td colSpan={8} className="py-8 text-center text-ink/55">
                       Nobody booked for this date yet.
                     </td>
                   </tr>
@@ -519,6 +520,20 @@ export default function AdminGamesPage() {
                           <option value="waitlist">Waitlist</option>
                           <option value="cancelled">Cancelled</option>
                         </select>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${r.player_name}`}
+                          title="Remove from this slot"
+                          onClick={async () => {
+                            await submitResource(`/api/admin/registrations?id=${r.id}`, "DELETE");
+                            loadRegistrations(regDate);
+                          }}
+                          className="rounded-md p-2 text-ink/40 transition-colors hover:bg-signal/10 hover:text-signal"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -635,6 +650,16 @@ export default function AdminGamesPage() {
             if (!err) await load();
             return err;
           }}
+          onDelete={
+            editingVenue
+              ? async () => {
+                  const err = await submitResource(`/api/admin/venues?id=${editingVenue.id}`, "DELETE");
+                  if (!err) await load();
+                  return err;
+                }
+              : undefined
+          }
+          deleteLabel="Delete venue"
         />
       )}
     </div>

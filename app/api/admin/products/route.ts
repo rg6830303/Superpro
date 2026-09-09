@@ -93,13 +93,32 @@ export async function DELETE(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
-    const id = new URL(req.url).searchParams.get("id");
+    const params = new URL(req.url).searchParams;
+    const id = params.get("id");
     if (!id) return badRequest("Missing product id.");
-    // Soft delete: orders reference product names historically, and an
-    // accidental hard delete is not recoverable from the console.
+
+    // Archiving is the default: orders keep a historical reference to the
+    // product, and an accidental hard delete is not recoverable here. `purge=1`
+    // removes it outright, and is refused once anything has been ordered.
+    if (params.get("purge") === "1") {
+      const ordered = await query<{ n: number }>(
+        `SELECT COUNT(*)::int AS n FROM orders WHERE items::text LIKE '%' || $1 || '%'`,
+        [id],
+      );
+      if (Number(ordered[0]?.n ?? 0) > 0) {
+        return NextResponse.json(
+          { error: "This product appears on existing orders. Archive it instead of deleting it." },
+          { status: 409 },
+        );
+      }
+      await query(`DELETE FROM products WHERE id = $1`, [id]);
+      await audit(gate, "product.delete", "products", id);
+      return NextResponse.json({ ok: true, deleted: true });
+    }
+
     await query(`UPDATE products SET active = false, updated_at = now() WHERE id = $1`, [id]);
     await audit(gate, "product.archive", "products", id);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, archived: true });
   } catch (err) {
     return serverError("products:delete", err);
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ClipboardList, Layers, Megaphone, Pencil, Users } from "lucide-react";
+import { ClipboardList, Layers, Megaphone, Pencil, Trash2, Users } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import {
   AddButton,
@@ -423,6 +423,17 @@ function DrawDrawer({
                     <option value="withdrawn">Withdrawn</option>
                   </select>
                 </div>
+                <button
+                  type="button"
+                  aria-label={`Delete ${e.team_name}`}
+                  onClick={async () => {
+                    await submitResource(`/api/admin/tournament-registrations?id=${e.id}`, "DELETE");
+                    load();
+                  }}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-ink/40 transition-colors hover:text-signal"
+                >
+                  <Trash2 size={12} /> Remove entry
+                </button>
               </li>
             ))}
           </ul>

@@ -29,14 +29,14 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <TiltCard max={6} className="h-full">
       <article className="card-hover group flex h-full flex-col overflow-hidden">
-      <Link href={`/products/${product.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-mist">
+      <Link href={`/products/${product.slug}`} className="lift-media relative block aspect-[4/3] overflow-hidden bg-mist">
         {product.image_url ? (
           <Image
             src={product.image_url}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+            className="object-contain p-4"
           />
         ) : (
           <div className="flex h-full items-center justify-center font-display text-2xl uppercase text-ink/30">

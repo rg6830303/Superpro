@@ -42,3 +42,18 @@ export async function PATCH(req: Request) {
     return serverError("tournament-regs:update", err);
   }
 }
+
+/** Remove a team from a draw. Withdrawing keeps the record; this erases it. */
+export async function DELETE(req: Request) {
+  const gate = await adminGate();
+  if (gate instanceof NextResponse) return gate;
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return badRequest("Missing registration id.");
+    await query(`DELETE FROM tournament_registrations WHERE id = $1`, [id]);
+    await audit(gate, "tournament-reg.delete", "tournament_registrations", id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return serverError("tournament-regs:delete", err);
+  }
+}

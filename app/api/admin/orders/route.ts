@@ -39,3 +39,31 @@ export async function PATCH(req: Request) {
     return serverError("orders:update", err);
   }
 }
+
+/**
+ * Delete an order. Cancelling is almost always the right move — it keeps the
+ * record — so this is for test rows and duplicates only.
+ */
+export async function DELETE(req: Request) {
+  const gate = await adminGate();
+  if (gate instanceof NextResponse) return gate;
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return badRequest("Missing order id.");
+    const rows = await query<{ order_no: string; payment_status: string }>(
+      `SELECT order_no, payment_status FROM orders WHERE id = $1`,
+      [id],
+    );
+    if (rows[0]?.payment_status === "paid") {
+      return NextResponse.json(
+        { error: "That order is paid. Mark it cancelled and refunded instead of deleting the record." },
+        { status: 409 },
+      );
+    }
+    await query(`DELETE FROM orders WHERE id = $1`, [id]);
+    await audit(gate, "order.delete", "orders", id, { order_no: rows[0]?.order_no });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return serverError("orders:delete", err);
+  }
+}

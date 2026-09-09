@@ -99,3 +99,18 @@ export async function PATCH(req: Request) {
     return serverError("registrations:update", err);
   }
 }
+
+/** Remove a player from a slot entirely, freeing the spot immediately. */
+export async function DELETE(req: Request) {
+  const gate = await adminGate();
+  if (gate instanceof NextResponse) return gate;
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return badRequest("Missing registration id.");
+    await query(`DELETE FROM game_registrations WHERE id = $1`, [id]);
+    await audit(gate, "registration.delete", "game_registrations", id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return serverError("registrations:delete", err);
+  }
+}
