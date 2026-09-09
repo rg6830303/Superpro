@@ -35,7 +35,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!ready) return <p className="py-16 text-sm text-bone/40">Loading…</p>;
+  if (!ready) return <p className="py-16 text-sm text-ink/55">Loading…</p>;
 
   if (lines.length === 0) {
     return (
@@ -43,7 +43,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
         title="Your cart is empty"
         sub="Add a paddle, ball or grip and come back here to check out."
         action={
-          <Link href="/products" className="btn-gold btn-sm mt-2">
+          <Link href="/products" className="btn-volt btn-sm mt-2">
             <ShoppingBag size={14} /> Browse the shop
           </Link>
         }
@@ -143,14 +143,14 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
           <h2 className="text-2xl">How do you want it?</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <button type="button" onClick={() => setMode("pickup")} className={`tile ${mode === "pickup" ? "tile-selected" : ""}`}>
-              <Store size={18} className="text-gold" />
-              <p className="mt-2 font-display text-lg uppercase text-bone">Pickup — free</p>
-              <p className="mt-1 text-xs text-bone/50">Collect at TurfXL, New Alipore. Ready in 24 hours.</p>
+              <Store size={18} className="text-volt-deep" />
+              <p className="mt-2 font-display text-lg uppercase text-ink">Pickup — free</p>
+              <p className="mt-1 text-xs text-ink/65">Collect at TurfXL, New Alipore. Ready in 24 hours.</p>
             </button>
             <button type="button" onClick={() => setMode("delivery")} className={`tile ${mode === "delivery" ? "tile-selected" : ""}`}>
-              <Truck size={18} className="text-gold" />
-              <p className="mt-2 font-display text-lg uppercase text-bone">Delivery</p>
-              <p className="mt-1 text-xs text-bone/50">Anywhere in Kolkata. ₹99, free over ₹5,000.</p>
+              <Truck size={18} className="text-volt-deep" />
+              <p className="mt-2 font-display text-lg uppercase text-ink">Delivery</p>
+              <p className="mt-1 text-xs text-ink/65">Anywhere in Kolkata. ₹99, free over ₹5,000.</p>
             </button>
           </div>
 
@@ -185,18 +185,18 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
               disabled={!razorpayEnabled}
               className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
             >
-              <CreditCard size={18} className="text-gold" />
-              <p className="mt-2 font-display text-lg uppercase text-bone">Pay online</p>
-              <p className="mt-1 text-xs text-bone/50">
+              <CreditCard size={18} className="text-volt-deep" />
+              <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
+              <p className="mt-1 text-xs text-ink/65">
                 {razorpayEnabled ? "UPI, card or netbanking. Confirms instantly." : "Temporarily unavailable."}
               </p>
             </button>
             <button type="button" onClick={() => setPay("cod")} className={`tile ${pay === "cod" ? "tile-selected" : ""}`}>
-              <Banknote size={18} className="text-gold" />
-              <p className="mt-2 font-display text-lg uppercase text-bone">
+              <Banknote size={18} className="text-volt-deep" />
+              <p className="mt-2 font-display text-lg uppercase text-ink">
                 {mode === "pickup" ? "Pay on pickup" : "Cash on delivery"}
               </p>
-              <p className="mt-1 text-xs text-bone/50">Cash or UPI when you collect it.</p>
+              <p className="mt-1 text-xs text-ink/65">Cash or UPI when you collect it.</p>
             </button>
             {walletPaise > 0 && (
               <button
@@ -205,9 +205,9 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
                 disabled={walletPaise < total}
                 className={`tile sm:col-span-2 ${pay === "wallet" ? "tile-selected" : ""} ${walletPaise < total ? "opacity-40" : ""}`}
               >
-                <Wallet size={18} className="text-gold" />
-                <p className="mt-2 font-display text-lg uppercase text-bone">SuperPro wallet</p>
-                <p className="mt-1 text-xs text-bone/50">
+                <Wallet size={18} className="text-volt-deep" />
+                <p className="mt-2 font-display text-lg uppercase text-ink">SuperPro wallet</p>
+                <p className="mt-1 text-xs text-ink/65">
                   {walletPaise < total
                     ? `Only ${formatPaise(walletPaise)} left — not enough for this order.`
                     : `${formatPaise(walletPaise)} available. Paid instantly, nothing else to do.`}
@@ -229,30 +229,30 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
           <ul className="mt-5 space-y-3">
             {lines.map((l) => (
               <li key={l.product_id} className="flex items-center gap-3">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-bone">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-mist">
                   {l.image_url && <Image src={l.image_url} alt="" fill sizes="48px" className="object-contain p-1" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-bone">{l.name}</p>
-                  <p className="text-xs text-bone/45">Qty {l.qty}</p>
+                  <p className="truncate text-sm text-ink">{l.name}</p>
+                  <p className="text-xs text-ink/55">Qty {l.qty}</p>
                 </div>
-                <p className="text-sm text-bone/80">{formatPaise(l.price_paise * l.qty)}</p>
+                <p className="text-sm text-ink/80">{formatPaise(l.price_paise * l.qty)}</p>
               </li>
             ))}
           </ul>
 
-          <dl className="mt-5 space-y-2.5 border-t border-white/10 pt-5 text-sm">
+          <dl className="mt-5 space-y-2.5 border-t border-line pt-5 text-sm">
             <div className="flex justify-between">
-              <dt className="text-bone/55">Subtotal</dt>
-              <dd className="text-bone">{formatPaise(subtotalPaise)}</dd>
+              <dt className="text-ink/70">Subtotal</dt>
+              <dd className="text-ink">{formatPaise(subtotalPaise)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-bone/55">{mode === "pickup" ? "Pickup" : "Delivery"}</dt>
-              <dd className={shipping === 0 ? "text-ok" : "text-bone"}>{shipping === 0 ? "Free" : formatPaise(shipping)}</dd>
+              <dt className="text-ink/70">{mode === "pickup" ? "Pickup" : "Delivery"}</dt>
+              <dd className={shipping === 0 ? "text-volt-deep" : "text-ink"}>{shipping === 0 ? "Free" : formatPaise(shipping)}</dd>
             </div>
-            <div className="flex justify-between border-t border-white/10 pt-3">
-              <dt className="font-display text-xl uppercase text-bone">Total</dt>
-              <dd className="font-display text-xl text-gold">{formatPaise(total)}</dd>
+            <div className="flex justify-between border-t border-line pt-3">
+              <dt className="font-display text-xl uppercase text-ink">Total</dt>
+              <dd className="font-display text-xl text-volt-deep">{formatPaise(total)}</dd>
             </div>
           </dl>
 
@@ -262,7 +262,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
             </div>
           )}
 
-          <button type="submit" disabled={busy} className="btn-gold mt-6 w-full">
+          <button type="submit" disabled={busy} className="btn-volt mt-6 w-full">
             {busy ? <Spinner /> : null}
             {busy
               ? "Placing order…"
@@ -272,7 +272,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
                   ? `Pay ${formatPaise(total)} from wallet`
                   : "Place order"}
           </button>
-          <p className="mt-3 text-center text-[11px] text-bone/35">
+          <p className="mt-3 text-center text-[11px] text-ink/45">
             You&apos;ll get a WhatsApp confirmation with your order number.
           </p>
         </div>

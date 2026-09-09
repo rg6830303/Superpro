@@ -77,21 +77,21 @@ export function ProfileForm({
       <div className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-bone/40">
-              <Wallet size={13} className="text-gold" /> SuperPro wallet
+            <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
+              <Wallet size={13} className="text-volt-deep" /> SuperPro wallet
             </p>
-            <p className="mt-1 font-display text-5xl text-gold">{formatPaise(profile.wallet_balance_paise)}</p>
+            <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(profile.wallet_balance_paise)}</p>
           </div>
           <a
             href={waLink("Hi SuperPro! I'd like to top up my wallet.")}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn bg-[#25D366] btn-sm text-ink hover:brightness-110"
+            className="btn-primary btn-sm"
           >
             <MessageCircle size={14} /> Top up
           </a>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-bone/45">
+        <p className="mt-3 text-xs leading-relaxed text-ink/55">
           Wallet credit can be spent on court slots and gear at checkout. Top-ups are loaded by a SuperPro rep
           at the venue and appear here immediately.
         </p>
@@ -160,22 +160,22 @@ export function ProfileForm({
           </div>
         </div>
 
-        <div className="mt-5 rounded-xl border border-white/10 bg-ink-700/40 p-4">
-          <p className="text-[11px] uppercase tracking-wider text-bone/40">Category</p>
-          <p className="mt-1 font-display text-2xl uppercase text-gold">
+        <div className="mt-5 rounded-xl border border-line bg-mist p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Category</p>
+          <p className="mt-1 font-display text-2xl uppercase text-volt-deep">
             {DUPR_BANDS.find((b) => b.level === derived)?.label}
           </p>
-          <p className="mt-1 text-xs text-bone/45">
+          <p className="mt-1 text-xs text-ink/55">
             Set automatically from your DUPR rating: below 3.5 beginner, 3.5&ndash;4.0 intermediate, 4.0+ advanced.
           </p>
         </div>
 
-        <label className="mt-5 flex items-start gap-3 text-sm text-bone/60">
+        <label className="mt-5 flex items-start gap-3 text-sm text-ink/70">
           <input
             type="checkbox"
             checked={form.whatsapp_opt_in}
             onChange={(e) => setForm({ ...form, whatsapp_opt_in: e.target.checked })}
-            className="mt-0.5 h-4 w-4 accent-[#C79620]"
+            className="mt-0.5 h-4 w-4 accent-[#06263D]"
           />
           Send my booking confirmations and court numbers on WhatsApp.
         </label>
@@ -191,7 +191,7 @@ export function ProfileForm({
           </div>
         )}
 
-        <button type="submit" disabled={busy} className="btn-gold mt-6">
+        <button type="submit" disabled={busy} className="btn-volt mt-6">
           {busy ? <Spinner /> : null} {busy ? "Saving…" : "Save changes"}
         </button>
       </form>
@@ -199,7 +199,7 @@ export function ProfileForm({
       <div className="card p-6">
         <h2 className="text-2xl">Wallet history</h2>
         {transactions.length === 0 ? (
-          <p className="mt-3 text-sm text-bone/45">Nothing yet. Ask a rep to load credit at the venue.</p>
+          <p className="mt-3 text-sm text-ink/55">Nothing yet. Ask a rep to load credit at the venue.</p>
         ) : (
           <div className="table-wrap mt-5">
             <table className="tbl">
@@ -217,8 +217,8 @@ export function ProfileForm({
                   <tr key={t.id}>
                     <td>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
                     <td className="capitalize">{t.kind}</td>
-                    <td className="text-bone/55">{t.reason ?? "—"}</td>
-                    <td className={t.delta_paise > 0 ? "text-ok" : "text-danger"}>
+                    <td className="text-ink/70">{t.reason ?? "—"}</td>
+                    <td className={t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}>
                       {t.delta_paise > 0 ? "+" : "−"}
                       {formatPaise(Math.abs(t.delta_paise))}
                     </td>

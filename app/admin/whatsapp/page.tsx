@@ -84,7 +84,7 @@ export default function AdminWhatsappPage() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatTile label="Waiting to send" value={queued} tone={queued > 0 ? "gold" : "default"} />
+        <StatTile label="Waiting to send" value={queued} tone={queued > 0 ? "accent" : "default"} />
         <StatTile label="Failed" value={failed} tone={failed > 0 ? "warn" : "default"} />
         <StatTile label="Delivery" value={automatic ? "Automatic" : "Manual"} hint={automatic ? "Relay configured" : "One tap per message"} />
       </div>
@@ -109,10 +109,10 @@ export default function AdminWhatsappPage() {
           placeholder="Courts are wet — tonight's 7 PM slot is moving indoors."
           aria-label="Broadcast message"
         />
-        <button type="button" onClick={sendBroadcast} disabled={busy || broadcast.trim().length < 3} className="btn-gold btn-sm mt-3">
+        <button type="button" onClick={sendBroadcast} disabled={busy || broadcast.trim().length < 3} className="btn-volt btn-sm mt-3">
           {busy ? <Spinner size={13} /> : <Send size={13} />} Send to group
         </button>
-        {notice && <p className="mt-3 text-xs text-ok">{notice}</p>}
+        {notice && <p className="mt-3 text-xs text-volt-deep">{notice}</p>}
       </div>
 
       <div className="mb-5 flex flex-wrap gap-2">
@@ -122,7 +122,7 @@ export default function AdminWhatsappPage() {
             type="button"
             onClick={() => setFilter(s)}
             className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${
-              filter === s ? "bg-gold text-ink" : "border border-white/15 text-bone/60 hover:text-bone"
+              filter === s ? "bg-volt text-ink" : "border border-line text-ink/70 hover:text-ink"
             }`}
           >
             {s || "All"}
@@ -142,13 +142,13 @@ export default function AdminWhatsappPage() {
               <div key={m.id} className="card p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <span className={m.status === "sent" ? "chip-live" : m.status === "failed" ? "chip-gold" : "chip"}>
+                    <span className={m.status === "sent" ? "chip-volt" : m.status === "failed" ? "chip-volt" : "chip"}>
                       {m.status}
                     </span>
-                    <p className="mt-2 text-xs uppercase tracking-wider text-bone/40">
+                    <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
                       {m.kind.replace(/_/g, " ")} · {m.target === "group" ? "Games group" : m.phone}
                     </p>
-                    <p className="text-[11px] text-bone/30">
+                    <p className="text-[11px] text-ink/45">
                       {new Date(m.created_at).toLocaleString("en-IN")}
                       {m.channel ? ` · via ${m.channel}` : ""}
                     </p>
@@ -156,7 +156,7 @@ export default function AdminWhatsappPage() {
 
                   {m.status !== "sent" && (
                     <div className="flex gap-2">
-                      <a href={link} target="_blank" rel="noopener noreferrer" className="btn-gold btn-sm">
+                      <a href={link} target="_blank" rel="noopener noreferrer" className="btn-volt btn-sm">
                         <ExternalLink size={13} /> Open in WhatsApp
                       </a>
                       <button
@@ -174,11 +174,11 @@ export default function AdminWhatsappPage() {
                   )}
                 </div>
 
-                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-xl bg-ink-700/50 p-4 font-sans text-xs leading-relaxed text-bone/70">
+                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-xl bg-mist p-4 font-sans text-xs leading-relaxed text-ink/75">
                   {m.message}
                 </pre>
 
-                {m.error && <p className="mt-2 text-xs text-danger">{m.error}</p>}
+                {m.error && <p className="mt-2 text-xs text-signal">{m.error}</p>}
               </div>
             );
           })}

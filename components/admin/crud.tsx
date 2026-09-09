@@ -47,18 +47,18 @@ export function Drawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" role="dialog" aria-modal="true">
-      <div className="flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-ink-900">
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 p-6">
+      <div className="flex h-full w-full max-w-lg flex-col border-l border-line bg-paper">
+        <div className="flex items-start justify-between gap-4 border-b border-line p-6">
           <div>
             <h2 className="text-3xl">{title}</h2>
-            {sub && <p className="mt-1 text-xs text-bone/45">{sub}</p>}
+            {sub && <p className="mt-1 text-xs text-ink/55">{sub}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-bone/60 hover:bg-white/5">
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-ink/70 hover:bg-mist">
             <X size={18} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
-        {footer && <div className="border-t border-white/10 p-6">{footer}</div>}
+        {footer && <div className="border-t border-line p-6">{footer}</div>}
       </div>
     </div>
   );
@@ -78,17 +78,17 @@ export function Field({
 
   if (def.type === "checkbox") {
     return (
-      <label className="flex items-start gap-3 py-2 text-sm text-bone/70 sm:col-span-2">
+      <label className="flex items-start gap-3 py-2 text-sm text-ink/75 sm:col-span-2">
         <input
           type="checkbox"
           id={id}
           checked={Boolean(value)}
           onChange={(e) => onChange(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-[#C79620]"
+          className="mt-0.5 h-4 w-4 accent-[#06263D]"
         />
         <span>
           {def.label}
-          {def.hint && <span className="block text-[11px] text-bone/35">{def.hint}</span>}
+          {def.hint && <span className="block text-[11px] text-ink/45">{def.hint}</span>}
         </span>
       </label>
     );
@@ -98,7 +98,7 @@ export function Field({
     <div className={def.full || def.type === "textarea" || def.type === "list" ? "sm:col-span-2" : ""}>
       <label className="label" htmlFor={id}>
         {def.label}
-        {def.required && <span className="ml-1 text-danger">*</span>}
+        {def.required && <span className="ml-1 text-signal">*</span>}
       </label>
 
       {def.type === "select" ? (
@@ -147,7 +147,7 @@ export function Field({
         />
       )}
 
-      {def.hint && <p className="mt-1.5 text-[11px] text-bone/35">{def.hint}</p>}
+      {def.hint && <p className="mt-1.5 text-[11px] text-ink/45">{def.hint}</p>}
     </div>
   );
 }
@@ -226,7 +226,7 @@ export function RecordEditor({
           ) : (
             <span />
           )}
-          <button type="button" onClick={save} disabled={busy} className="btn-gold">
+          <button type="button" onClick={save} disabled={busy} className="btn-volt">
             {busy ? <Spinner /> : null} {busy ? "Saving…" : submitLabel}
           </button>
         </div>
@@ -304,7 +304,7 @@ export async function submitResource(
 
 export function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="btn-gold btn-sm">
+    <button type="button" onClick={onClick} className="btn-volt btn-sm">
       <Plus size={14} /> {label}
     </button>
   );
@@ -329,6 +329,6 @@ export function ListState({
     );
   }
   if (error) return <Alert>{error}</Alert>;
-  if (empty) return <p className="card px-6 py-10 text-center text-sm text-bone/45">{emptyLabel}</p>;
+  if (empty) return <p className="card px-6 py-10 text-center text-sm text-ink/55">{emptyLabel}</p>;
   return null;
 }

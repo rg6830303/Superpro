@@ -116,7 +116,7 @@ export default function AdminPlayersPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatTile label="Accounts" value={users.length} />
         <StatTile label="Staff & admins" value={admins} />
-        <StatTile label="Wallet float held" value={formatPaise(walletTotal)} tone="gold" hint="Total unspent credit" />
+        <StatTile label="Wallet float held" value={formatPaise(walletTotal)} tone="accent" hint="Total unspent credit" />
       </div>
 
       <form
@@ -127,7 +127,7 @@ export default function AdminPlayersPage() {
         className="mb-5 flex gap-2"
       >
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-bone/30" />
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/45" />
           <input
             className="field pl-10"
             value={q}
@@ -161,28 +161,28 @@ export default function AdminPlayersPage() {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td className="font-semibold text-bone">{u.full_name}</td>
+                  <td className="font-semibold text-ink">{u.full_name}</td>
                   <td>
-                    <span className="block text-xs text-bone/70">{u.email}</span>
-                    <span className="block text-xs text-bone/45">{u.phone ?? "—"}</span>
+                    <span className="block text-xs text-ink/75">{u.email}</span>
+                    <span className="block text-xs text-ink/55">{u.phone ?? "—"}</span>
                   </td>
                   <td>
                     {u.dupr != null ? (
                       <>
-                        <span className="block text-bone">{Number(u.dupr).toFixed(2)}</span>
-                        <span className="block text-[11px] text-bone/40">{u.dupr_id ?? "no ID"}</span>
+                        <span className="block text-ink">{Number(u.dupr).toFixed(2)}</span>
+                        <span className="block text-[11px] text-ink/55">{u.dupr_id ?? "no ID"}</span>
                       </>
                     ) : (
-                      <span className="text-bone/35">Unrated</span>
+                      <span className="text-ink/45">Unrated</span>
                     )}
                   </td>
                   <td className="capitalize">{u.skill_level}</td>
                   <td>{u.games}</td>
-                  <td className={Number(u.wallet_balance_paise) > 0 ? "font-semibold text-gold" : "text-bone/40"}>
+                  <td className={Number(u.wallet_balance_paise) > 0 ? "font-semibold text-volt-deep" : "text-ink/55"}>
                     {formatPaise(u.wallet_balance_paise)}
                   </td>
                   <td>
-                    <span className={u.role === "player" ? "chip" : "chip-gold"}>{u.role}</span>
+                    <span className={u.role === "player" ? "chip" : "chip-volt"}>{u.role}</span>
                   </td>
                   <td>
                     <div className="flex gap-2">
@@ -346,9 +346,9 @@ function WalletDrawer({
   return (
     <Drawer title="Wallet" sub={`${user.full_name} · ${user.email}`} onClose={onClose}>
       <div className="card p-5">
-        <p className="text-[11px] uppercase tracking-wider text-bone/40">Current balance</p>
-        <p className="mt-1 font-display text-5xl text-gold">{formatPaise(user.wallet_balance_paise)}</p>
-        <p className="mt-2 text-xs text-bone/45">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Current balance</p>
+        <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(user.wallet_balance_paise)}</p>
+        <p className="mt-2 text-xs text-ink/55">
           {DUPR_BANDS.find((b) => b.level === skillFromDupr(user.dupr))?.label} ·{" "}
           {user.dupr != null ? `DUPR ${Number(user.dupr).toFixed(2)}` : "unrated"}
         </p>
@@ -377,7 +377,7 @@ function WalletDrawer({
         {done && <Alert tone="ok">{done}</Alert>}
 
         <div className="flex gap-3">
-          <button type="button" onClick={() => submit(1)} disabled={busy} className="btn-gold flex-1">
+          <button type="button" onClick={() => submit(1)} disabled={busy} className="btn-volt flex-1">
             {busy ? <Spinner /> : null} Credit
           </button>
           <button type="button" onClick={() => submit(-1)} disabled={busy} className="btn-danger flex-1">
@@ -393,24 +393,24 @@ function WalletDrawer({
             <Spinner />
           </div>
         ) : transactions.length === 0 ? (
-          <p className="mt-3 text-sm text-bone/40">No wallet movements yet.</p>
+          <p className="mt-3 text-sm text-ink/55">No wallet movements yet.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {transactions.map((t) => (
-              <li key={t.id} className="flex items-start justify-between gap-3 border-b border-white/5 pb-3">
+              <li key={t.id} className="flex items-start justify-between gap-3 border-b border-line/60 pb-3">
                 <div className="min-w-0">
-                  <p className="text-sm capitalize text-bone">{t.kind}</p>
-                  <p className="truncate text-xs text-bone/45">{t.reason ?? "—"}</p>
-                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-bone/30">
+                  <p className="text-sm capitalize text-ink">{t.kind}</p>
+                  <p className="truncate text-xs text-ink/55">{t.reason ?? "—"}</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-ink/45">
                     <KeyRound size={9} /> {new Date(t.created_at).toLocaleString("en-IN")} · {t.created_by}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-ok" : "text-danger"}`}>
+                  <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}`}>
                     {t.delta_paise > 0 ? "+" : "−"}
                     {formatPaise(Math.abs(t.delta_paise))}
                   </p>
-                  <p className="text-[11px] text-bone/35">{formatPaise(t.balance_after_paise)}</p>
+                  <p className="text-[11px] text-ink/45">{formatPaise(t.balance_after_paise)}</p>
                 </div>
               </li>
             ))}

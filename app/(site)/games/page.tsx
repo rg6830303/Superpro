@@ -31,7 +31,7 @@ export default async function GamesPage() {
     <div className="wrap py-14">
       <p className="eyebrow">Daily games</p>
       <h1 className="mt-3 text-[clamp(2.5rem,7vw,4.25rem)]">Turn up and play</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-bone/55">
+      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
         Open play across {venues.length || 2} venues, seven days a week. Register once, pick your slots for
         the week, and your name and court number are posted to the SuperPro WhatsApp group.
       </p>
@@ -43,10 +43,10 @@ export default async function GamesPage() {
           { icon: Clock, k: "60 minutes", v: "Balls and spare paddles provided" },
         ].map((f) => (
           <div key={f.k} className="card flex items-start gap-3 p-4">
-            <f.icon size={18} className="mt-0.5 shrink-0 text-gold" />
+            <f.icon size={18} className="mt-0.5 shrink-0 text-volt-deep" />
             <div>
-              <p className="font-display text-lg uppercase text-bone">{f.k}</p>
-              <p className="text-xs text-bone/50">{f.v}</p>
+              <p className="font-display text-lg uppercase text-ink">{f.k}</p>
+              <p className="text-xs text-ink/65">{f.v}</p>
             </div>
           </div>
         ))}
@@ -60,7 +60,7 @@ export default async function GamesPage() {
               href={v.maps_url ?? "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="chip hover:border-gold/50 hover:text-gold"
+              className="chip hover:border-volt-deep/40 hover:text-volt-deep"
             >
               <MapPin size={12} /> {v.name}
               {v.area ? `, ${v.area}` : ""}
@@ -84,7 +84,7 @@ export default async function GamesPage() {
       </div>
 
       {settings.booking_terms && (
-        <p className="mt-10 max-w-2xl text-xs leading-relaxed text-bone/35">{settings.booking_terms}</p>
+        <p className="mt-10 max-w-2xl text-xs leading-relaxed text-ink/45">{settings.booking_terms}</p>
       )}
     </div>
   );

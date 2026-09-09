@@ -101,7 +101,7 @@ export default function AdminCoachingPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatTile label="Active coaches" value={coaches.filter((c) => c.active).length} />
-        <StatTile label="Requests waiting" value={pending} tone={pending > 0 ? "gold" : "default"} />
+        <StatTile label="Requests waiting" value={pending} tone={pending > 0 ? "accent" : "default"} />
         <StatTile label="Total bookings" value={bookings.length} />
       </div>
 
@@ -112,7 +112,7 @@ export default function AdminCoachingPage() {
             type="button"
             onClick={() => setTab(t)}
             className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${
-              tab === t ? "bg-gold text-ink" : "border border-white/15 text-bone/60 hover:text-bone"
+              tab === t ? "bg-volt text-ink" : "border border-line text-ink/70 hover:text-ink"
             }`}
           >
             {t}
@@ -145,15 +145,15 @@ export default function AdminCoachingPage() {
               {coaches.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <span className="block font-semibold text-bone">{c.name}</span>
-                    <span className="block text-xs text-bone/45">{c.headline ?? "—"}</span>
+                    <span className="block font-semibold text-ink">{c.name}</span>
+                    <span className="block text-xs text-ink/55">{c.headline ?? "—"}</span>
                   </td>
                   <td>{c.dupr != null ? Number(c.dupr).toFixed(1) : "—"}</td>
                   <td>{c.experience_years} yrs</td>
                   <td>{formatPaise(c.rate_paise)}</td>
                   <td>{c.bookings}</td>
                   <td>
-                    <span className={c.active ? "chip-live" : "chip"}>{c.active ? "Listed" : "Hidden"}</span>
+                    <span className={c.active ? "chip-volt" : "chip"}>{c.active ? "Listed" : "Hidden"}</span>
                   </td>
                   <td>
                     <button type="button" onClick={() => setEditing(c)} className="btn-outline btn-sm">
@@ -185,10 +185,10 @@ export default function AdminCoachingPage() {
             <tbody>
               {bookings.map((b) => (
                 <tr key={b.id}>
-                  <td className="font-mono text-xs text-gold">{b.booking_no}</td>
+                  <td className="font-mono text-xs text-volt-deep">{b.booking_no}</td>
                   <td>
-                    <span className="block font-semibold text-bone">{b.player_name}</span>
-                    <span className="block text-xs text-bone/45">{b.player_phone}</span>
+                    <span className="block font-semibold text-ink">{b.player_name}</span>
+                    <span className="block text-xs text-ink/55">{b.player_phone}</span>
                   </td>
                   <td>{b.coach_name}</td>
                   <td className="whitespace-nowrap text-xs">
@@ -199,7 +199,7 @@ export default function AdminCoachingPage() {
                   </td>
                   <td>{formatPaise(b.amount_paise)}</td>
                   <td>
-                    <span className={b.payment_status === "paid" ? "chip-live" : "chip-gold"}>{b.payment_status}</span>
+                    <span className={b.payment_status === "paid" ? "chip-volt" : "chip-warn"}>{b.payment_status}</span>
                   </td>
                   <td>
                     <select

@@ -30,7 +30,7 @@ export default async function ProductsPage({
     <div className="wrap py-14">
       <p className="eyebrow">The shop</p>
       <h1 className="mt-3 text-[clamp(2.5rem,7vw,4.25rem)]">{active ? active.label : "Champion Series"}</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-bone/55">
+      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
         {active
           ? active.blurb
           : "Everything we put on our own courts. Pickup free at TurfXL, New Alipore — or delivered anywhere in Kolkata, free over ₹5,000."}
@@ -44,7 +44,7 @@ export default async function ProductsPage({
               key={f.slug || "all"}
               href={f.slug ? `/products?category=${f.slug}` : "/products"}
               className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
-                isActive ? "bg-gold text-ink" : "border border-white/15 text-bone/60 hover:border-gold/50 hover:text-gold"
+                isActive ? "bg-volt text-ink" : "border border-line text-ink/70 hover:border-volt-deep/40 hover:text-volt-deep"
               }`}
             >
               {f.label}
@@ -80,18 +80,20 @@ export default async function ProductsPage({
         )}
       </div>
 
-      <div className="mt-14 card flex flex-col items-center gap-4 px-6 py-10 text-center">
-        <h2 className="text-3xl">Still deciding?</h2>
-        <p className="max-w-md text-sm text-bone/55">
-          Tell a rep your level, your grip size and your budget. They&apos;ll pick one paddle and tell you why.
-        </p>
+      <div className="mt-16 flex flex-col gap-6 border-t-2 border-ink pt-8 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-3xl">Still deciding?</h2>
+          <p className="mt-3 max-w-md text-sm text-ink/65">
+            Tell a rep your level, grip size and budget. They pick one paddle and tell you why.
+          </p>
+        </div>
         <a
           href={waLink("Hi SuperPro! Help me pick a paddle — here's how I play:")}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn bg-[#25D366] text-ink hover:brightness-110"
+          className="btn-primary shrink-0"
         >
-          <MessageCircle size={16} /> Chat with a representative
+          <MessageCircle size={16} /> Ask a rep
         </a>
       </div>
     </div>

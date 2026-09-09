@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Check, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { CelebrationMark } from "@/components/celebrate";
 import { queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { formatPaise } from "@/lib/money";
@@ -45,14 +46,12 @@ export default async function OrderConfirmationPage({
 
   return (
     <div className="wrap max-w-2xl py-16">
-      <div className="card p-8 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok text-ink">
-          <Check size={28} />
-        </div>
+      <div className="card relative overflow-hidden p-8 text-center">
+        <CelebrationMark />
         <h1 className="mt-5 text-4xl">{paid ? "Payment received" : "Order placed"}</h1>
-        <p className="mt-3 text-sm text-bone/55">
+        <p className="mt-3 text-sm text-ink/70">
           Thanks {order.customer_name.split(" ")[0]} — your order number is{" "}
-          <span className="font-semibold text-gold">{order.order_no}</span>.
+          <span className="font-semibold text-volt-deep">{order.order_no}</span>.
           {paid
             ? " We're packing it now."
             : order.delivery_mode === "pickup"
@@ -60,24 +59,24 @@ export default async function OrderConfirmationPage({
               : " Pay cash when it arrives."}
         </p>
 
-        <ul className="mt-7 space-y-2.5 border-t border-white/10 pt-6 text-left text-sm">
+        <ul className="mt-7 space-y-2.5 border-t border-line pt-6 text-left text-sm">
           {items.map((i, idx) => (
             <li key={idx} className="flex justify-between gap-4">
-              <span className="text-bone/70">
+              <span className="text-ink/75">
                 {i.qty} × {i.name}
               </span>
-              <span className="text-bone/80">{formatPaise(i.price_paise * i.qty)}</span>
+              <span className="text-ink/80">{formatPaise(i.price_paise * i.qty)}</span>
             </li>
           ))}
-          <li className="flex justify-between gap-4 border-t border-white/10 pt-3">
-            <span className="text-bone/55">{order.delivery_mode === "pickup" ? "Pickup" : "Delivery"}</span>
-            <span className="text-bone/80">
+          <li className="flex justify-between gap-4 border-t border-line pt-3">
+            <span className="text-ink/70">{order.delivery_mode === "pickup" ? "Pickup" : "Delivery"}</span>
+            <span className="text-ink/80">
               {order.shipping_paise === 0 ? "Free" : formatPaise(order.shipping_paise)}
             </span>
           </li>
           <li className="flex justify-between gap-4 pt-1">
-            <span className="font-display text-xl uppercase text-bone">Total</span>
-            <span className="font-display text-xl text-gold">{formatPaise(order.total_paise)}</span>
+            <span className="font-display text-xl uppercase text-ink">Total</span>
+            <span className="font-display text-xl text-volt-deep">{formatPaise(order.total_paise)}</span>
           </li>
         </ul>
 
@@ -86,7 +85,7 @@ export default async function OrderConfirmationPage({
             href={waLink(`Hi SuperPro! A question about order ${order.order_no}:`)}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn bg-[#25D366] text-ink hover:brightness-110"
+            className="btn-primary"
           >
             <MessageCircle size={16} /> Message a rep
           </a>

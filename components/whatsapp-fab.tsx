@@ -22,21 +22,24 @@ export function WhatsAppFab() {
   return (
     <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3 print:hidden">
       {open && (
-        <div className="w-72 origin-bottom-right animate-fade-up rounded-2xl border border-white/10 bg-ink-800 p-4 shadow-card">
-          <p className="font-display text-lg uppercase text-bone">Talk to a rep</p>
-          <p className="mt-1 text-xs text-bone/55">
-            Real person, usually replies in a few minutes. Pick what you need:
+        <div className="w-[280px] origin-bottom-right animate-wipe-in rounded-card border border-line bg-paper p-5 shadow-lift">
+          <p className="font-display text-xl text-ink">Talk to a rep</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink/60">
+            A real person, usually within a few minutes.
           </p>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="mt-4 flex flex-col gap-1.5">
             {QUICK_ASKS.map((q) => (
               <a
                 key={q.label}
                 href={waLink(q.msg)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-bone/80 transition-colors hover:border-gold/50 hover:text-gold"
+                className="group flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2.5 text-[13px] font-medium text-ink/80 transition-colors hover:border-ink hover:text-ink"
               >
                 {q.label}
+                <span aria-hidden className="text-ink/25 transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
               </a>
             ))}
           </div>
@@ -45,12 +48,12 @@ export function WhatsAppFab() {
               href={WHATSAPP_GROUP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 block rounded-lg bg-volt/10 px-3 py-2 text-center text-xs font-semibold text-volt"
+              className="mt-3 block rounded-lg bg-volt-soft px-3 py-2.5 text-center text-[13px] font-semibold text-volt-deep transition-colors hover:bg-volt/25"
             >
-              Join the daily games group
+              Join the games group
             </a>
           )}
-          <p className="mt-3 text-center text-[11px] text-bone/35">+{WHATSAPP_NUMBER}</p>
+          <p className="mt-3 text-center font-mono text-[11px] tabular-nums text-ink/40">+{WHATSAPP_NUMBER}</p>
         </div>
       )}
 
@@ -59,9 +62,9 @@ export function WhatsAppFab() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Close WhatsApp menu" : "Chat with a SuperPro representative"}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-ink shadow-lift transition-transform hover:scale-105 active:scale-95"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-paper shadow-lift transition-[transform,background-color] duration-200 ease-out hover:bg-ink-700 active:translate-y-px"
       >
-        {open ? <X size={24} /> : <MessageCircle size={26} />}
+        {open ? <X size={23} /> : <MessageCircle size={25} />}
       </button>
     </div>
   );

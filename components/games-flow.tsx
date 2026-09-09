@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, MapPin, MessageCircle, Users, Wallet } from "lucide-react";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, Spinner, Stepper } from "@/components/ui";
+import { Confetti } from "@/components/motion";
 import { formatDate, formatTime, formatTimeRange, isPast } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 import { waLink, WHATSAPP_GROUP_URL } from "@/lib/site";
@@ -187,6 +188,10 @@ export function GamesFlow({
     <div>
       <Stepper steps={STEPS} current={step} />
 
+      {/* Keyed on the step so a change replays the entrance rather than
+          swapping content in place. */}
+      <div key={step} className="step-in">
+
       {error && (
         <div className="mb-5">
           <Alert>{error}</Alert>
@@ -197,7 +202,7 @@ export function GamesFlow({
       {step === 1 && (
         <div className="card max-w-2xl p-7">
           <h2 className="text-2xl">Player details</h2>
-          <p className="mt-1.5 text-sm text-bone/50">
+          <p className="mt-1.5 text-sm text-ink/65">
             One time only. Next week, the same number picks up where you left off.
           </p>
 
@@ -209,7 +214,7 @@ export function GamesFlow({
             <div>
               <label className="label" htmlFor="g-phone">WhatsApp number</label>
               <input id="g-phone" className="field" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="98xxxxxxxx" />
-              <p className="mt-1.5 text-[11px] text-bone/35">Your confirmation and court number come here.</p>
+              <p className="mt-1.5 text-[11px] text-ink/45">Your confirmation and court number come here.</p>
             </div>
             <div>
               <label className="label" htmlFor="g-email">Email (optional)</label>
@@ -226,7 +231,7 @@ export function GamesFlow({
                   type="button"
                   onClick={() => setSkill(s.value)}
                   className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                    skill === s.value ? "border-gold bg-gold/10 text-gold" : "border-white/12 text-bone/60 hover:border-white/25"
+                    skill === s.value ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
                   }`}
                 >
                   {s.label}
@@ -244,18 +249,18 @@ export function GamesFlow({
                   type="button"
                   onClick={() => setPlayers(n)}
                   className={`h-11 w-11 rounded-xl border font-display text-lg transition-colors ${
-                    players === n ? "border-gold bg-gold/10 text-gold" : "border-white/12 text-bone/60 hover:border-white/25"
+                    players === n ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
                   }`}
                 >
                   {n}
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[11px] text-bone/35">Bringing friends? We&apos;ll hold that many spots per slot.</p>
+            <p className="mt-1.5 text-[11px] text-ink/45">Bringing friends? We&apos;ll hold that many spots per slot.</p>
           </div>
 
           <div className="mt-7 flex justify-end">
-            <button type="button" onClick={next} className="btn-gold">
+            <button type="button" onClick={next} className="btn-volt">
               Pick your slots <ArrowRight size={16} />
             </button>
           </div>
@@ -267,14 +272,14 @@ export function GamesFlow({
         <div className="grid min-w-0 gap-6 lg:grid-cols-[1.6fr_1fr]">
           <div className="card min-w-0 p-6">
             <h2 className="text-2xl">This week&apos;s slots</h2>
-            <p className="mt-1.5 text-sm text-bone/50">
+            <p className="mt-1.5 text-sm text-ink/65">
               Pick as many as you like — one tap each. Full slots are greyed out.
             </p>
 
             {dates.length === 0 ? (
-              <div className="mt-8 rounded-xl border border-white/10 p-8 text-center">
-                <p className="font-display text-xl text-bone/70">No slots published yet</p>
-                <p className="mt-2 text-sm text-bone/45">The week&apos;s schedule goes up every Sunday evening.</p>
+              <div className="mt-8 rounded-xl border border-line p-8 text-center">
+                <p className="font-display text-xl text-ink/75">No slots published yet</p>
+                <p className="mt-2 text-sm text-ink/55">The week&apos;s schedule goes up every Sunday evening.</p>
                 <a href={waLink("Hi SuperPro! When do this week's slots open?")} target="_blank" rel="noopener noreferrer" className="btn-outline btn-sm mt-5">
                   <MessageCircle size={14} /> Ask a rep
                 </a>
@@ -293,16 +298,16 @@ export function GamesFlow({
                         type="button"
                         onClick={() => setActiveDate(d)}
                         className={`shrink-0 rounded-xl border px-4 py-2.5 text-left transition-colors ${
-                          isActive ? "border-gold bg-gold/10" : "border-white/12 hover:border-white/25"
+                          isActive ? "border-ink bg-volt-soft" : "border-line hover:border-line-strong"
                         }`}
                       >
-                        <span className={`block text-xs font-semibold uppercase tracking-wider ${isActive ? "text-gold" : "text-bone/45"}`}>
+                        <span className={`block font-mono text-[11px] uppercase tracking-[0.14em] ${isActive ? "text-volt-deep" : "text-ink/55"}`}>
                           {formatDate(d).split(",")[0]}
                         </span>
-                        <span className={`block font-display text-lg ${isActive ? "text-bone" : "text-bone/70"}`}>
+                        <span className={`block font-display text-lg ${isActive ? "text-ink" : "text-ink/75"}`}>
                           {formatDate(d).split(", ")[1]}
                         </span>
-                        <span className="mt-0.5 block text-[10px] text-bone/35">{open} open</span>
+                        <span className="mt-0.5 block text-[10px] text-ink/45">{open} open</span>
                       </button>
                     );
                   })}
@@ -323,24 +328,24 @@ export function GamesFlow({
                         className={`tile ${selected ? "tile-selected" : ""} ${disabled ? "tile-disabled" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className="font-display text-2xl text-bone">{formatTime(s.start_time)}</span>
+                          <span className="font-display text-2xl text-ink">{formatTime(s.start_time)}</span>
                           {selected ? (
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold text-ink">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-volt text-ink">
                               <Check size={12} />
                             </span>
                           ) : (
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${left <= 2 ? "text-gold" : "text-ok"}`}>
+                            <span className={`font-mono text-[10px] uppercase tracking-[0.14em] ${left <= 2 ? "text-amber" : "text-volt-deep"}`}>
                               {past ? "Started" : left <= 0 ? "Full" : `${left} left`}
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 text-xs text-bone/50">{formatTimeRange(s.start_time, s.end_time)}</p>
-                        <p className="mt-2 flex items-center gap-1.5 text-xs text-bone/60">
+                        <p className="mt-1 text-xs text-ink/65">{formatTimeRange(s.start_time, s.end_time)}</p>
+                        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
                           <MapPin size={11} /> {s.venue_name} · Court {s.court_number}
                         </p>
                         <div className="mt-2.5 flex items-center justify-between">
                           <span className="chip py-0.5 text-[10px]">{s.level === "all" ? "All levels" : s.level}</span>
-                          <span className="text-sm font-semibold text-gold">{formatPaise(s.price_paise)}</span>
+                          <span className="text-sm font-semibold text-volt-deep">{formatPaise(s.price_paise)}</span>
                         </div>
                       </button>
                     );
@@ -354,16 +359,16 @@ export function GamesFlow({
             <div className="card p-6">
               <h3 className="text-xl">Your picks</h3>
               {pickedSessions.length === 0 ? (
-                <p className="mt-3 text-sm text-bone/45">Nothing picked yet.</p>
+                <p className="mt-3 text-sm text-ink/55">Nothing picked yet.</p>
               ) : (
                 <ul className="mt-4 space-y-3">
                   {pickedSessions.map((s) => (
                     <li key={s.id} className="flex items-start justify-between gap-3 text-sm">
                       <span>
-                        <span className="block text-bone">{formatDate(s.session_date)} · {formatTime(s.start_time)}</span>
-                        <span className="block text-xs text-bone/45">{s.venue_name} · Court {s.court_number}</span>
+                        <span className="block text-ink">{formatDate(s.session_date)} · {formatTime(s.start_time)}</span>
+                        <span className="block text-xs text-ink/55">{s.venue_name} · Court {s.court_number}</span>
                       </span>
-                      <button type="button" onClick={() => toggle(s)} className="text-xs text-bone/35 hover:text-danger">
+                      <button type="button" onClick={() => toggle(s)} className="text-xs text-ink/45 hover:text-signal">
                         Remove
                       </button>
                     </li>
@@ -371,14 +376,14 @@ export function GamesFlow({
                 </ul>
               )}
 
-              <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
-                <span className="text-sm text-bone/55">
+              <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
+                <span className="text-sm text-ink/70">
                   {picked.length} slot{picked.length === 1 ? "" : "s"} × {players} player{players === 1 ? "" : "s"}
                 </span>
-                <span className="font-display text-2xl text-gold">{formatPaise(totalPaise)}</span>
+                <span className="font-display text-2xl text-volt-deep">{formatPaise(totalPaise)}</span>
               </div>
 
-              <button type="button" onClick={next} disabled={picked.length === 0} className="btn-gold mt-5 w-full">
+              <button type="button" onClick={next} disabled={picked.length === 0} className="btn-volt mt-5 w-full">
                 Continue to checkout <ArrowRight size={16} />
               </button>
               <button type="button" onClick={() => setStep(1)} className="btn-ghost mt-2 w-full">
@@ -396,31 +401,31 @@ export function GamesFlow({
 
           <dl className="mt-5 space-y-2.5 text-sm">
             <div className="flex justify-between">
-              <dt className="text-bone/55">Player</dt>
-              <dd className="text-bone">{name}</dd>
+              <dt className="text-ink/70">Player</dt>
+              <dd className="text-ink">{name}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-bone/55">WhatsApp</dt>
-              <dd className="text-bone">+91 {phone}</dd>
+              <dt className="text-ink/70">WhatsApp</dt>
+              <dd className="text-ink">+91 {phone}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-bone/55">Playing as</dt>
-              <dd className="text-bone capitalize">{skill}</dd>
+              <dt className="text-ink/70">Playing as</dt>
+              <dd className="text-ink capitalize">{skill}</dd>
             </div>
           </dl>
 
-          <ul className="mt-5 space-y-2 border-t border-white/10 pt-5 text-sm">
+          <ul className="mt-5 space-y-2 border-t border-line pt-5 text-sm">
             {pickedSessions.map((s) => (
               <li key={s.id} className="flex justify-between gap-4">
-                <span className="text-bone/70">
+                <span className="text-ink/75">
                   {formatDate(s.session_date)} · {formatTime(s.start_time)} · {s.venue_name} C{s.court_number}
                 </span>
-                <span className="text-bone/80">{formatPaise(s.price_paise * players)}</span>
+                <span className="text-ink/80">{formatPaise(s.price_paise * players)}</span>
               </li>
             ))}
-            <li className="flex justify-between gap-4 border-t border-white/10 pt-3">
-              <span className="font-display text-xl uppercase text-bone">Total</span>
-              <span className="font-display text-xl text-gold">{formatPaise(totalPaise)}</span>
+            <li className="flex justify-between gap-4 border-t border-line pt-3">
+              <span className="font-display text-xl uppercase text-ink">Total</span>
+              <span className="font-display text-xl text-volt-deep">{formatPaise(totalPaise)}</span>
             </li>
           </ul>
 
@@ -434,9 +439,9 @@ export function GamesFlow({
                   disabled={walletPaise < totalPaise}
                   className={`tile ${pay === "wallet" ? "tile-selected" : ""} ${walletPaise < totalPaise ? "opacity-40" : ""}`}
                 >
-                  <Wallet size={18} className="text-gold" />
-                  <p className="mt-2 font-display text-lg uppercase text-bone">SuperPro wallet</p>
-                  <p className="mt-1 text-xs text-bone/50">
+                  <Wallet size={18} className="text-volt-deep" />
+                  <p className="mt-2 font-display text-lg uppercase text-ink">SuperPro wallet</p>
+                  <p className="mt-1 text-xs text-ink/65">
                     {walletPaise < totalPaise
                       ? `Only ${formatPaise(walletPaise)} left — top up with a rep.`
                       : `${formatPaise(walletPaise)} available. Confirms instantly.`}
@@ -449,16 +454,16 @@ export function GamesFlow({
                 disabled={!razorpayEnabled}
                 className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
               >
-                <CreditCard size={18} className="text-gold" />
-                <p className="mt-2 font-display text-lg uppercase text-bone">Pay online</p>
-                <p className="mt-1 text-xs text-bone/50">
+                <CreditCard size={18} className="text-volt-deep" />
+                <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
+                <p className="mt-1 text-xs text-ink/65">
                   {razorpayEnabled ? "UPI or card. Slot confirms instantly." : "Temporarily unavailable."}
                 </p>
               </button>
               <button type="button" onClick={() => setPay("venue")} className={`tile ${pay === "venue" ? "tile-selected" : ""}`}>
-                <Banknote size={18} className="text-gold" />
-                <p className="mt-2 font-display text-lg uppercase text-bone">Pay at venue</p>
-                <p className="mt-1 text-xs text-bone/50">Held for 20 minutes from slot start.</p>
+                <Banknote size={18} className="text-volt-deep" />
+                <p className="mt-2 font-display text-lg uppercase text-ink">Pay at venue</p>
+                <p className="mt-1 text-xs text-ink/65">Held for 20 minutes from slot start.</p>
               </button>
             </div>
           </div>
@@ -472,7 +477,7 @@ export function GamesFlow({
             <button type="button" onClick={() => setStep(2)} className="btn-outline">
               <ArrowLeft size={16} /> Back
             </button>
-            <button type="button" onClick={confirmBooking} disabled={busy} className="btn-gold">
+            <button type="button" onClick={confirmBooking} disabled={busy} className="btn-volt">
               {busy ? <Spinner /> : null}
               {busy
                 ? "Confirming…"
@@ -488,17 +493,18 @@ export function GamesFlow({
 
       {/* ── Step 4 — confirmed ────────────────────────────────────────── */}
       {step === 4 && confirmation && (
-        <div className="card max-w-2xl p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok text-ink">
-            <Check size={28} />
+        <div className="card relative max-w-2xl overflow-hidden p-8 text-center">
+          <Confetti trigger={confirmation ? 1 : 0} />
+          <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
+            <Check size={30} strokeWidth={3} />
           </div>
           <h2 className="mt-5 text-4xl">
             {confirmation.payment_method === "razorpay" || confirmation.payment_method === "wallet"
               ? "Paid & confirmed"
               : "Slot confirmed"}
           </h2>
-          <p className="mt-3 text-sm text-bone/55">
-            Reference <span className="font-semibold text-gold">{confirmation.reference}</span>.
+          <p className="mt-3 text-sm text-ink/70">
+            Reference <span className="font-semibold text-volt-deep">{confirmation.reference}</span>.
             {confirmation.payment_method === "razorpay"
               ? " See you on court."
               : confirmation.payment_method === "wallet"
@@ -506,39 +512,39 @@ export function GamesFlow({
                 : " Pay at the venue — your spot is held for 20 minutes from the start time."}
           </p>
 
-          <ul className="mt-7 space-y-3 border-t border-white/10 pt-6 text-left">
+          <ul className="mt-7 space-y-3 border-t border-line pt-6 text-left">
             {confirmation.bookings.map((b, i) => (
-              <li key={i} className="flex items-center justify-between gap-4 rounded-xl bg-ink-700/50 px-4 py-3">
+              <li key={i} className="flex items-center justify-between gap-4 rounded-xl bg-mist px-4 py-3">
                 <span>
-                  <span className="block font-display text-xl text-bone">
+                  <span className="block font-display text-xl text-ink">
                     {formatDate(b.session_date)} · {formatTime(b.start_time)}
                   </span>
-                  <span className="block text-xs text-bone/50">{b.venue_name}</span>
+                  <span className="block text-xs text-ink/65">{b.venue_name}</span>
                 </span>
-                <span className="rounded-lg bg-gold px-3 py-1.5 font-display text-lg text-ink">
+                <span className="rounded-lg bg-volt px-3 py-1.5 font-display text-lg text-ink">
                   Court {b.court_number}
                 </span>
               </li>
             ))}
           </ul>
 
-          <div className="mt-7 rounded-xl border border-white/10 bg-ink-700/40 p-4 text-left">
-            <p className="flex items-center gap-2 text-sm font-semibold text-bone">
-              <Users size={15} className="text-gold" /> Posted to the games group
+          <div className="mt-7 rounded-xl border border-line bg-mist p-4 text-left">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <Users size={15} className="text-volt-deep" /> Posted to the games group
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-bone/50">
+            <p className="mt-1.5 text-xs leading-relaxed text-ink/65">
               Your name and court number go into the SuperPro daily-games WhatsApp group so everyone knows who
               they&apos;re playing with.
             </p>
             {WHATSAPP_GROUP_URL && (
-              <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer" className="btn bg-[#25D366] btn-sm mt-3 text-ink hover:brightness-110">
+              <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm mt-3">
                 <MessageCircle size={14} /> Open the group
               </a>
             )}
           </div>
 
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={reset} className="btn-gold">
+            <button type="button" onClick={reset} className="btn-volt">
               Book another slot
             </button>
             <Link href="/dashboard" className="btn-outline">
@@ -547,6 +553,7 @@ export function GamesFlow({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -27,7 +27,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <article className="card-hover group flex flex-col overflow-hidden">
-      <Link href={`/products/${product.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-bone">
+      <Link href={`/products/${product.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-mist">
         {product.image_url ? (
           <Image
             src={product.image_url}
@@ -42,40 +42,40 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
         )}
         {product.compare_at_paise && product.compare_at_paise > product.price_paise && (
-          <span className="absolute left-3 top-3 rounded-full bg-ink px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
+          <span className="absolute left-3 top-3 rounded-full bg-ink px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-volt-deep">
             Save {formatPaise(product.compare_at_paise - product.price_paise)}
           </span>
         )}
         {outOfStock && (
-          <span className="absolute right-3 top-3 rounded-full bg-ink/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-bone/70">
+          <span className="absolute right-3 top-3 rounded-full bg-paper/90 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/75">
             Sold out
           </span>
         )}
       </Link>
 
       <div className="flex flex-1 flex-col p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-gold">{product.category}</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-volt-deep">{product.category}</p>
         <h3 className="mt-1.5 text-xl">
-          <Link href={`/products/${product.slug}`} className="hover:text-gold">
+          <Link href={`/products/${product.slug}`} className="hover:text-volt-deep">
             {product.name}
           </Link>
         </h3>
         {product.tagline && (
-          <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-bone/50">{product.tagline}</p>
+          <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-ink/65">{product.tagline}</p>
         )}
 
         <div className="mt-auto flex items-end justify-between gap-3 pt-5">
           <div>
-            <p className="font-display text-2xl text-bone">{formatPaise(product.price_paise)}</p>
+            <p className="font-display text-2xl text-ink">{formatPaise(product.price_paise)}</p>
             {product.compare_at_paise && product.compare_at_paise > product.price_paise && (
-              <p className="text-xs text-bone/35 line-through">{formatPaise(product.compare_at_paise)}</p>
+              <p className="text-xs text-ink/45 line-through">{formatPaise(product.compare_at_paise)}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onAdd}
             disabled={outOfStock}
-            className={`btn btn-sm ${added ? "bg-ok text-ink" : "bg-bone text-ink hover:bg-white"} disabled:bg-white/10 disabled:text-bone/40`}
+            className={`btn btn-sm ${added ? "bg-volt text-ink" : "bg-mist text-ink hover:bg-white"} disabled:bg-mist disabled:text-ink/55`}
             aria-label={`Add ${product.name} to cart`}
           >
             {added ? <Check size={14} /> : <Plus size={14} />}

@@ -38,7 +38,7 @@ export function LoginForm() {
   return (
     <form onSubmit={submit} className="card p-7">
       <h1 className="text-3xl">Welcome back</h1>
-      <p className="mt-2 text-sm text-bone/50">Sign in to see your bookings, orders and coaching sessions.</p>
+      <p className="mt-2 text-sm text-ink/65">Sign in to see your bookings, orders and coaching sessions.</p>
 
       <div className="mt-6 space-y-4">
         <div>
@@ -57,17 +57,17 @@ export function LoginForm() {
         </div>
       )}
 
-      <button type="submit" disabled={busy} className="btn-gold mt-6 w-full">
+      <button type="submit" disabled={busy} className="btn-volt mt-6 w-full">
         {busy ? <Spinner /> : null} {busy ? "Signing in…" : "Sign in"}
       </button>
 
-      <p className="mt-5 text-center text-sm text-bone/45">
+      <p className="mt-5 text-center text-sm text-ink/55">
         New here?{" "}
-        <Link href="/signup" className="font-semibold text-gold hover:underline">
+        <Link href="/signup" className="font-semibold text-volt-deep hover:underline">
           Create an account
         </Link>
       </p>
-      <p className="mt-3 text-center text-xs text-bone/35">
+      <p className="mt-3 text-center text-xs text-ink/45">
         You don&apos;t need an account to book a game or shop — it just keeps everything in one place.
       </p>
     </form>
@@ -123,7 +123,7 @@ export function SignupForm() {
   return (
     <form onSubmit={submit} className="card p-7">
       <h1 className="text-3xl">Join SuperPro</h1>
-      <p className="mt-2 text-sm text-bone/50">One account for games, coaching, orders and tournaments.</p>
+      <p className="mt-2 text-sm text-ink/65">One account for games, coaching, orders and tournaments.</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -141,7 +141,7 @@ export function SignupForm() {
         <div className="sm:col-span-2">
           <label className="label" htmlFor="s-pass">Password</label>
           <input id="s-pass" type="password" autoComplete="new-password" className="field" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} />
-          <p className="mt-1.5 text-[11px] text-bone/35">At least 8 characters.</p>
+          <p className="mt-1.5 text-[11px] text-ink/45">At least 8 characters.</p>
         </div>
       </div>
 
@@ -171,19 +171,19 @@ export function SignupForm() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-ink-700/40 p-4">
-        <p className="text-[11px] uppercase tracking-wider text-bone/40">Your category</p>
-        <p className="mt-1 font-display text-2xl uppercase text-gold">
+      <div className="mt-4 rounded-xl border border-line bg-mist p-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Your category</p>
+        <p className="mt-1 font-display text-2xl uppercase text-volt-deep">
           {DUPR_BANDS.find((b) => b.level === derived)?.label}
         </p>
-        <p className="mt-1 text-xs text-bone/45">
+        <p className="mt-1 text-xs text-ink/55">
           {hasRating && !ratingOutOfRange
             ? `Set automatically from DUPR ${rating.toFixed(2)}.`
             : "Not rated yet? You'll start as a beginner — add your DUPR any time from your profile."}
         </p>
-        <ul className="mt-3 space-y-1 text-[11px] text-bone/35">
+        <ul className="mt-3 space-y-1 text-[11px] text-ink/45">
           {DUPR_BANDS.map((b) => (
-            <li key={b.level} className={b.level === derived ? "text-gold" : undefined}>
+            <li key={b.level} className={b.level === derived ? "text-volt-deep" : undefined}>
               {b.label} — {b.range}
             </li>
           ))}
@@ -196,13 +196,13 @@ export function SignupForm() {
         </div>
       )}
 
-      <button type="submit" disabled={busy} className="btn-gold mt-6 w-full">
+      <button type="submit" disabled={busy} className="btn-volt mt-6 w-full">
         {busy ? <Spinner /> : null} {busy ? "Creating account…" : "Create account"}
       </button>
 
-      <p className="mt-5 text-center text-sm text-bone/45">
+      <p className="mt-5 text-center text-sm text-ink/55">
         Already have one?{" "}
-        <Link href="/login" className="font-semibold text-gold hover:underline">
+        <Link href="/login" className="font-semibold text-volt-deep hover:underline">
           Sign in
         </Link>
       </p>

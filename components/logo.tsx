@@ -18,7 +18,7 @@ const SOURCES = {
 
 export function Logo({
   variant = "lockup",
-  tone = "white",
+  tone = "black",
   className = "",
   height = 34,
   href = "/",

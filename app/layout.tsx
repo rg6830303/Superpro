@@ -1,19 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Inter } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
 import { SITE } from "@/lib/site";
 
-const display = Barlow_Condensed({
+/**
+ * Three faces, three jobs: Archivo sets headlines with a wide grotesque cut,
+ * Public Sans carries running text, and Plex Mono handles labels, scores and
+ * every number the club reads off a screen.
+ */
+const display = Archivo({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["600", "700", "800"],
   variable: "--font-display",
   display: "swap",
 });
 
-const sans = Inter({
+const sans = Public_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -57,7 +70,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A0A0B",
+  themeColor: "#FFFFFF",
   width: "device-width",
   initialScale: 1,
   // Never trap the reader at one zoom level — pinch-zoom stays available, which
@@ -69,7 +82,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body>
         <CartProvider>{children}</CartProvider>
       </body>

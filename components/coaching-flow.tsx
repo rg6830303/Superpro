@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Award, Banknote, Check, CreditCard, MessageCircle } from "lucide-react";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, Spinner, Stepper } from "@/components/ui";
+import { Confetti } from "@/components/motion";
 import { upcomingDates, formatDate } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 import { waLink } from "@/lib/site";
@@ -53,34 +54,34 @@ export function CoachCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`card-hover flex h-full flex-col p-6 text-left ${selected ? "border-gold shadow-gold" : ""}`}
+      className={`card-hover flex h-full flex-col p-6 text-left ${selected ? "border-ink shadow-volt" : ""}`}
     >
       <div className="flex items-center gap-4">
         {coach.image_url ? (
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-bone">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-mist">
             <Image src={coach.image_url} alt={coach.name} fill sizes="64px" className="object-cover" />
           </div>
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10 font-display text-2xl text-gold">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-volt-deep/30 bg-volt-soft font-display text-2xl text-volt-deep">
             {initials(coach.name)}
           </div>
         )}
         <div className="min-w-0">
-          <p className="font-display text-2xl uppercase text-bone">{coach.name}</p>
+          <p className="font-display text-2xl uppercase text-ink">{coach.name}</p>
           {coach.dupr && (
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gold">
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-volt-deep">
               <Award size={12} /> DUPR {Number(coach.dupr).toFixed(1)} · {coach.experience_years} yrs
             </p>
           )}
         </div>
         {selected && (
-          <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gold text-ink">
+          <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-volt text-ink">
             <Check size={14} />
           </span>
         )}
       </div>
 
-      {coach.headline && <p className="mt-4 text-sm leading-relaxed text-bone/60">{coach.headline}</p>}
+      {coach.headline && <p className="mt-4 text-sm leading-relaxed text-ink/70">{coach.headline}</p>}
 
       {specialties.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-1.5">
@@ -92,9 +93,9 @@ export function CoachCard({
         </div>
       )}
 
-      <p className="mt-auto pt-5 font-display text-2xl text-gold">
+      <p className="mt-auto pt-5 font-display text-2xl text-volt-deep">
         {formatPaise(coach.rate_paise)}
-        <span className="ml-1 font-sans text-xs font-normal text-bone/40">/ session</span>
+        <span className="ml-1 font-sans text-xs font-normal text-ink/55">/ session</span>
       </p>
     </button>
   );
@@ -229,6 +230,10 @@ export function CoachingFlow({
     <div>
       <Stepper steps={STEPS} current={step} />
 
+      {/* Keyed on the step so a change replays the entrance rather than
+          swapping content in place. */}
+      <div key={step} className="step-in">
+
       {error && (
         <div className="mb-5">
           <Alert>{error}</Alert>
@@ -243,7 +248,7 @@ export function CoachingFlow({
             ))}
           </div>
           <div className="mt-7 flex justify-end">
-            <button type="button" onClick={next} disabled={!coachId} className="btn-gold">
+            <button type="button" onClick={next} disabled={!coachId} className="btn-volt">
               Continue <ArrowRight size={16} />
             </button>
           </div>
@@ -254,7 +259,7 @@ export function CoachingFlow({
         <div className="card max-w-3xl p-7">
           <p className="eyebrow">Coaching with</p>
           <h2 className="mt-1 text-3xl">{coach.name}</h2>
-          {coach.bio && <p className="mt-3 text-sm leading-relaxed text-bone/55">{coach.bio}</p>}
+          {coach.bio && <p className="mt-3 text-sm leading-relaxed text-ink/70">{coach.bio}</p>}
 
           <div className="mt-7">
             <span className="label">Session format</span>
@@ -266,9 +271,9 @@ export function CoachingFlow({
                   onClick={() => setSessionType(t.value)}
                   className={`tile ${sessionType === t.value ? "tile-selected" : ""}`}
                 >
-                  <p className="font-display text-xl uppercase text-bone">{t.label}</p>
-                  <p className="mt-1 text-xs text-bone/50">{t.note}</p>
-                  <p className="mt-2 text-sm font-semibold text-gold">
+                  <p className="font-display text-xl uppercase text-ink">{t.label}</p>
+                  <p className="mt-1 text-xs text-ink/65">{t.note}</p>
+                  <p className="mt-2 text-sm font-semibold text-volt-deep">
                     {formatPaise(Math.round(coach.rate_paise * t.multiplier))}
                   </p>
                 </button>
@@ -285,14 +290,14 @@ export function CoachingFlow({
                   type="button"
                   onClick={() => setCount(n)}
                   className={`rounded-xl border px-4 py-2.5 font-display text-lg transition-colors ${
-                    count === n ? "border-gold bg-gold/10 text-gold" : "border-white/12 text-bone/60 hover:border-white/25"
+                    count === n ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
                   }`}
                 >
                   {n}
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[11px] text-bone/35">Blocks of 4+ are scheduled with the coach directly.</p>
+            <p className="mt-1.5 text-[11px] text-ink/45">Blocks of 4+ are scheduled with the coach directly.</p>
           </div>
 
           <div className="mt-6">
@@ -304,13 +309,13 @@ export function CoachingFlow({
                   type="button"
                   onClick={() => setDate(d)}
                   className={`shrink-0 rounded-xl border px-4 py-2.5 text-center transition-colors ${
-                    date === d ? "border-gold bg-gold/10" : "border-white/12 hover:border-white/25"
+                    date === d ? "border-ink bg-volt-soft" : "border-line hover:border-line-strong"
                   }`}
                 >
-                  <span className={`block text-[10px] font-semibold uppercase tracking-wider ${date === d ? "text-gold" : "text-bone/45"}`}>
+                  <span className={`block font-mono text-[10px] uppercase tracking-[0.14em] ${date === d ? "text-volt-deep" : "text-ink/55"}`}>
                     {formatDate(d).split(",")[0]}
                   </span>
-                  <span className="block font-display text-lg text-bone">{formatDate(d).split(", ")[1]}</span>
+                  <span className="block font-display text-lg text-ink">{formatDate(d).split(", ")[1]}</span>
                 </button>
               ))}
             </div>
@@ -325,7 +330,7 @@ export function CoachingFlow({
                   type="button"
                   onClick={() => setTime(t)}
                   className={`rounded-lg border py-2.5 text-xs font-semibold transition-colors ${
-                    time === t ? "border-gold bg-gold/10 text-gold" : "border-white/12 text-bone/60 hover:border-white/25"
+                    time === t ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
                   }`}
                 >
                   {t}
@@ -338,7 +343,7 @@ export function CoachingFlow({
             <button type="button" onClick={() => setStep(1)} className="btn-outline">
               <ArrowLeft size={16} /> Change coach
             </button>
-            <button type="button" onClick={next} className="btn-gold">
+            <button type="button" onClick={next} className="btn-volt">
               Continue <ArrowRight size={16} />
             </button>
           </div>
@@ -373,7 +378,7 @@ export function CoachingFlow({
                   type="button"
                   onClick={() => setSkill(s.value)}
                   className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                    skill === s.value ? "border-gold bg-gold/10 text-gold" : "border-white/12 text-bone/60 hover:border-white/25"
+                    skill === s.value ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
                   }`}
                 >
                   {s.label}
@@ -382,26 +387,26 @@ export function CoachingFlow({
             </div>
           </div>
 
-          <dl className="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-sm">
+          <dl className="mt-6 space-y-2.5 border-t border-line pt-5 text-sm">
             <div className="flex justify-between">
-              <dt className="text-bone/55">Coach</dt>
-              <dd className="text-bone">{coach.name}</dd>
+              <dt className="text-ink/70">Coach</dt>
+              <dd className="text-ink">{coach.name}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-bone/55">Format</dt>
-              <dd className="text-bone capitalize">{sessionType}</dd>
+              <dt className="text-ink/70">Format</dt>
+              <dd className="text-ink capitalize">{sessionType}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-bone/55">Sessions</dt>
-              <dd className="text-bone">{count}</dd>
+              <dt className="text-ink/70">Sessions</dt>
+              <dd className="text-ink">{count}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-bone/55">First session</dt>
-              <dd className="text-bone">{date ? `${formatDate(date)} · ${time}` : "—"}</dd>
+              <dt className="text-ink/70">First session</dt>
+              <dd className="text-ink">{date ? `${formatDate(date)} · ${time}` : "—"}</dd>
             </div>
-            <div className="flex justify-between border-t border-white/10 pt-3">
-              <dt className="font-display text-xl uppercase text-bone">Total</dt>
-              <dd className="font-display text-xl text-gold">{formatPaise(totalPaise)}</dd>
+            <div className="flex justify-between border-t border-line pt-3">
+              <dt className="font-display text-xl uppercase text-ink">Total</dt>
+              <dd className="font-display text-xl text-volt-deep">{formatPaise(totalPaise)}</dd>
             </div>
           </dl>
 
@@ -414,14 +419,14 @@ export function CoachingFlow({
                 disabled={!razorpayEnabled}
                 className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
               >
-                <CreditCard size={18} className="text-gold" />
-                <p className="mt-2 font-display text-lg uppercase text-bone">Pay online</p>
-                <p className="mt-1 text-xs text-bone/50">Coach confirms within a few hours.</p>
+                <CreditCard size={18} className="text-volt-deep" />
+                <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
+                <p className="mt-1 text-xs text-ink/65">Coach confirms within a few hours.</p>
               </button>
               <button type="button" onClick={() => setPay("venue")} className={`tile ${pay === "venue" ? "tile-selected" : ""}`}>
-                <Banknote size={18} className="text-gold" />
-                <p className="mt-2 font-display text-lg uppercase text-bone">Pay at the court</p>
-                <p className="mt-1 text-xs text-bone/50">Settle directly before the first session.</p>
+                <Banknote size={18} className="text-volt-deep" />
+                <p className="mt-2 font-display text-lg uppercase text-ink">Pay at the court</p>
+                <p className="mt-1 text-xs text-ink/65">Settle directly before the first session.</p>
               </button>
             </div>
           </div>
@@ -435,7 +440,7 @@ export function CoachingFlow({
             <button type="button" onClick={() => setStep(2)} className="btn-outline">
               <ArrowLeft size={16} /> Back
             </button>
-            <button type="button" onClick={submit} disabled={busy} className="btn-gold">
+            <button type="button" onClick={submit} disabled={busy} className="btn-volt">
               {busy ? <Spinner /> : null}
               {busy ? "Booking…" : pay === "razorpay" ? `Pay ${formatPaise(totalPaise)}` : "Request session"}
             </button>
@@ -444,17 +449,18 @@ export function CoachingFlow({
       )}
 
       {step === 4 && confirmation && (
-        <div className="card max-w-2xl p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok text-ink">
-            <Check size={28} />
+        <div className="card relative max-w-2xl overflow-hidden p-8 text-center">
+          <Confetti trigger={confirmation ? 1 : 0} />
+          <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
+            <Check size={30} strokeWidth={3} />
           </div>
           <h2 className="mt-5 text-4xl">You&apos;re booked with {confirmation.coach_name.split(" ")[0]}</h2>
-          <p className="mt-3 text-sm text-bone/55">
-            Booking <span className="font-semibold text-gold">{confirmation.booking_no}</span> ·{" "}
+          <p className="mt-3 text-sm text-ink/70">
+            Booking <span className="font-semibold text-volt-deep">{confirmation.booking_no}</span> ·{" "}
             {confirmation.sessions_count} session{confirmation.sessions_count > 1 ? "s" : ""}, starting{" "}
             {formatDate(confirmation.preferred_date)} at {confirmation.preferred_time}.
           </p>
-          <p className="mt-3 text-sm text-bone/45">
+          <p className="mt-3 text-sm text-ink/55">
             SuperPro connects you to your coach on WhatsApp to lock the exact timing. Expect a message within a
             few hours.
           </p>
@@ -466,7 +472,7 @@ export function CoachingFlow({
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn bg-[#25D366] text-ink hover:brightness-110"
+              className="btn-primary"
             >
               <MessageCircle size={16} /> Message SuperPro
             </a>
@@ -476,6 +482,7 @@ export function CoachingFlow({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

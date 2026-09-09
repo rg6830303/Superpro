@@ -34,12 +34,12 @@ export default function AdminSettingsPage() {
           <div className="card p-6">
             <h2 className="text-xl font-bold mb-4">Environment Status</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="border border-white/10 rounded-xl p-4 bg-ink-800">
-                <p className="text-xs text-bone/50 uppercase">Database Connected</p>
+              <div className="border border-line rounded-xl p-4 bg-mist">
+                <p className="text-xs text-ink/65 uppercase">Database Connected</p>
                 <p className="mt-1 font-semibold">{info?.db?.configured ? "Yes (Supabase Postgres)" : "Not Configured"}</p>
               </div>
-              <div className="border border-white/10 rounded-xl p-4 bg-ink-800">
-                <p className="text-xs text-bone/50 uppercase">Admin Host</p>
+              <div className="border border-line rounded-xl p-4 bg-mist">
+                <p className="text-xs text-ink/65 uppercase">Admin Host</p>
                 <p className="mt-1 font-semibold">{info?.adminHost ?? "superproadmin.vercel.app"}</p>
               </div>
             </div>

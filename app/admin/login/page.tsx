@@ -36,14 +36,14 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-5 bg-ink">
-      <div className="w-full max-w-md card p-8 border border-white/10">
+      <div className="w-full max-w-md card p-8 border border-line">
         <div className="flex justify-center mb-6">
           <Logo height={28} href="/admin" />
         </div>
 
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-bone">Admin Console</h1>
-          <p className="mt-1 text-xs text-bone/50">Sign in to manage SuperPro platform</p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Admin Console</h1>
+          <p className="mt-1 text-xs text-ink/65">Sign in to manage SuperPro platform</p>
         </div>
 
         <form onSubmit={submit} className="space-y-4">
@@ -83,13 +83,13 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          <button type="submit" disabled={busy} className="btn-gold mt-6 w-full py-3">
+          <button type="submit" disabled={busy} className="btn-volt mt-6 w-full py-3">
             {busy ? <Spinner /> : null} {busy ? "Authenticating…" : "Sign In to Console"}
           </button>
         </form>
 
-        <div className="mt-6 text-center border-t border-white/10 pt-4">
-          <p className="text-[11px] text-bone/35 uppercase tracking-wider">
+        <div className="mt-6 text-center border-t border-line pt-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/45">
             Protected Admin Environment · SuperPro Sports
           </p>
         </div>

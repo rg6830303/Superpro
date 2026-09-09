@@ -88,7 +88,7 @@ export default function AdminProductsPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatTile label="Listed products" value={products.filter((p) => p.active).length} />
         <StatTile label="Low stock" value={lowStock} tone={lowStock > 0 ? "warn" : "default"} hint="Fewer than 6 left" />
-        <StatTile label="Stock value" value={formatPaise(stockValue)} tone="gold" />
+        <StatTile label="Stock value" value={formatPaise(stockValue)} tone="accent" />
       </div>
 
       <ListState loading={loading} error={error} empty={products.length === 0} emptyLabel="No products yet." />
@@ -110,21 +110,21 @@ export default function AdminProductsPage() {
               {products.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <span className="block font-semibold text-bone">{p.name}</span>
-                    <span className="block text-xs text-bone/40">/{p.slug}</span>
+                    <span className="block font-semibold text-ink">{p.name}</span>
+                    <span className="block text-xs text-ink/55">/{p.slug}</span>
                   </td>
                   <td className="capitalize">{p.category}</td>
                   <td>
                     <span className="block">{formatPaise(p.price_paise)}</span>
                     {p.compare_at_paise ? (
-                      <span className="block text-xs text-bone/35 line-through">{formatPaise(p.compare_at_paise)}</span>
+                      <span className="block text-xs text-ink/45 line-through">{formatPaise(p.compare_at_paise)}</span>
                     ) : null}
                   </td>
-                  <td className={p.stock === 0 ? "text-danger" : p.stock < 6 ? "text-gold" : undefined}>{p.stock}</td>
+                  <td className={p.stock === 0 ? "text-signal" : p.stock < 6 ? "text-volt-deep" : undefined}>{p.stock}</td>
                   <td>
                     <div className="flex flex-wrap gap-1">
-                      {p.featured && <span className="chip-gold py-0 text-[10px]">Featured</span>}
-                      <span className={p.active ? "chip-live py-0 text-[10px]" : "chip py-0 text-[10px]"}>
+                      {p.featured && <span className="chip-volt py-0 text-[10px]">Featured</span>}
+                      <span className={p.active ? "chip-volt py-0 text-[10px]" : "chip py-0 text-[10px]"}>
                         {p.active ? "Live" : "Archived"}
                       </span>
                     </div>

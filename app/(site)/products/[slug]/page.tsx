@@ -37,7 +37,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <div className="wrap py-10">
       <Link
         href={`/products?category=${product.category}`}
-        className="inline-flex items-center gap-1.5 text-sm text-bone/50 hover:text-gold"
+        className="inline-flex items-center gap-1.5 text-sm text-ink/65 hover:text-volt-deep"
       >
         <ChevronLeft size={16} /> All {product.category}
       </Link>
@@ -48,24 +48,24 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <div>
           <p className="eyebrow">{product.category}</p>
           <h1 className="mt-3 text-[clamp(2.25rem,5vw,3.5rem)]">{product.name}</h1>
-          {product.tagline && <p className="mt-4 text-lg leading-relaxed text-bone/65">{product.tagline}</p>}
+          {product.tagline && <p className="mt-4 text-lg leading-relaxed text-ink/70">{product.tagline}</p>}
 
           <ProductBuyBox product={product} />
 
           {product.description && (
-            <div className="mt-9 border-t border-white/10 pt-7">
+            <div className="mt-9 border-t border-line pt-7">
               <h2 className="text-xl">The detail</h2>
-              <p className="mt-3 text-sm leading-relaxed text-bone/55">{product.description}</p>
+              <p className="mt-3 text-sm leading-relaxed text-ink/70">{product.description}</p>
             </div>
           )}
 
           {specs.length > 0 && (
-            <div className="mt-8 border-t border-white/10 pt-7">
+            <div className="mt-8 border-t border-line pt-7">
               <h2 className="text-xl">Specification</h2>
               <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
                 {specs.map((s) => (
-                  <li key={s} className="flex items-start gap-2.5 text-sm text-bone/60">
-                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                  <li key={s} className="flex items-start gap-2.5 text-sm text-ink/70">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-volt" />
                     {s}
                   </li>
                 ))}
@@ -73,14 +73,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </div>
           )}
 
-          <dl className="mt-8 grid grid-cols-2 gap-4 border-t border-white/10 pt-7 text-sm">
+          <dl className="mt-8 grid grid-cols-2 gap-4 border-t border-line pt-7 text-sm">
             <div>
-              <dt className="text-xs uppercase tracking-wider text-bone/40">Pickup</dt>
-              <dd className="mt-1 text-bone/70">Free at TurfXL, New Alipore</dd>
+              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Pickup</dt>
+              <dd className="mt-1 text-ink/75">Free at TurfXL, New Alipore</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-bone/40">Delivery</dt>
-              <dd className="mt-1 text-bone/70">₹99 in Kolkata · free over {formatPaise(500000)}</dd>
+              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Delivery</dt>
+              <dd className="mt-1 text-ink/75">₹99 in Kolkata · free over {formatPaise(500000)}</dd>
             </div>
           </dl>
         </div>

@@ -32,37 +32,45 @@ const COLUMNS = [
   },
 ];
 
+/**
+ * The one deliberately dark block on the site. It closes the page the way a
+ * back cover closes a book, and gives the volt accent somewhere to sit at full
+ * strength without competing with the content above it.
+ */
 export function SiteFooter() {
   return (
-    <footer className="mt-24 border-t border-white/10 bg-ink-900">
-      <div className="wrap grid min-w-0 gap-10 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+    <footer className="mt-28 bg-ink text-paper">
+      <div className="wrap grid min-w-0 gap-12 py-16 md:grid-cols-[1.5fr_repeat(3,1fr)]">
         <div>
-          <Logo height={40} href={null} />
-          <p className="mt-4 max-w-xs text-sm leading-relaxed text-bone/50">
-            {SITE.description}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <Logo height={38} tone="white" href={null} />
+          <p className="mt-5 max-w-xs text-sm leading-relaxed text-paper/60">{SITE.description}</p>
+          <div className="mt-6 flex flex-wrap gap-2">
             <a
               href={waLink("Hi SuperPro! I'd like to talk to a representative.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="chip hover:border-gold/50 hover:text-gold"
+              className="inline-flex items-center gap-1.5 rounded-pill border border-paper/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-paper/70 transition-colors hover:border-volt hover:text-volt"
             >
-              <MessageCircle size={13} /> WhatsApp a rep
+              <MessageCircle size={12} /> WhatsApp
             </a>
-            <a href={SITE.instagram} target="_blank" rel="noopener noreferrer" className="chip hover:border-gold/50 hover:text-gold">
-              <Instagram size={13} /> Instagram
+            <a
+              href={SITE.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-pill border border-paper/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-paper/70 transition-colors hover:border-volt hover:text-volt"
+            >
+              <Instagram size={12} /> Instagram
             </a>
           </div>
         </div>
 
         {COLUMNS.map((col) => (
           <div key={col.title}>
-            <p className="eyebrow mb-4">{col.title}</p>
-            <ul className="space-y-2.5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-volt">{col.title}</p>
+            <ul className="mt-5 space-y-3">
               {col.links.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-sm text-bone/55 transition-colors hover:text-bone">
+                  <Link href={l.href} className="text-sm text-paper/60 transition-colors hover:text-paper">
                     {l.label}
                   </Link>
                 </li>
@@ -72,22 +80,27 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <div className="wrap flex flex-col gap-4 border-t border-white/10 py-6 text-xs text-bone/40 sm:flex-row sm:items-center sm:justify-between">
+      <div className="wrap flex flex-col gap-4 border-t border-paper/15 py-7 font-mono text-[11px] text-paper/45 sm:flex-row sm:items-center sm:justify-between">
         <p>
-          © {new Date().getFullYear()} {SITE.legalName}. All rights reserved.
+          © {new Date().getFullYear()} {SITE.legalName}
         </p>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <span className="inline-flex items-center gap-1.5">
             <MapPin size={12} /> {SITE.city}
           </span>
-          <a href={`mailto:${SITE.email}`} className="inline-flex items-center gap-1.5 hover:text-bone">
+          <a href={`mailto:${SITE.email}`} className="inline-flex items-center gap-1.5 hover:text-paper">
             <Mail size={12} /> {SITE.email}
           </a>
-          <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="hover:text-bone">
+          <a
+            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tabular-nums hover:text-paper"
+          >
             +{WHATSAPP_NUMBER}
           </a>
           {WHATSAPP_GROUP_URL && (
-            <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer" className="text-volt hover:text-volt-dark">
+            <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer" className="text-volt hover:underline">
               Games group
             </a>
           )}

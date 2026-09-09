@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
       ) : (
         <div className="space-y-8">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile label="Total Revenue" value={formatRupees(totalPaise)} tone="gold" hint="Paid orders & games" />
+            <StatTile label="Total Revenue" value={formatRupees(totalPaise)} tone="accent" hint="Paid orders & games" />
             <StatTile label="Today's Players" value={stats?.today?.players ?? 0} hint={`${stats?.today?.slots ?? 0} open slots`} />
             <StatTile label="New Orders" value={stats?.pipeline?.new_orders ?? 0} tone={stats?.pipeline?.new_orders ? "warn" : "default"} hint="Awaiting fulfillment" />
             <StatTile label="Registered Players" value={stats?.pipeline?.players ?? 0} hint="User accounts" />
@@ -70,20 +70,20 @@ export default function AdminDashboardPage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div className="card p-6">
-              <div className="flex items-center gap-3 mb-4 text-gold">
+              <div className="flex items-center gap-3 mb-4 text-volt-deep">
                 <CalendarDays size={20} />
                 <h2 className="text-xl font-bold">Daily Games</h2>
               </div>
-              <p className="text-sm text-bone/60 mb-4">Manage court sessions, venues, and player registrations.</p>
+              <p className="text-sm text-ink/70 mb-4">Manage court sessions, venues, and player registrations.</p>
               <Link href="/admin/games" className="btn-outline btn-sm w-full">Manage Games</Link>
             </div>
 
             <div className="card p-6">
-              <div className="flex items-center gap-3 mb-4 text-gold">
+              <div className="flex items-center gap-3 mb-4 text-volt-deep">
                 <Package size={20} />
                 <h2 className="text-xl font-bold">Store & Orders</h2>
               </div>
-              <p className="text-sm text-bone/60 mb-4">Process equipment orders, stock levels, and paddle inventory.</p>
+              <p className="text-sm text-ink/70 mb-4">Process equipment orders, stock levels, and paddle inventory.</p>
               <div className="flex gap-2">
                 <Link href="/admin/orders" className="btn-outline btn-sm flex-1">Orders</Link>
                 <Link href="/admin/products" className="btn-outline btn-sm flex-1">Products</Link>
@@ -91,29 +91,29 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="card p-6">
-              <div className="flex items-center gap-3 mb-4 text-gold">
+              <div className="flex items-center gap-3 mb-4 text-volt-deep">
                 <GraduationCap size={20} />
                 <h2 className="text-xl font-bold">Coaching & Pros</h2>
               </div>
-              <p className="text-sm text-bone/60 mb-4">View certified coaches and client session booking requests.</p>
+              <p className="text-sm text-ink/70 mb-4">View certified coaches and client session booking requests.</p>
               <Link href="/admin/coaching" className="btn-outline btn-sm w-full">Manage Coaching</Link>
             </div>
 
             <div className="card p-6">
-              <div className="flex items-center gap-3 mb-4 text-gold">
+              <div className="flex items-center gap-3 mb-4 text-volt-deep">
                 <Trophy size={20} />
                 <h2 className="text-xl font-bold">Tournaments</h2>
               </div>
-              <p className="text-sm text-bone/60 mb-4">Organize Kolkata Series, category draws, and team entries.</p>
+              <p className="text-sm text-ink/70 mb-4">Organize Kolkata Series, category draws, and team entries.</p>
               <Link href="/admin/tournaments" className="btn-outline btn-sm w-full">Manage Tournaments</Link>
             </div>
 
             <div className="card p-6">
-              <div className="flex items-center gap-3 mb-4 text-gold">
+              <div className="flex items-center gap-3 mb-4 text-volt-deep">
                 <MessageSquare size={20} />
                 <h2 className="text-xl font-bold">WhatsApp Outbox</h2>
               </div>
-              <p className="text-sm text-bone/60 mb-4">
+              <p className="text-sm text-ink/70 mb-4">
                 {stats?.outbox?.queued ?? 0} queued notifications, {stats?.outbox?.failed ?? 0} failed.
               </p>
               <Link href="/admin/whatsapp" className="btn-outline btn-sm w-full">WhatsApp Hub</Link>

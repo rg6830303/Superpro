@@ -195,7 +195,7 @@ export default function AdminGamesPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatTile label="Slots today" value={todaySlots.length} />
-        <StatTile label="Open spots (2 weeks)" value={openSpots} tone="gold" />
+        <StatTile label="Open spots (2 weeks)" value={openSpots} tone="accent" />
         <StatTile label="Active venues" value={venues.filter((v) => v.active).length} />
       </div>
 
@@ -212,7 +212,7 @@ export default function AdminGamesPage() {
             type="button"
             onClick={() => setTab(t)}
             className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${
-              tab === t ? "bg-gold text-ink" : "border border-white/15 text-bone/60 hover:text-bone"
+              tab === t ? "bg-volt text-ink" : "border border-line text-ink/70 hover:text-ink"
             }`}
           >
             {t}
@@ -234,7 +234,7 @@ export default function AdminGamesPage() {
             <div key={date}>
               <h3 className="mb-3 text-xl">
                 {formatDate(date)}
-                {date === today && <span className="chip-gold ml-3 py-0 text-[10px]">Today</span>}
+                {date === today && <span className="chip-volt ml-3 py-0 text-[10px]">Today</span>}
               </h3>
               <div className="table-wrap">
                 <table className="tbl">
@@ -253,20 +253,20 @@ export default function AdminGamesPage() {
                   <tbody>
                     {list.map((s) => (
                       <tr key={s.id}>
-                        <td className="whitespace-nowrap font-semibold text-bone">
+                        <td className="whitespace-nowrap font-semibold text-ink">
                           {formatTime(s.start_time)} – {formatTime(s.end_time)}
                         </td>
                         <td>{s.venue_name}</td>
                         <td>{s.court_number}</td>
                         <td className="capitalize">{s.level}</td>
                         <td>
-                          <span className={s.booked >= s.capacity ? "text-danger" : "text-bone"}>
+                          <span className={s.booked >= s.capacity ? "text-signal" : "text-ink"}>
                             {s.booked}/{s.capacity}
                           </span>
                         </td>
                         <td>{formatPaise(s.price_paise)}</td>
                         <td>
-                          <span className={s.status === "open" ? "chip-live" : "chip"}>{s.status}</span>
+                          <span className={s.status === "open" ? "chip-volt" : "chip"}>{s.status}</span>
                         </td>
                         <td>
                           <div className="flex gap-2">
@@ -311,18 +311,18 @@ export default function AdminGamesPage() {
             <tbody>
               {venues.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-bone/45">
+                  <td colSpan={5} className="py-8 text-center text-ink/55">
                     No venues yet.
                   </td>
                 </tr>
               ) : (
                 venues.map((v) => (
                   <tr key={v.id}>
-                    <td className="font-semibold text-bone">{v.name}</td>
+                    <td className="font-semibold text-ink">{v.name}</td>
                     <td>{v.area ?? "—"}</td>
                     <td>{v.courts}</td>
                     <td>
-                      <span className={v.active ? "chip-live" : "chip"}>{v.active ? "Active" : "Hidden"}</span>
+                      <span className={v.active ? "chip-volt" : "chip"}>{v.active ? "Active" : "Hidden"}</span>
                     </td>
                     <td>
                       <button type="button" onClick={() => setEditingVenue(v)} className="btn-outline btn-sm">
@@ -369,14 +369,14 @@ export default function AdminGamesPage() {
               <tbody>
                 {registrations.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-bone/45">
+                    <td colSpan={7} className="py-8 text-center text-ink/55">
                       Nobody booked for this date yet.
                     </td>
                   </tr>
                 ) : (
                   registrations.map((r) => (
                     <tr key={r.id}>
-                      <td className="font-semibold text-bone">{r.player_name}</td>
+                      <td className="font-semibold text-ink">{r.player_name}</td>
                       <td className="text-xs">{r.player_phone}</td>
                       <td className="whitespace-nowrap text-xs">
                         {formatTime(r.start_time)} · {r.venue_name}
@@ -399,7 +399,7 @@ export default function AdminGamesPage() {
                       </td>
                       <td>{r.players_count}</td>
                       <td>
-                        <span className={r.payment_status === "paid" ? "chip-live" : "chip-gold"}>
+                        <span className={r.payment_status === "paid" ? "chip-volt" : "chip-warn"}>
                           {r.payment_status === "paid" ? "Paid" : r.payment_method}
                         </span>
                       </td>
@@ -580,7 +580,7 @@ function BulkSlotEditor({
                     setSelectedDates((prev) => (on ? prev.filter((x) => x !== d) : [...prev, d]))
                   }
                   className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                    on ? "border-gold bg-gold/10 text-gold" : "border-white/12 text-bone/50"
+                    on ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/65"
                   }`}
                 >
                   {formatDate(d)}
@@ -604,7 +604,7 @@ function BulkSlotEditor({
                     setTimes((prev) => prev.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))
                   }
                 />
-                <span className="text-bone/30">→</span>
+                <span className="text-ink/45">→</span>
                 <input
                   type="time"
                   className="field"
@@ -687,13 +687,13 @@ function RecordEditorShell({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" role="dialog" aria-modal="true">
-      <div className="flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-ink-900">
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 p-6">
+      <div className="flex h-full w-full max-w-lg flex-col border-l border-line bg-paper">
+        <div className="flex items-start justify-between gap-4 border-b border-line p-6">
           <div>
             <h2 className="text-3xl">{title}</h2>
-            {sub && <p className="mt-1 text-xs text-bone/45">{sub}</p>}
+            {sub && <p className="mt-1 text-xs text-ink/55">{sub}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-bone/60 hover:bg-white/5">
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-ink/70 hover:bg-mist">
             ✕
           </button>
         </div>
@@ -705,11 +705,11 @@ function RecordEditorShell({
           )}
           {children}
         </div>
-        <div className="flex items-center justify-between gap-3 border-t border-white/10 p-6">
-          <span className="flex items-center gap-1.5 text-xs text-bone/35">
+        <div className="flex items-center justify-between gap-3 border-t border-line p-6">
+          <span className="flex items-center gap-1.5 text-xs text-ink/45">
             <Users size={12} /> Duplicates are skipped automatically
           </span>
-          <button type="button" onClick={onSubmit} disabled={busy} className="btn-gold">
+          <button type="button" onClick={onSubmit} disabled={busy} className="btn-volt">
             {busy ? <Spinner /> : null} {busy ? "Creating…" : submitLabel}
           </button>
         </div>

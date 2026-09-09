@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Banknote, Check, CreditCard, MessageCircle } from "lucide-react";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, Spinner } from "@/components/ui";
+import { Confetti } from "@/components/motion";
 import { formatPaise } from "@/lib/money";
 import { waLink } from "@/lib/site";
 import type { Tournament } from "@/lib/types";
@@ -100,25 +101,26 @@ export function TournamentRegistration({
 
   if (confirmation) {
     return (
-      <div className="card p-8 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ok text-ink">
-          <Check size={28} />
+      <div className="card relative overflow-hidden p-8 text-center">
+        <Confetti trigger={1} />
+        <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
+          <Check size={30} strokeWidth={3} />
         </div>
         <h3 className="mt-5 text-3xl">
           {confirmation.status === "waitlist" ? "You're on the waitlist" : "Team entered"}
         </h3>
-        <p className="mt-3 text-sm text-bone/55">
-          <span className="font-semibold text-bone">{confirmation.team_name}</span> · reference{" "}
-          <span className="font-semibold text-gold">{confirmation.reference}</span>
+        <p className="mt-3 text-sm text-ink/70">
+          <span className="font-semibold text-ink">{confirmation.team_name}</span> · reference{" "}
+          <span className="font-semibold text-volt-deep">{confirmation.reference}</span>
         </p>
-        <p className="mt-3 text-sm text-bone/45">
+        <p className="mt-3 text-sm text-ink/55">
           Groups and match timings are published here and posted to the WhatsApp group once the draw closes.
         </p>
         <a
           href={waLink(`Hi SuperPro! Question about our ${tournament.title} entry (${confirmation.reference}).`)}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn bg-[#25D366] mt-6 text-ink hover:brightness-110"
+          className="btn-primary mt-6"
         >
           <MessageCircle size={16} /> Message a rep
         </a>
@@ -129,7 +131,7 @@ export function TournamentRegistration({
   return (
     <form onSubmit={submit} className="card p-7">
       <h2 className="text-2xl">Register your team</h2>
-      <p className="mt-1.5 text-sm text-bone/50">
+      <p className="mt-1.5 text-sm text-ink/65">
         {full
           ? "The draw is full — new entries join the waitlist and get the first cancellation."
           : `${tournament.max_teams - (tournament.teams ?? 0)} of ${tournament.max_teams} spots left.`}
@@ -170,13 +172,13 @@ export function TournamentRegistration({
           <input className="field" inputMode="numeric" value={p2.phone} onChange={(e) => setP2({ ...p2, phone: e.target.value })} placeholder="WhatsApp number" aria-label="Player 2 phone" />
           <input className="field" inputMode="decimal" value={p2.dupr} onChange={(e) => setP2({ ...p2, dupr: e.target.value })} placeholder="DUPR (optional)" aria-label="Player 2 DUPR" />
         </div>
-        <p className="mt-1.5 text-[11px] text-bone/35">
+        <p className="mt-1.5 text-[11px] text-ink/45">
           No partner yet? Leave this blank — we&apos;ll pair you from the solo pool.
         </p>
       </fieldset>
 
       {tournament.dupr_cap != null && (
-        <p className={`mt-4 rounded-xl px-4 py-3 text-xs ${overCap ? "bg-danger/10 text-danger" : "bg-white/5 text-bone/50"}`}>
+        <p className={`mt-4 rounded-xl px-4 py-3 text-xs ${overCap ? "bg-signal/10 text-signal" : "bg-mist text-ink/65"}`}>
           Team DUPR cap {Number(tournament.dupr_cap).toFixed(1)} · your combined rating {duprSum.toFixed(1)}
           {overCap ? " — over the cap, the organisers will confirm eligibility." : ""}
         </p>
@@ -197,14 +199,14 @@ export function TournamentRegistration({
               disabled={!razorpayEnabled}
               className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
             >
-              <CreditCard size={18} className="text-gold" />
-              <p className="mt-2 font-display text-lg uppercase text-bone">Pay online</p>
-              <p className="mt-1 text-xs text-bone/50">Entry confirms instantly.</p>
+              <CreditCard size={18} className="text-volt-deep" />
+              <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
+              <p className="mt-1 text-xs text-ink/65">Entry confirms instantly.</p>
             </button>
             <button type="button" onClick={() => setPay("venue")} className={`tile ${pay === "venue" ? "tile-selected" : ""}`}>
-              <Banknote size={18} className="text-gold" />
-              <p className="mt-2 font-display text-lg uppercase text-bone">Pay on the day</p>
-              <p className="mt-1 text-xs text-bone/50">Settle at the desk before your first match.</p>
+              <Banknote size={18} className="text-volt-deep" />
+              <p className="mt-2 font-display text-lg uppercase text-ink">Pay on the day</p>
+              <p className="mt-1 text-xs text-ink/65">Settle at the desk before your first match.</p>
             </button>
           </div>
         </div>
@@ -221,7 +223,7 @@ export function TournamentRegistration({
         </div>
       )}
 
-      <button type="submit" disabled={busy} className="btn-gold mt-6 w-full">
+      <button type="submit" disabled={busy} className="btn-volt mt-6 w-full">
         {busy ? <Spinner /> : null}
         {busy
           ? "Submitting…"

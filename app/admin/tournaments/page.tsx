@@ -136,7 +136,7 @@ export default function AdminTournamentsPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatTile label="Listed" value={tournaments.length} />
-        <StatTile label="Accepting entries" value={openNow} tone="gold" />
+        <StatTile label="Accepting entries" value={openNow} tone="accent" />
         <StatTile label="Teams entered" value={totalTeams} />
       </div>
 
@@ -160,12 +160,12 @@ export default function AdminTournamentsPage() {
               {tournaments.map((t) => (
                 <tr key={t.id}>
                   <td>
-                    <span className="block font-semibold text-bone">{t.title}</span>
-                    <span className="block text-xs text-bone/40">{t.venue ?? t.city}</span>
+                    <span className="block font-semibold text-ink">{t.title}</span>
+                    <span className="block text-xs text-ink/55">{t.venue ?? t.city}</span>
                   </td>
                   <td className="whitespace-nowrap text-xs">{formatDateRange(t.start_date, t.end_date)}</td>
                   <td>
-                    <span className={t.kind === "sponsored" ? "chip" : "chip-gold"}>
+                    <span className={t.kind === "sponsored" ? "chip" : "chip-volt"}>
                       {t.kind === "sponsored" ? "Sponsor" : "Organiser"}
                     </span>
                   </td>
@@ -174,7 +174,7 @@ export default function AdminTournamentsPage() {
                   </td>
                   <td>{t.prize_pool_paise > 0 ? formatPaise(t.prize_pool_paise) : "—"}</td>
                   <td>
-                    <span className={t.registration_open ? "chip-live" : "chip"}>{t.status}</span>
+                    <span className={t.registration_open ? "chip-volt" : "chip"}>{t.status}</span>
                   </td>
                   <td>
                     <div className="flex gap-2">
@@ -322,10 +322,10 @@ function DrawDrawer({
       )}
 
       <div className="card p-5">
-        <p className="flex items-center gap-2 text-sm font-semibold text-bone">
-          <Users size={14} className="text-gold" /> Auto-group
+        <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <Users size={14} className="text-volt-deep" /> Auto-group
         </p>
-        <p className="mt-1.5 text-xs leading-relaxed text-bone/45">
+        <p className="mt-1.5 text-xs leading-relaxed text-ink/55">
           Rebuilds the draw, snake-seeding confirmed teams by combined DUPR so every group is comparable in
           strength. Existing groups are replaced.
         </p>
@@ -346,7 +346,7 @@ function DrawDrawer({
             type="button"
             disabled={busy}
             onClick={() => action({ action: "auto", group_size: groupSize }, "Groups rebuilt.")}
-            className="btn-gold btn-sm"
+            className="btn-volt btn-sm"
           >
             {busy ? <Spinner size={13} /> : <Layers size={13} />} Generate
           </button>
@@ -368,21 +368,21 @@ function DrawDrawer({
             <Spinner />
           </div>
         ) : entries.length === 0 ? (
-          <p className="mt-3 text-sm text-bone/40">No teams have entered yet.</p>
+          <p className="mt-3 text-sm text-ink/55">No teams have entered yet.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {entries.map((e) => (
-              <li key={e.id} className="rounded-xl border border-white/10 bg-ink-700/40 p-4">
+              <li key={e.id} className="rounded-xl border border-line bg-mist p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-bone">{e.team_name}</p>
-                    <p className="text-xs text-bone/50">
+                    <p className="font-semibold text-ink">{e.team_name}</p>
+                    <p className="text-xs text-ink/65">
                       {e.player1_name}
                       {e.player1_dupr ? ` (${Number(e.player1_dupr).toFixed(2)})` : ""}
                       {e.player2_name ? ` & ${e.player2_name}` : " — needs a partner"}
                       {e.player2_dupr ? ` (${Number(e.player2_dupr).toFixed(2)})` : ""}
                     </p>
-                    <p className="mt-1 text-[11px] text-bone/35">
+                    <p className="mt-1 text-[11px] text-ink/45">
                       {e.player1_phone} · {e.category ?? "no category"}
                       {e.group_name ? ` · ${e.group_name}` : ""}
                     </p>

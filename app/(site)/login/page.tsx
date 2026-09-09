@@ -14,7 +14,7 @@ export default async function LoginPage() {
 
   return (
     <div className="wrap max-w-md py-16">
-      <Suspense fallback={<p className="text-sm text-bone/40">Loading…</p>}>
+      <Suspense fallback={<p className="text-sm text-ink/55">Loading…</p>}>
         <LoginForm />
       </Suspense>
     </div>

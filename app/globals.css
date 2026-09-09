@@ -4,25 +4,21 @@
 
 @layer base {
   :root {
-    --ink: #0a0a0b;
-    --bone: #f7f6f3;
-    --gold: #c79620;
-    --volt: #d7f035;
-    color-scheme: dark;
+    --ink: #06263d;
+    --paper: #ffffff;
+    --volt: #00e55f;
+    --line: #d2dee8;
+    color-scheme: light;
   }
 
   html {
     scroll-behavior: smooth;
-    /* Android/Chromium inflate text inside any block wider than the viewport
-       ("font boosting"), which renders body copy at ~2x while the cards around
-       it stay put. Pinning this to 100% opts out; the -webkit- prefix alone
-       (what Tailwind's preflight ships) is not honoured by every browser. */
+    /* Chromium on Android inflates text inside any block wider than the
+       viewport. Tailwind's reset ships only the -webkit- form; both are needed. */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
 
-  /* Nothing may make the document wider than the screen. `clip` (not `hidden`)
-     keeps position: sticky working on the header. */
   html,
   body {
     max-width: 100%;
@@ -30,158 +26,181 @@
   }
 
   body {
-    @apply bg-ink text-bone/90 font-sans antialiased;
-    background-image:
-      radial-gradient(900px 500px at 12% -8%, rgba(199, 150, 32, 0.10), transparent 60%),
-      radial-gradient(700px 420px at 92% 0%, rgba(215, 240, 53, 0.06), transparent 55%);
-    background-attachment: fixed;
-  }
-
-  /* Mobile Chromium repaints a fixed background on every scroll frame, which
-     both janks the scroll and tears the sticky header's backdrop-blur. Pin the
-     wash to the page instead — visually identical, no repaint cost. */
-  @media (max-width: 1024px), (hover: none) {
-    body {
-      background-attachment: scroll;
-    }
+    @apply bg-paper font-sans text-ink antialiased;
   }
 
   ::selection {
-    @apply bg-gold text-ink;
+    @apply bg-volt text-ink;
   }
 
-  h1, h2, h3, h4 {
-    @apply font-display uppercase tracking-tight text-bone;
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-ink;
     font-weight: 700;
-    line-height: 0.95;
+    letter-spacing: -0.03em;
+    line-height: 1.03;
+    text-wrap: balance;
   }
 
-  /* Focus ring that is visible on both the dark page and the light panels. */
+  /* Numbers are tabular everywhere: prices, scores and counts must not jitter
+     as they change, or shift column width between rows. */
+  .tnum,
+  table td,
+  table th {
+    font-variant-numeric: tabular-nums;
+  }
+
   :focus-visible {
-    @apply outline-none ring-2 ring-gold ring-offset-2 ring-offset-ink;
+    @apply outline-none ring-2 ring-ink ring-offset-2 ring-offset-paper;
   }
 
-  input, select, textarea {
+  input,
+  select,
+  textarea,
+  button {
     @apply font-sans;
+  }
+
+  /* Drops the iOS tap flash without touching the focus ring. */
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
 @layer components {
   .wrap {
-    @apply mx-auto w-full min-w-0 max-w-6xl px-5 sm:px-8;
+    @apply mx-auto w-full min-w-0 max-w-[1180px] px-5 sm:px-8;
   }
 
-  /* Horizontal scroller. `min-w-0` is the load-bearing part: a grid or flex
-     child defaults to min-width:auto, so without it the scroller's content
-     width props the whole column open and pushes the page off-screen. */
+  /* A scroller that cannot prop its column open. `min-w-0` is load bearing:
+     grid and flex children default to min-width:auto. */
   .scroll-x {
     @apply min-w-0 max-w-full overflow-x-auto overscroll-x-contain;
     -webkit-overflow-scrolling: touch;
   }
 
+  /* ── Type ─────────────────────────────────────────────────────────────── */
   .eyebrow {
-    @apply font-display text-xs uppercase tracking-wider2 text-gold;
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-volt-deep;
+  }
+  .kicker {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-ink/55;
+  }
+  .lede {
+    @apply text-[17px] leading-[1.55] text-ink/70;
   }
 
-  .rule {
-    @apply h-px w-full bg-white/10;
+  /* Section headings carry a short rule rather than a decorative label pill. */
+  .rule-head {
+    @apply relative pl-5 before:absolute before:left-0 before:top-[0.34em] before:h-[calc(100%-0.5em)]
+           before:w-[3px] before:rounded-full before:bg-volt before:content-[''];
   }
 
-  /* ── Buttons ─────────────────────────────────────────────────────────── */
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold
-           transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply relative inline-flex select-none items-center justify-center gap-2 rounded-pill px-6 py-3
+           text-sm font-semibold transition-[transform,background-color,color,box-shadow,border-color]
+           duration-200 ease-out active:translate-y-px disabled:pointer-events-none disabled:opacity-45;
   }
-  .btn-gold {
-    @apply btn bg-gold text-ink hover:bg-gold-light hover:shadow-gold;
+  .btn-primary {
+    @apply btn bg-ink text-paper hover:bg-ink-700 hover:shadow-lift;
   }
-  .btn-bone {
-    @apply btn bg-bone text-ink hover:bg-white;
+  .btn-volt {
+    @apply btn bg-volt text-ink hover:bg-volt-bright hover:shadow-volt;
   }
   .btn-outline {
-    @apply btn border border-white/25 text-bone hover:border-gold hover:text-gold;
+    @apply btn border border-line-strong bg-paper text-ink hover:border-ink hover:bg-mist;
   }
   .btn-ghost {
-    @apply btn text-bone/70 hover:bg-white/5 hover:text-bone;
+    @apply btn text-ink/65 hover:bg-mist hover:text-ink;
   }
   .btn-danger {
-    @apply btn bg-danger/15 text-danger hover:bg-danger/25;
+    @apply btn bg-signal/10 text-signal hover:bg-signal/20;
   }
   .btn-sm {
-    @apply px-4 py-2 text-xs;
+    @apply px-4 py-2 text-[13px];
   }
 
-  /* ── Surfaces ────────────────────────────────────────────────────────── */
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
   .card {
-    @apply min-w-0 rounded-2xl border border-white/10 bg-ink-800/80 backdrop-blur-sm;
+    @apply min-w-0 rounded-card border border-line bg-paper;
     overflow-wrap: anywhere;
   }
   .card-hover {
-    @apply card transition-all duration-300 hover:border-gold/50 hover:shadow-card;
+    @apply card transition-[transform,border-color,box-shadow] duration-300 ease-out
+           hover:-translate-y-1 hover:border-line-strong hover:shadow-card;
   }
-  .panel-light {
-    @apply rounded-2xl bg-bone text-ink;
+  .panel {
+    @apply min-w-0 rounded-card bg-mist;
+  }
+  .panel-ink {
+    @apply min-w-0 rounded-card bg-ink text-paper;
   }
 
+  /* ── Status marks ─────────────────────────────────────────────────────── */
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1
-           text-[11px] font-semibold uppercase tracking-wider text-bone/70;
-  }
-  .chip-gold {
-    @apply chip border-gold/40 bg-gold/10 text-gold;
+    @apply inline-flex items-center gap-1.5 rounded-pill border border-line bg-paper px-3 py-1
+           font-mono text-[10px] uppercase tracking-[0.14em] text-ink/60;
   }
   .chip-volt {
-    @apply chip border-volt/40 bg-volt/10 text-volt;
+    @apply chip border-volt-deep/30 bg-volt-soft text-volt-deep;
   }
-  .chip-live {
-    @apply chip border-ok/40 bg-ok/10 text-ok;
+  .chip-ink {
+    @apply chip border-transparent bg-ink text-paper;
+  }
+  .chip-warn {
+    @apply chip border-amber/30 bg-amber/10 text-amber;
   }
 
-  /* ── Forms ───────────────────────────────────────────────────────────── */
+  /* ── Forms ────────────────────────────────────────────────────────────── */
   .label {
-    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-bone/60;
+    @apply mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55;
   }
   .field {
-    @apply w-full rounded-xl border border-white/12 bg-ink-700/70 px-4 py-3 text-sm text-bone
-           placeholder:text-bone/30 transition-colors focus:border-gold focus:outline-none
-           focus:ring-1 focus:ring-gold;
+    @apply w-full rounded-xl border border-line bg-paper px-4 py-3 text-[15px] text-ink
+           transition-[border-color,box-shadow] duration-150 placeholder:text-ink/35
+           focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/10;
   }
   .field-error {
-    @apply mt-1.5 text-xs font-medium text-danger;
-  }
-  .field-light {
-    @apply w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink
-           placeholder:text-ink/35 focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold;
+    @apply mt-1.5 text-xs font-medium text-signal;
   }
 
-  /* Selectable tiles: venues, slots, coaches, payment methods. */
+  /* Selectable tiles: slots, venues, coaches, payment methods. */
   .tile {
-    @apply cursor-pointer rounded-xl border border-white/12 bg-ink-700/50 p-4 text-left
-           transition-all duration-200 hover:border-gold/60 hover:bg-ink-700;
+    @apply relative cursor-pointer rounded-xl border border-line bg-paper p-4 text-left
+           transition-[transform,border-color,box-shadow] duration-200 ease-out
+           hover:-translate-y-0.5 hover:border-ink/40 hover:shadow-card;
   }
   .tile-selected {
-    @apply border-gold bg-gold/10 shadow-gold;
+    @apply border-ink bg-volt-soft shadow-card;
   }
   .tile-disabled {
-    @apply cursor-not-allowed border-white/5 bg-ink-800/40 text-bone/25 line-through
-           hover:border-white/5 hover:bg-ink-800/40;
+    @apply cursor-not-allowed border-line/60 bg-mist text-ink/30 line-through
+           hover:translate-y-0 hover:border-line/60 hover:shadow-none;
   }
 
+  /* ── Tables ───────────────────────────────────────────────────────────── */
   .table-wrap {
-    @apply w-full min-w-0 max-w-full overflow-x-auto rounded-2xl border border-white/10;
+    @apply w-full min-w-0 max-w-full overflow-x-auto rounded-card border border-line bg-paper;
   }
   .tbl {
     @apply w-full min-w-[640px] text-left text-sm;
   }
   .tbl thead th {
-    @apply whitespace-nowrap border-b border-white/10 bg-ink-800 px-4 py-3 text-[11px]
-           font-semibold uppercase tracking-wider text-bone/50;
+    @apply whitespace-nowrap border-b border-line bg-mist px-4 py-3 font-mono text-[10px]
+           font-medium uppercase tracking-[0.14em] text-ink/55;
   }
   .tbl tbody td {
-    @apply border-b border-white/5 px-4 py-3 align-middle text-bone/80;
+    @apply border-b border-line/70 px-4 py-3 align-middle text-ink/80;
+  }
+  .tbl tbody tr:last-child td {
+    @apply border-b-0;
   }
   .tbl tbody tr:hover td {
-    @apply bg-white/[0.03];
+    @apply bg-mist/60;
   }
 }
 
@@ -196,15 +215,132 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  /* Diagonal court-line texture used behind section headers. */
-  .court-lines {
-    background-image: repeating-linear-gradient(
-      -45deg,
-      rgba(255, 255, 255, 0.035) 0px,
-      rgba(255, 255, 255, 0.035) 1px,
-      transparent 1px,
-      transparent 11px
-    );
+
+  /* ── 3D ───────────────────────────────────────────────────────────────── */
+  .scene {
+    perspective: 1000px;
+    perspective-origin: 50% 50%;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  /* Court surface — the one texture in the system, drawn from the sport. */
+  .court-grid {
+    background-image:
+      linear-gradient(to right, rgba(6, 38, 61, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(6, 38, 61, 0.07) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+
+  /* Marker highlight behind a word. */
+  .marker {
+    background-image: linear-gradient(to bottom, transparent 56%, rgba(0, 229, 95, 0.5) 56%);
+    background-repeat: no-repeat;
+  }
+}
+
+/* ── Motion system ───────────────────────────────────────────────────────
+   Every entrance runs off one of three primitives so the whole site shares a
+   rhythm: `.enter` for scroll reveals, `.step-in` for a step or tab change,
+   and `.route-shell` for a navigation. Nothing runs longer than 0.75s.
+   ------------------------------------------------------------------------ */
+
+.enter {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.enter.is-in {
+  opacity: 1;
+  transform: none;
+}
+.enter-left {
+  transform: translate3d(-24px, 0, 0);
+}
+.enter-scale {
+  transform: translate3d(0, 16px, 0) scale(0.97);
+}
+
+/* Route change: the page rises while a volt rail wipes the top edge, so a
+   navigation reads as a move rather than a repaint. */
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes route-rail {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  60% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+.route-shell {
+  animation: route-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.route-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 100;
+  background: linear-gradient(90deg, #00e55f, #5bff9c);
+  transform-origin: 0 50%;
+  animation: route-rail 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+  pointer-events: none;
+}
+
+/* Step or tab change inside a flow. */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translate3d(14px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.step-in {
+  animation: step-in 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Confetti burst on a completed booking. */
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confetti-fall 1.5s cubic-bezier(0.25, 0.6, 0.35, 1) forwards;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -12px, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx, 0px), 340px, 0) rotate(720deg);
+    opacity: 0;
   }
 }
 
@@ -216,5 +352,12 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .enter {
+    opacity: 1;
+    transform: none;
+  }
+  .route-shell::before {
+    display: none;
   }
 }

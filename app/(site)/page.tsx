@@ -1,23 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, MessageCircle, Trophy, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, MapPin } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
-import { Reveal, SectionHeading } from "@/components/ui";
+import { BounceBall, Counter, Reveal, ScoreMeter, TiltCard } from "@/components/motion";
+import { Paddle3D } from "@/components/paddle-3d";
 import { getAnnouncements, getCoaches, getFeaturedProducts, getTournaments, getWeekSessions } from "@/lib/queries";
-import { formatDate, formatDateRange, formatTime } from "@/lib/dates";
+import { formatDate, formatTime, isPast } from "@/lib/dates";
+import { DUPR_BANDS } from "@/lib/dupr";
 import { formatPaise } from "@/lib/money";
-import { PRODUCT_CATEGORIES, SITE, waLink } from "@/lib/site";
+import { PRODUCT_CATEGORIES, SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
-
-const MARQUEE = [
-  "Toray T700 carbon",
-  "Daily open play",
-  "DUPR-rated coaches",
-  "Kolkata built",
-  "Tournament ready",
-  "Champion Series",
-];
 
 export default async function HomePage() {
   const [featured, sessions, tournaments, coaches, announcements] = await Promise.all([
@@ -28,254 +21,267 @@ export default async function HomePage() {
     getAnnouncements(1),
   ]);
 
-  const openSessions = sessions.filter((s) => (s.booked ?? 0) < s.capacity);
-  const nextSessions = openSessions.slice(0, 4);
-  const liveTournament = tournaments.find((t) => t.status === "open") ?? tournaments[0];
+  const live = sessions.filter((s) => !isPast(s.session_date, s.start_time) && (s.booked ?? 0) < s.capacity);
+  const nextUp = live.slice(0, 3);
+  const openTournament = tournaments.find((t) => t.registration_open) ?? tournaments[0];
   const notice = announcements[0];
+  const hero = featured[0];
+  const rest = featured.slice(1, 4);
 
   return (
     <>
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="court-lines absolute inset-0" aria-hidden />
-        <div className="wrap relative grid min-w-0 items-center gap-10 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
+      {/* ── Hero ───────────────────────────────────────────────────────────
+          Asymmetric on purpose: the claim sits left, the object right, so the
+          eye lands on the sentence before the product. ──────────────────── */}
+      <section className="border-b border-line">
+        <div className="wrap grid min-w-0 items-center gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
           <div>
-            <p className="eyebrow animate-fade-up">Kolkata · Est. 2024</p>
-            <h1 className="mt-4 animate-fade-up text-[clamp(3rem,9vw,5.75rem)] leading-[0.88]">
+            <p className="eyebrow animate-wipe-in">Kolkata · since 2024</p>
+
+            <h1 className="mt-5 animate-rise-in text-[clamp(2.75rem,7.4vw,5rem)] leading-[0.95]">
               Pickleball,
               <br />
-              played <span className="text-gold">properly.</span>
+              played <span className="marker">properly</span>.
             </h1>
-            <p className="mt-6 max-w-lg animate-fade-up text-base leading-relaxed text-bone/60">
-              Champion Series paddles, balls and grips. Open games every morning and evening.
-              Coaches who actually rebuild your third shot. And the tournaments the city turns up for.
+
+            <p className="lede mt-6 max-w-md animate-rise-in [animation-delay:80ms]">
+              Champion Series paddles, open games every morning and evening, and coaches who rebuild your third
+              shot rather than your confidence.
             </p>
-            <div className="mt-8 flex animate-fade-up flex-wrap gap-3">
-              <Link href="/games" className="btn-gold">
+
+            <div className="mt-9 flex animate-rise-in flex-wrap items-center gap-3 [animation-delay:140ms]">
+              <Link href="/games" className="btn-volt">
                 Book today&apos;s game <ArrowRight size={16} />
               </Link>
-              <Link href="/products" className="btn-outline">
+              <Link
+                href="/products"
+                className="group inline-flex items-center gap-1.5 text-sm font-semibold text-ink underline-offset-4 hover:underline"
+              >
                 Shop the Champion Series
+                <ArrowUpRight
+                  size={15}
+                  className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                />
               </Link>
             </div>
 
-            <dl className="mt-12 grid max-w-lg grid-cols-3 gap-6 border-t border-white/10 pt-7">
+            {/* A scoreboard rail, not a stat-card triple. */}
+            <dl className="mt-12 flex flex-wrap items-end gap-x-10 gap-y-6 border-t border-line pt-7">
               {[
-                { k: openSessions.length ? `${openSessions.length}` : "—", v: "Open slots this week" },
-                { k: coaches.length ? `${coaches.length}` : "—", v: "Certified coaches" },
-                { k: `${tournaments.length || 4}`, v: "Tournaments run" },
+                { n: live.length, label: "Open slots this week" },
+                { n: coaches.length, label: "Certified coaches" },
+                { n: tournaments.length, label: "Draws run & backed" },
               ].map((s) => (
-                <div key={s.v}>
-                  <dt className="font-display text-4xl text-gold">{s.k}</dt>
-                  <dd className="mt-1 text-[11px] uppercase tracking-wider text-bone/45">{s.v}</dd>
+                <div key={s.label}>
+                  <dt className="sr-only">{s.label}</dt>
+                  <dd>
+                    <Counter to={s.n} className="block font-display text-5xl leading-none text-ink" />
+                    <span className="mt-2 block max-w-[9rem] font-mono text-[10px] uppercase leading-tight tracking-[0.14em] text-ink/50">
+                      {s.label}
+                    </span>
+                  </dd>
                 </div>
               ))}
+              <BounceBall className="ml-auto hidden sm:inline-flex" />
             </dl>
           </div>
 
           <div className="relative">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-bone shadow-card">
-              <Image
-                src="/products/paddle-ball-hero.png"
-                alt="SuperPro Champion Series paddle and outdoor ball"
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="absolute -bottom-5 left-5 rounded-2xl border border-white/10 bg-ink px-5 py-4 shadow-lift">
-              <p className="text-[11px] uppercase tracking-wider text-bone/45">Champion Series</p>
-              <p className="font-display text-2xl text-bone">T700 · 16mm</p>
-              <p className="mt-0.5 text-sm text-gold">{formatPaise(900000)}</p>
-            </div>
+            <div aria-hidden className="court-grid absolute inset-x-0 bottom-8 top-8 -z-10 rounded-card" />
+            <Paddle3D priority />
           </div>
         </div>
       </section>
-
-      {/* ── Marquee ───────────────────────────────────────────────────── */}
-      <div className="overflow-hidden border-b border-white/10 bg-ink-800/60 py-3">
-        <div className="flex w-max animate-marquee gap-8">
-          {[...MARQUEE, ...MARQUEE, ...MARQUEE, ...MARQUEE].map((item, i) => (
-            <span key={i} className="flex items-center gap-8 whitespace-nowrap font-display text-sm uppercase tracking-wider2 text-bone/35">
-              {item}
-              <span className="h-1 w-1 rounded-full bg-gold" />
-            </span>
-          ))}
-        </div>
-      </div>
 
       {notice && (
-        <div className="wrap pt-8">
-          <Link
-            href={notice.link_url ?? "/tournaments"}
-            className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/[0.07] px-5 py-4 transition-colors hover:border-gold/60"
-          >
-            <span className="chip-gold shrink-0">{notice.kind}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-bone">{notice.title}</span>
-              <span className="block truncate text-xs text-bone/50">{notice.body}</span>
+        <Link
+          href={notice.link_url ?? "/tournaments"}
+          className="group block border-b border-line bg-volt-soft transition-colors hover:bg-volt/20"
+        >
+          <div className="wrap flex items-center gap-4 py-3.5">
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-volt-deep">
+              {notice.kind}
             </span>
-            <ArrowRight size={16} className="shrink-0 text-gold" />
-          </Link>
-        </div>
+            <span className="min-w-0 flex-1 truncate text-sm text-ink/80">{notice.title}</span>
+            <ArrowRight size={15} className="shrink-0 text-ink transition-transform group-hover:translate-x-1" />
+          </div>
+        </Link>
       )}
 
-      {/* ── Vision ────────────────────────────────────────────────────── */}
+      {/* ── Next on court ─────────────────────────────────────────────────── */}
       <section className="wrap py-20">
         <Reveal>
-          <SectionHeading
-            eyebrow="Who we are"
-            title="A pickleball house, not a shop"
-            sub="SuperPro started because Kolkata had players and no infrastructure — no gear you could trust, no games you could just turn up to, no coaching pathway. We built all three, in that order."
-            action={
-              <Link href="/about" className="btn-outline btn-sm shrink-0">
-                Our vision <ArrowRight size={14} />
-              </Link>
-            }
-          />
-        </Reveal>
-
-        <div className="grid gap-5 md:grid-cols-3">
-          {[
-            {
-              n: "01",
-              t: "Gear that survives here",
-              d: "Every paddle and ball is tested through a Kolkata summer before it gets the SuperPro mark. Humidity, turf, and three-hour evening sessions.",
-            },
-            {
-              n: "02",
-              t: "A game every single day",
-              d: "Morning and evening open play across two venues. Register once, pick your slots for the week, turn up. Your court and partners land in the group chat.",
-            },
-            {
-              n: "03",
-              t: "A path, not a plateau",
-              d: "From a first-timer clinic to a DUPR-rated tournament draw — coaching, games and events that connect into one ladder you can actually climb.",
-            },
-          ].map((item, i) => (
-            <Reveal key={item.n} delay={i * 90}>
-              <div className="card h-full p-7">
-                <p className="font-display text-5xl text-white/10">{item.n}</p>
-                <h3 className="mt-3 text-2xl">{item.t}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-bone/55">{item.d}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Categories ────────────────────────────────────────────────── */}
-      <section className="border-y border-white/10 bg-ink-800/40 py-20">
-        <div className="wrap">
-          <Reveal>
-            <SectionHeading
-              eyebrow="The shop"
-              title="Paddles. Balls. Grips."
-              sub="The Champion Series — built with Toray carbon, tuned on our own courts, and stocked for pickup at TurfXL or delivery across Kolkata."
-              action={
-                <Link href="/products" className="btn-outline btn-sm shrink-0">
-                  All products <ArrowRight size={14} />
-                </Link>
-              }
-            />
-          </Reveal>
-
-          <div className="mb-10 grid gap-4 sm:grid-cols-3">
-            {PRODUCT_CATEGORIES.map((c, i) => (
-              <Reveal key={c.slug} delay={i * 80}>
-                <Link
-                  href={`/products?category=${c.slug}`}
-                  className="card-hover group flex items-center justify-between gap-4 p-6"
-                >
-                  <span>
-                    <span className="block font-display text-3xl uppercase text-bone group-hover:text-gold">{c.label}</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-bone/45">{c.blurb}</span>
-                  </span>
-                  <ArrowRight size={18} className="shrink-0 text-bone/30 transition-transform group-hover:translate-x-1 group-hover:text-gold" />
-                </Link>
-              </Reveal>
-            ))}
-          </div>
-
-          {featured.length > 0 && (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {featured.map((p, i) => (
-                <Reveal key={p.id} delay={i * 70}>
-                  <ProductCard product={p} />
-                </Reveal>
-              ))}
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <h2 className="rule-head text-4xl sm:text-5xl">Next on court</h2>
+              <p className="lede mt-4 max-w-xl">
+                Register once, pick your slots, turn up. Your name and court number reach the games group
+                before you leave the house.
+              </p>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── Daily games ───────────────────────────────────────────────── */}
-      <section className="wrap py-20">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Daily games"
-            title="Turn up and play"
-            sub="Register your details once, pick slots for the week, check out. Confirmed players and court numbers are posted to the SuperPro WhatsApp group the moment the slot fills."
-            action={
-              <Link href="/games" className="btn-gold btn-sm shrink-0">
-                Pick your slots <ArrowRight size={14} />
-              </Link>
-            }
-          />
+            <Link href="/games" className="btn-outline btn-sm">
+              All slots <ArrowRight size={14} />
+            </Link>
+          </div>
         </Reveal>
 
-        {nextSessions.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {nextSessions.map((s, i) => {
+        {nextUp.length > 0 ? (
+          <div className="mt-10 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {nextUp.map((s, i) => {
               const left = s.capacity - (s.booked ?? 0);
               return (
                 <Reveal key={s.id} delay={i * 70}>
-                  <Link href="/games" className="card-hover block p-5">
-                    <div className="flex items-center justify-between">
-                      <span className="chip">{formatDate(s.session_date)}</span>
-                      <span className={left <= 2 ? "chip-gold" : "chip-live"}>{left} left</span>
-                    </div>
-                    <p className="mt-4 font-display text-3xl text-bone">{formatTime(s.start_time)}</p>
-                    <p className="mt-1 text-sm text-bone/55">
-                      {s.venue_name} · Court {s.court_number}
-                    </p>
-                    <p className="mt-3 text-sm font-semibold text-gold">{formatPaise(s.price_paise)}</p>
+                  <Link href="/games" className="group block h-full">
+                    <TiltCard className="h-full">
+                      <article className="card-hover flex h-full flex-col p-6">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="kicker">{formatDate(s.session_date)}</span>
+                          <span className={left <= 2 ? "chip-warn" : "chip-volt"}>{left} left</span>
+                        </div>
+                        <p className="mt-5 font-display text-5xl leading-none tabular-nums text-ink">
+                          {formatTime(s.start_time)}
+                        </p>
+                        <p className="mt-3 flex items-center gap-1.5 text-sm text-ink/65">
+                          <MapPin size={13} /> {s.venue_name} · Court {s.court_number}
+                        </p>
+                        <div className="mt-6 border-t border-line pt-4">
+                          <ScoreMeter value={s.booked ?? 0} max={s.capacity} label="Court filling" />
+                        </div>
+                        <p className="mt-4 font-mono text-sm tabular-nums text-ink">{formatPaise(s.price_paise)}</p>
+                      </article>
+                    </TiltCard>
                   </Link>
                 </Reveal>
               );
             })}
           </div>
         ) : (
-          <div className="card px-6 py-12 text-center">
-            <p className="font-display text-2xl text-bone/70">This week&apos;s schedule goes up shortly</p>
-            <p className="mt-2 text-sm text-bone/45">
-              Message us on WhatsApp and we&apos;ll hold you a spot the moment slots open.
-            </p>
-            <a href={waLink("Hi SuperPro! When do this week's game slots open?")} target="_blank" rel="noopener noreferrer" className="btn-outline btn-sm mt-5">
-              <MessageCircle size={14} /> Ask on WhatsApp
-            </a>
+          <div className="mt-10 rounded-card border border-dashed border-line-strong p-10 text-center">
+            <p className="font-display text-2xl text-ink/70">This week&apos;s schedule goes up shortly</p>
+            <Link href="/games" className="btn-outline btn-sm mt-5">
+              See the calendar
+            </Link>
           </div>
         )}
       </section>
 
-      {/* ── Coaching + tournaments ────────────────────────────────────── */}
-      <section className="wrap grid gap-5 pb-20 lg:grid-cols-2">
+      {/* ── The ladder ─────────────────────────────────────────────────────
+          Replaces the usual three feature cards with something a player can
+          actually locate themselves on. ─────────────────────────────────── */}
+      <section className="border-y border-line bg-mist py-20">
+        <div className="wrap grid min-w-0 gap-14 lg:grid-cols-[0.85fr_1.15fr]">
+          <Reveal variant="left">
+            <div className="lg:sticky lg:top-28">
+              <h2 className="rule-head text-4xl sm:text-5xl">Find your rung</h2>
+              <p className="lede mt-5">
+                Every session, coach and draw is banded by DUPR, so you always know which court you belong on —
+                and what it takes to move up one.
+              </p>
+              <Link href="/signup" className="btn-primary mt-8">
+                Get your band <ArrowRight size={16} />
+              </Link>
+            </div>
+          </Reveal>
+
+          <ol className="space-y-4">
+            {DUPR_BANDS.map((band, i) => (
+              <Reveal key={band.level} delay={i * 90}>
+                <li className="card flex items-center gap-6 p-6 transition-colors hover:border-line-strong">
+                  <span className="font-mono text-[11px] tabular-nums text-ink/35">0{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-2xl text-ink">{band.label}</p>
+                    <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55">
+                      DUPR {band.range}
+                    </p>
+                  </div>
+                  <div className="hidden w-32 sm:block">
+                    <ScoreMeter value={i + 1} max={DUPR_BANDS.length} />
+                  </div>
+                </li>
+              </Reveal>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* ── Shop ──────────────────────────────────────────────────────────── */}
+      {featured.length > 0 && (
+        <section className="wrap py-20">
+          <Reveal>
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <h2 className="rule-head text-4xl sm:text-5xl">The kit</h2>
+              <div className="flex flex-wrap gap-2">
+                {PRODUCT_CATEGORIES.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/products?category=${c.slug}`}
+                    className="rounded-pill border border-line px-4 py-2 text-[13px] font-medium text-ink/70 transition-colors hover:border-ink hover:text-ink"
+                  >
+                    {c.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+
+          <div className="mt-10 grid min-w-0 gap-5 lg:grid-cols-[1.15fr_1fr]">
+            {hero && (
+              <Reveal variant="scale">
+                <Link href={`/products/${hero.slug}`} className="group block h-full">
+                  <article className="card-hover flex h-full flex-col overflow-hidden">
+                    <div className="relative aspect-[16/11] overflow-hidden bg-mist">
+                      {hero.image_url && (
+                        <Image
+                          src={hero.image_url}
+                          alt={hero.name}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 55vw"
+                          className="object-contain p-8 transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                        />
+                      )}
+                      <span className="chip-ink absolute left-5 top-5">Flagship</span>
+                    </div>
+                    <div className="flex flex-1 flex-col p-7">
+                      <h3 className="font-display text-3xl text-ink">{hero.name}</h3>
+                      {hero.tagline && (
+                        <p className="mt-3 max-w-md text-sm leading-relaxed text-ink/65">{hero.tagline}</p>
+                      )}
+                      <p className="mt-auto pt-6 font-display text-3xl tabular-nums text-ink">
+                        {formatPaise(hero.price_paise)}
+                      </p>
+                    </div>
+                  </article>
+                </Link>
+              </Reveal>
+            )}
+
+            <div className="grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {rest.map((p, i) => (
+                <Reveal key={p.id} delay={80 + i * 70}>
+                  <ProductCard product={p} />
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Coaching & tournaments ────────────────────────────────────────── */}
+      <section className="wrap grid min-w-0 gap-5 pb-24 lg:grid-cols-2">
         <Reveal>
-          <div className="card flex h-full flex-col p-8">
-            <Users size={22} className="text-gold" />
-            <h3 className="mt-4 text-3xl">Coaching</h3>
-            <p className="mt-3 text-sm leading-relaxed text-bone/55">
-              {coaches.length > 0
-                ? `${coaches.length} coaches, each with a specialisation — from a first-timer's grip to the speed-up timing that takes you past 4.5. Pick your coach, pick a slot, and we connect you directly.`
-                : "Certified coaches for every level, from first-timers to DUPR-rated players. Pick your coach and we connect you directly."}
+          <div className="panel flex h-full flex-col p-8">
+            <h2 className="font-display text-3xl text-ink">Coaching</h2>
+            <p className="mt-3 text-sm leading-relaxed text-ink/70">
+              Each coach owns a rung of the ladder — first paddle, first rally, first competitive match, first
+              rating. Pick the one who matches where you are.
             </p>
-            <ul className="mt-5 space-y-2 text-sm text-bone/60">
+            <ul className="mt-6 divide-y divide-line border-y border-line">
               {coaches.slice(0, 3).map((c) => (
-                <li key={c.id} className="flex items-center gap-2">
-                  <span className="h-1 w-1 rounded-full bg-gold" />
-                  <span className="font-medium text-bone/80">{c.name}</span>
-                  <span className="text-bone/40">— {c.headline?.split("·")[0]?.trim()}</span>
+                <li key={c.id} className="flex items-baseline justify-between gap-4 py-3">
+                  <span className="text-sm font-semibold text-ink">{c.name}</span>
+                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-ink/55">
+                    {c.dupr ? `DUPR ${Number(c.dupr).toFixed(1)}` : "Coach"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -285,59 +291,37 @@ export default async function HomePage() {
           </div>
         </Reveal>
 
-        <Reveal delay={100}>
-          <div className="card flex h-full flex-col p-8">
-            <Trophy size={22} className="text-gold" />
-            <h3 className="mt-4 text-3xl">Tournaments</h3>
-            {liveTournament ? (
+        <Reveal delay={90}>
+          <div className="panel-ink flex h-full flex-col p-8">
+            <h2 className="font-display text-3xl text-paper">Tournaments</h2>
+            {openTournament ? (
               <>
-                <p className="mt-3 text-sm leading-relaxed text-bone/55">{liveTournament.summary}</p>
-                <div className="mt-5 rounded-xl border border-white/10 bg-ink-700/50 p-5">
-                  <span className={liveTournament.kind === "sponsored" ? "chip" : "chip-gold"}>
-                    {liveTournament.kind === "sponsored" ? "We sponsor" : "We organise"}
-                  </span>
-                  <p className="mt-3 font-display text-2xl text-bone">{liveTournament.title}</p>
-                  <p className="mt-1 flex items-center gap-2 text-xs text-bone/50">
-                    <CalendarDays size={13} />
-                    {formatDateRange(liveTournament.start_date, liveTournament.end_date)} · {liveTournament.venue}
+                <p className="mt-3 text-sm leading-relaxed text-paper/65">{openTournament.summary}</p>
+                <div className="mt-6 border-t border-paper/15 pt-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-volt">
+                    {openTournament.kind === "sponsored" ? "We back it" : "We run it"}
                   </p>
-                  {liveTournament.prize_pool_paise > 0 && (
-                    <p className="mt-2 text-sm text-gold">
-                      {formatPaise(liveTournament.prize_pool_paise)} prize pool
+                  <p className="mt-2 font-display text-2xl text-paper">{openTournament.title}</p>
+                  {openTournament.prize_pool_paise > 0 && (
+                    <p className="mt-2 font-mono text-sm tabular-nums text-volt">
+                      {formatPaise(openTournament.prize_pool_paise)} prize pool
                     </p>
                   )}
                 </div>
               </>
             ) : (
-              <p className="mt-3 text-sm leading-relaxed text-bone/55">
-                Every tournament we run or sponsor around Kolkata, with formats, draws and results.
+              <p className="mt-3 text-sm leading-relaxed text-paper/65">
+                Every draw we run or back around {SITE.city}, with formats, brackets and results.
               </p>
             )}
-            <Link href="/tournaments" className="btn-outline btn-sm mt-auto self-start pt-2">
+            <Link
+              href="/tournaments"
+              className="btn btn-sm mt-auto self-start border border-paper/25 text-paper hover:border-volt hover:text-volt"
+            >
               All tournaments <ArrowRight size={14} />
             </Link>
           </div>
         </Reveal>
-      </section>
-
-      {/* ── WhatsApp band ─────────────────────────────────────────────── */}
-      <section className="border-t border-white/10 bg-ink-800/60">
-        <div className="wrap flex flex-col items-center gap-5 py-14 text-center">
-          <MessageCircle size={26} className="text-[#25D366]" />
-          <h2 className="text-4xl">Not sure which paddle?</h2>
-          <p className="max-w-xl text-sm leading-relaxed text-bone/55">
-            Tell a SuperPro rep how you play and your budget. You&apos;ll get a straight answer on WhatsApp —
-            no funnel, no callback queue.
-          </p>
-          <a
-            href={waLink(`Hi ${SITE.name}! I'd like help choosing a paddle.`)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn bg-[#25D366] text-ink hover:brightness-110"
-          >
-            <MessageCircle size={16} /> Chat with a representative
-          </a>
-        </div>
       </section>
     </>
   );

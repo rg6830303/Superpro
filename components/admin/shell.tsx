@@ -45,13 +45,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-60 shrink-0 border-r border-white/10 bg-ink-900 transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-60 shrink-0 border-r border-line bg-paper transition-transform lg:static lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
+        <div className="flex h-16 items-center justify-between border-b border-line px-5">
           <Logo height={24} href="/admin" />
-          <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold">
+          <span className="rounded-pill bg-ink px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-paper">
             Admin
           </span>
         </div>
@@ -62,8 +62,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive(item.href) ? "bg-gold/15 text-gold" : "text-bone/55 hover:bg-white/5 hover:text-bone"
+              className={`relative flex items-center gap-3 rounded-lg py-2.5 pl-4 pr-3 text-sm font-medium transition-colors before:absolute before:left-0 before:top-1/2 before:h-0 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-volt before:transition-[height] before:duration-200 before:content-[''] ${
+                isActive(item.href)
+                  ? "bg-mist text-ink before:h-[60%]"
+                  : "text-ink/65 hover:bg-mist/70 hover:text-ink"
               }`}
             >
               <item.icon size={16} />
@@ -72,16 +74,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="absolute inset-x-0 bottom-0 border-t border-white/10 p-3">
+        <div className="absolute inset-x-0 bottom-0 border-t border-line p-3">
           <LogoutButton admin />
         </div>
       </aside>
 
-      {open && <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
+      {open && <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-white/10 bg-ink/90 px-5 backdrop-blur-xl lg:hidden">
-          <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Toggle navigation" className="p-2 text-bone">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-paper px-5 lg:hidden">
+          <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Toggle navigation" className="p-2 text-ink">
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
           <Logo height={22} href="/admin" />
@@ -104,10 +106,10 @@ export function AdminHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
       <div>
-        <h1 className="text-4xl">{title}</h1>
-        {sub && <p className="mt-1.5 text-sm text-bone/50">{sub}</p>}
+        <h1 className="text-[2.5rem] leading-none">{title}</h1>
+        {sub && <p className="mt-2.5 text-sm text-ink/60">{sub}</p>}
       </div>
       {action}
     </div>
@@ -123,18 +125,18 @@ export function StatTile({
   label: string;
   value: string | number;
   hint?: string;
-  tone?: "default" | "gold" | "warn";
+  tone?: "default" | "accent" | "warn";
 }) {
   const tones = {
-    default: "text-bone",
-    gold: "text-gold",
-    warn: "text-danger",
+    default: "text-ink",
+    accent: "text-volt-deep",
+    warn: "text-signal",
   } as const;
   return (
     <div className="card p-5">
-      <p className="text-[11px] uppercase tracking-wider text-bone/40">{label}</p>
-      <p className={`mt-2 font-display text-4xl ${tones[tone]}`}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-bone/40">{hint}</p>}
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{label}</p>
+      <p className={`mt-2.5 font-display text-4xl tabular-nums leading-none ${tones[tone]}`}>{value}</p>
+      {hint && <p className="mt-2 text-xs text-ink/50">{hint}</p>}
     </div>
   );
 }

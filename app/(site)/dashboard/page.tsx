@@ -91,7 +91,7 @@ export default async function DashboardPage() {
         <div>
           <p className="eyebrow">My account</p>
           <h1 className="mt-2 text-[clamp(2.25rem,6vw,3.5rem)]">{session.name}</h1>
-          <p className="mt-1 text-sm text-bone/45">{session.email}</p>
+          <p className="mt-1 text-sm text-ink/55">{session.email}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/dashboard/profile" className="btn-outline btn-sm">
@@ -108,19 +108,19 @@ export default async function DashboardPage() {
           { icon: Package, k: `${orders.length}`, v: "Orders" },
         ].map((s) => (
           <div key={s.v} className="card p-5">
-            <s.icon size={17} className="text-gold" />
-            <p className="mt-3 font-display text-4xl text-bone">{s.k}</p>
-            <p className="text-xs uppercase tracking-wider text-bone/40">{s.v}</p>
+            <s.icon size={17} className="text-volt-deep" />
+            <p className="mt-3 font-display text-4xl text-ink">{s.k}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{s.v}</p>
           </div>
         ))}
       </div>
 
       <section className="mt-10 grid min-w-0 gap-5 lg:grid-cols-[1fr_1.4fr]">
         <div className="card flex flex-col p-6">
-          <Wallet size={18} className="text-gold" />
-          <p className="mt-3 text-[11px] uppercase tracking-wider text-bone/40">SuperPro wallet</p>
-          <p className="mt-1 font-display text-5xl text-gold">{formatPaise(walletPaise)}</p>
-          <p className="mt-2 text-xs leading-relaxed text-bone/45">
+          <Wallet size={18} className="text-volt-deep" />
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">SuperPro wallet</p>
+          <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(walletPaise)}</p>
+          <p className="mt-2 text-xs leading-relaxed text-ink/55">
             Prepaid credit you can spend on court slots and gear. Top it up with any SuperPro rep at the
             venue — it lands here instantly.
           </p>
@@ -132,26 +132,26 @@ export default async function DashboardPage() {
         <div className="card p-6">
           <h2 className="text-2xl">Wallet activity</h2>
           {walletTx.length === 0 ? (
-            <p className="mt-3 text-sm text-bone/45">
+            <p className="mt-3 text-sm text-ink/55">
               No wallet movements yet. Ask a rep to load credit and it shows up here.
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
               {walletTx.map((t) => (
-                <li key={t.id} className="flex items-start justify-between gap-3 border-b border-white/5 pb-3 last:border-0">
+                <li key={t.id} className="flex items-start justify-between gap-3 border-b border-line/60 pb-3 last:border-0">
                   <div className="min-w-0">
-                    <p className="text-sm capitalize text-bone">{t.kind}</p>
-                    <p className="truncate text-xs text-bone/45">{t.reason ?? "—"}</p>
-                    <p className="mt-0.5 text-[11px] text-bone/30">
+                    <p className="text-sm capitalize text-ink">{t.kind}</p>
+                    <p className="truncate text-xs text-ink/55">{t.reason ?? "—"}</p>
+                    <p className="mt-0.5 text-[11px] text-ink/45">
                       {new Date(t.created_at).toLocaleDateString("en-IN")}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-ok" : "text-danger"}`}>
+                    <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}`}>
                       {t.delta_paise > 0 ? "+" : "−"}
                       {formatPaise(Math.abs(t.delta_paise))}
                     </p>
-                    <p className="text-[11px] text-bone/35">{formatPaise(t.balance_after_paise)}</p>
+                    <p className="text-[11px] text-ink/45">{formatPaise(t.balance_after_paise)}</p>
                   </div>
                 </li>
               ))}
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
             title="No games booked yet"
             sub="Pick a slot for this week and your court number lands on WhatsApp."
             action={
-              <Link href="/games" className="btn-gold btn-sm mt-2">
+              <Link href="/games" className="btn-volt btn-sm mt-2">
                 Book a slot
               </Link>
             }
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
                     <td>{g.court_number ?? "—"}</td>
                     <td>{formatPaise(g.amount_paise)}</td>
                     <td>
-                      <span className={g.status === "cancelled" ? "chip" : g.payment_status === "paid" ? "chip-live" : "chip-gold"}>
+                      <span className={g.status === "cancelled" ? "chip" : g.payment_status === "paid" ? "chip-volt" : "chip-warn"}>
                         {g.status === "cancelled" ? "Cancelled" : g.payment_status === "paid" ? "Paid" : "Pay at venue"}
                       </span>
                     </td>
@@ -224,7 +224,7 @@ export default async function DashboardPage() {
               <tbody>
                 {coaching.map((c) => (
                   <tr key={c.booking_no}>
-                    <td className="font-mono text-xs text-gold">{c.booking_no}</td>
+                    <td className="font-mono text-xs text-volt-deep">{c.booking_no}</td>
                     <td>{c.coach_name}</td>
                     <td>{c.preferred_date ? `${formatDate(c.preferred_date)} · ${c.preferred_time}` : "—"}</td>
                     <td>{c.sessions_count}</td>
@@ -258,7 +258,7 @@ export default async function DashboardPage() {
                 {orders.map((o) => (
                   <tr key={o.order_no}>
                     <td>
-                      <Link href={`/order/${o.order_no}`} className="font-mono text-xs text-gold hover:underline">
+                      <Link href={`/order/${o.order_no}`} className="font-mono text-xs text-volt-deep hover:underline">
                         {o.order_no}
                       </Link>
                     </td>
@@ -276,13 +276,16 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      <div className="mt-14 card flex flex-col items-center gap-4 px-6 py-10 text-center">
-        <Trophy size={22} className="text-gold" />
-        <h2 className="text-2xl">Ready for a draw?</h2>
-        <p className="max-w-md text-sm text-bone/50">
-          Tournament entries are open to every registered player. Grab a partner and enter.
-        </p>
-        <Link href="/tournaments" className="btn-outline btn-sm">
+      <div className="mt-14 flex flex-col gap-5 border-t-2 border-ink pt-7 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-2xl">
+            <Trophy size={20} className="text-volt-deep" /> Ready for a draw?
+          </h2>
+          <p className="mt-2 max-w-md text-sm text-ink/65">
+            Entries are open to every registered player. Grab a partner and enter.
+          </p>
+        </div>
+        <Link href="/tournaments" className="btn-outline btn-sm shrink-0">
           See tournaments
         </Link>
       </div>

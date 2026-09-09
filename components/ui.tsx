@@ -1,116 +1,89 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 
-/** Fades content in the first time it scrolls into view. */
-export function Reveal({
-  children,
-  delay = 0,
-  className = "",
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.05 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`${className} transition-all duration-700 ease-out ${
-        shown ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
-      }`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
+// The scroll-reveal primitive lives in components/motion.tsx alongside the rest
+// of the motion toolkit; re-exported here so older call sites keep working.
+export { Reveal } from "@/components/motion";
 
 export function SectionHeading({
   eyebrow,
   title,
   sub,
-  align = "left",
   action,
 }: {
   eyebrow?: string;
   title: string;
   sub?: string;
+  /** Kept for call-site compatibility; headings are always left-set now. */
   align?: "left" | "center";
   action?: React.ReactNode;
 }) {
   return (
-    <div
-      className={`mb-9 flex flex-col gap-4 ${
-        align === "center" ? "items-center text-center" : "sm:flex-row sm:items-end sm:justify-between"
-      }`}
-    >
-      <div className={align === "center" ? "max-w-2xl" : "max-w-2xl"}>
-        {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-        <h2 className="text-4xl sm:text-5xl">{title}</h2>
-        {sub && <p className="mt-3 text-[15px] leading-relaxed text-bone/55">{sub}</p>}
+    <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="max-w-2xl">
+        {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
+        <h2 className="rule-head text-4xl sm:text-5xl">{title}</h2>
+        {sub && <p className="lede mt-4">{sub}</p>}
       </div>
       {action}
     </div>
   );
 }
 
-/** Numbered progress rail used by the games / coaching / checkout flows. */
+/**
+ * Progress rail for the booking flows.
+ *
+ * The completed portion is drawn as one continuous volt line that grows with
+ * each step, so progress reads as a single filling bar rather than a row of
+ * disconnected dots — and the current step's marker holds a quiet pulse so the
+ * eye finds it without a colour change.
+ */
 export function Stepper({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <ol className="scroll-x mb-8 flex items-center gap-2 no-scrollbar" aria-label="Progress">
+    <ol className="scroll-x mb-9 flex items-center gap-2 no-scrollbar" aria-label="Progress">
       {steps.map((label, i) => {
         const n = i + 1;
         const done = n < current;
         const active = n === current;
         return (
           <li key={label} className="flex flex-1 items-center gap-2">
-            <div className="flex shrink-0 items-center gap-2">
-              <span
-                aria-current={active ? "step" : undefined}
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                  done
-                    ? "bg-gold text-ink"
-                    : active
-                      ? "bg-bone text-ink"
-                      : "border border-white/15 text-bone/40"
-                }`}
-              >
-                {done ? <Check size={14} /> : n}
+            <div className="flex shrink-0 items-center gap-2.5">
+              <span className="relative flex">
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 animate-pulse-ring rounded-full bg-volt/40"
+                  />
+                )}
+                <span
+                  aria-current={active ? "step" : undefined}
+                  className={`relative flex h-8 w-8 items-center justify-center rounded-full font-mono text-[12px] tabular-nums transition-colors duration-300 ${
+                    done
+                      ? "bg-volt text-ink"
+                      : active
+                        ? "bg-ink text-paper"
+                        : "border border-line bg-paper text-ink/40"
+                  }`}
+                >
+                  {done ? <Check size={14} strokeWidth={3} /> : n}
+                </span>
               </span>
               <span
-                className={`hidden whitespace-nowrap text-xs font-semibold uppercase tracking-wider sm:block ${
-                  active ? "text-bone" : "text-bone/40"
+                className={`hidden whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.14em] transition-colors sm:block ${
+                  active ? "text-ink" : done ? "text-ink/60" : "text-ink/35"
                 }`}
               >
                 {label}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <span className={`h-px flex-1 ${done ? "bg-gold" : "bg-white/10"}`} />
+              <span className="relative h-[2px] flex-1 overflow-hidden rounded-full bg-line">
+                <span
+                  className="absolute inset-y-0 left-0 rounded-full bg-volt transition-[width] duration-500 ease-out"
+                  style={{ width: done ? "100%" : "0%" }}
+                />
+              </span>
             )}
           </li>
         );
@@ -133,9 +106,9 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="card flex flex-col items-center gap-3 px-6 py-14 text-center">
-      <p className="font-display text-2xl uppercase text-bone/80">{title}</p>
-      {sub && <p className="max-w-sm text-sm text-bone/45">{sub}</p>}
+    <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-line-strong px-6 py-16 text-center">
+      <p className="font-display text-2xl text-ink/75">{title}</p>
+      {sub && <p className="max-w-sm text-sm leading-relaxed text-ink/55">{sub}</p>}
       {action}
     </div>
   );
@@ -149,12 +122,15 @@ export function Alert({
   children: React.ReactNode;
 }) {
   const tones = {
-    error: "border-danger/40 bg-danger/10 text-danger",
-    ok: "border-ok/40 bg-ok/10 text-ok",
-    info: "border-white/15 bg-white/5 text-bone/70",
+    error: "border-signal/35 bg-signal/8 text-signal",
+    ok: "border-volt-deep/30 bg-volt-soft text-volt-deep",
+    info: "border-line bg-mist text-ink/75",
   } as const;
   return (
-    <div role={tone === "error" ? "alert" : "status"} className={`rounded-xl border px-4 py-3 text-sm ${tones[tone]}`}>
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={`animate-wipe-in rounded-xl border px-4 py-3 text-sm ${tones[tone]}`}
+    >
       {children}
     </div>
   );
