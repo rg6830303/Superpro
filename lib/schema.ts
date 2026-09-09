@@ -301,6 +301,32 @@ export const SCHEMA_TABLES: string[] = [
     window_start BIGINT NOT NULL
   )`,
 
+  `CREATE TABLE IF NOT EXISTS time_slots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    label TEXT,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (start_time, end_time)
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS tournament_form_fields (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tournament_id UUID NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+    field_key TEXT NOT NULL,
+    label TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'text'
+      CHECK (type IN ('text','textarea','number','select','checkbox','date','email','phone')),
+    options JSONB NOT NULL DEFAULT '[]'::jsonb,
+    required BOOLEAN NOT NULL DEFAULT false,
+    help TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (tournament_id, field_key)
+  )`,
+
   `CREATE TABLE IF NOT EXISTS wallet_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -334,6 +360,17 @@ export const SCHEMA_MIGRATIONS: string[] = [
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS seed INTEGER`,
   `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS reference TEXT`,
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS reference TEXT`,
+
+  // Daily games: a slot either charges a flat per-player price, or splits a
+  // court's hourly fee evenly across the players it holds.
+  `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS pricing_mode TEXT NOT NULL DEFAULT 'fixed'`,
+  `ALTER TABLE game_sessions DROP CONSTRAINT IF EXISTS game_sessions_pricing_mode_check`,
+  `ALTER TABLE game_sessions ADD CONSTRAINT game_sessions_pricing_mode_check
+     CHECK (pricing_mode IN ('fixed','split'))`,
+  `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS court_fee_paise INTEGER NOT NULL DEFAULT 0`,
+
+  // Answers to the admin-authored fields on a tournament entry form.
+  `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS answers JSONB NOT NULL DEFAULT '{}'::jsonb`,
 
   // Supabase Auth owns passwords from here on: `users` mirrors auth.users with
   // the app-level profile, so password_hash is legacy and must be nullable.
@@ -379,6 +416,8 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_tourn_reg_tournament ON tournament_registrations(tournament_id)`,
   `CREATE INDEX IF NOT EXISTS idx_outbox_status ON whatsapp_outbox(status, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_wallet_user ON wallet_transactions(user_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_form_fields_tournament ON tournament_form_fields(tournament_id, sort_order)`,
+  `CREATE INDEX IF NOT EXISTS idx_time_slots_active ON time_slots(sort_order) WHERE active`,
   `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
 ];
 

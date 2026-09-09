@@ -50,6 +50,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Registration for this tournament is closed." }, { status: 409 });
     }
 
+    // Required questions on the tournament's own form must be answered.
+    const formFields = await query<{ field_key: string; label: string; required: boolean }>(
+      `SELECT field_key, label, required FROM tournament_form_fields WHERE tournament_id = $1`,
+      [input.tournament_id],
+    ).catch(() => []);
+    const answers = (input.answers ?? {}) as Record<string, unknown>;
+    const missing = formFields
+      .filter((f) => f.required)
+      .filter((f) => {
+        const v = answers[f.field_key];
+        return v === undefined || v === null || v === "" || v === false;
+      })
+      .map((f) => f.label);
+    if (missing.length > 0) {
+      return NextResponse.json({ error: `Please answer: ${missing.join(", ")}.` }, { status: 400 });
+    }
+    // Keep only answers to questions that actually exist on this form.
+    const known = new Set(formFields.map((f) => f.field_key));
+    const cleanAnswers: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(answers)) if (known.has(k)) cleanAnswers[k] = v;
+
     const duplicate = await queryOne<{ id: string }>(
       `SELECT id FROM tournament_registrations
        WHERE tournament_id = $1 AND player1_phone = $2 AND status <> 'withdrawn' LIMIT 1`,
@@ -71,8 +92,8 @@ export async function POST(req: Request) {
     const inserted = await query<{ id: string }>(
       `INSERT INTO tournament_registrations (reference, tournament_id, team_name, category,
          player1_name, player1_phone, player1_dupr, player2_name, player2_phone, player2_dupr,
-         email, amount_paise, payment_method, payment_status, status, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,$15)
+         email, amount_paise, payment_method, payment_status, status, notes, answers)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,$15,$16::jsonb)
        RETURNING id`,
       [
         reference,
@@ -90,6 +111,7 @@ export async function POST(req: Request) {
         method,
         waitlisted ? "waitlist" : "pending",
         input.notes ?? null,
+        JSON.stringify(cleanAnswers),
       ],
     );
 

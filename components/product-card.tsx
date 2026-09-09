@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
+import { TiltCard } from "@/components/motion";
 import { formatPaise } from "@/lib/money";
 import type { Product } from "@/lib/types";
 
@@ -26,7 +27,8 @@ export function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <article className="card-hover group flex flex-col overflow-hidden">
+    <TiltCard max={6} className="h-full">
+      <article className="card-hover group flex h-full flex-col overflow-hidden">
       <Link href={`/products/${product.slug}`} className="relative block aspect-[4/3] overflow-hidden bg-mist">
         {product.image_url ? (
           <Image
@@ -83,6 +85,7 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
       </div>
-    </article>
+      </article>
+    </TiltCard>
   );
 }

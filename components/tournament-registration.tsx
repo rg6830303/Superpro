@@ -7,25 +7,45 @@ import { Alert, Spinner } from "@/components/ui";
 import { Confetti } from "@/components/motion";
 import { formatPaise } from "@/lib/money";
 import { waLink } from "@/lib/site";
+import type { FormField } from "@/lib/queries";
 import type { Tournament } from "@/lib/types";
 
 type Confirmation = { reference: string; team_name: string; status: string; payment_method: string };
+
+/** What we already know about a signed-in player, used to prefill the form. */
+export type EntryPrefill = {
+  name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  dupr?: number | null;
+};
 
 export function TournamentRegistration({
   tournament,
   razorpayEnabled,
   razorpayKeyId,
+  fields = [],
+  prefill,
 }: {
   tournament: Tournament;
   razorpayEnabled: boolean;
   razorpayKeyId: string;
+  /** Admin-authored questions for this particular draw. */
+  fields?: FormField[];
+  prefill?: EntryPrefill | null;
 }) {
   const categories = Array.isArray(tournament.categories) ? tournament.categories : [];
   const [team, setTeam] = useState("");
   const [category, setCategory] = useState(categories[0] ?? "");
-  const [p1, setP1] = useState({ name: "", phone: "", dupr: "" });
+  // A signed-in player should never retype what their profile already holds.
+  const [p1, setP1] = useState({
+    name: prefill?.name ?? "",
+    phone: prefill?.phone ?? "",
+    dupr: prefill?.dupr != null ? String(prefill.dupr) : "",
+  });
   const [p2, setP2] = useState({ name: "", phone: "", dupr: "" });
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefill?.email ?? "");
+  const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
   const [notes, setNotes] = useState("");
   const [pay, setPay] = useState<"razorpay" | "venue">(razorpayEnabled ? "razorpay" : "venue");
   const [busy, setBusy] = useState(false);
@@ -57,6 +77,7 @@ export function TournamentRegistration({
           email,
           payment_method: pay,
           notes,
+          answers,
         }),
       });
       const data = await res.json();
@@ -137,6 +158,12 @@ export function TournamentRegistration({
           : `${tournament.max_teams - (tournament.teams ?? 0)} of ${tournament.max_teams} spots left.`}
       </p>
 
+      {prefill?.name && (
+        <p className="mt-4 rounded-lg bg-volt-soft px-3 py-2 text-xs text-volt-deep">
+          Filled in from your SuperPro account — edit anything that has changed.
+        </p>
+      )}
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className={categories.length > 0 ? "" : "sm:col-span-2"}>
           <label className="label" htmlFor="t-team">Team name</label>
@@ -189,6 +216,22 @@ export function TournamentRegistration({
         <input id="t-email" type="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
 
+      {fields.length > 0 && (
+        <fieldset className="mt-6 border-t border-line pt-5">
+          <legend className="label">{tournament.title} questions</legend>
+          <div className="space-y-4">
+            {fields.map((f) => (
+              <FormFieldInput
+                key={f.id}
+                field={f}
+                value={answers[f.field_key]}
+                onChange={(v) => setAnswers((prev) => ({ ...prev, [f.field_key]: v }))}
+              />
+            ))}
+          </div>
+        </fieldset>
+      )}
+
       {tournament.entry_fee_paise > 0 && (
         <div className="mt-6">
           <span className="label">Entry fee — {formatPaise(tournament.entry_fee_paise)} per team</span>
@@ -234,5 +277,81 @@ export function TournamentRegistration({
               : "Enter the draw"}
       </button>
     </form>
+  );
+}
+
+/**
+ * Renders one admin-authored question. The set of types is deliberately small —
+ * enough to cover what a draw actually asks (a size, a waiver, a partner's
+ * rating) without turning into a form builder with its own bug surface.
+ */
+function FormFieldInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: FormField;
+  value: string | boolean | undefined;
+  onChange: (v: string | boolean) => void;
+}) {
+  const id = `tf-${field.field_key}`;
+  const options = Array.isArray(field.options) ? field.options : [];
+
+  if (field.type === "checkbox") {
+    return (
+      <label className="flex items-start gap-3 text-sm text-ink/75">
+        <input
+          id={id}
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(e) => onChange(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-[#06263D]"
+        />
+        <span>
+          {field.label}
+          {field.required && <span className="ml-1 text-signal">*</span>}
+          {field.help && <span className="block text-xs text-ink/50">{field.help}</span>}
+        </span>
+      </label>
+    );
+  }
+
+  return (
+    <div>
+      <label className="label" htmlFor={id}>
+        {field.label}
+        {field.required && <span className="ml-1 text-signal">*</span>}
+      </label>
+
+      {field.type === "select" ? (
+        <select id={id} className="field" value={String(value ?? "")} onChange={(e) => onChange(e.target.value)}>
+          <option value="">Choose…</option>
+          {options.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      ) : field.type === "textarea" ? (
+        <textarea
+          id={id}
+          rows={3}
+          className="field resize-none"
+          value={String(value ?? "")}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : (
+        <input
+          id={id}
+          type={field.type === "date" ? "date" : field.type === "email" ? "email" : "text"}
+          inputMode={field.type === "number" ? "decimal" : field.type === "phone" ? "numeric" : undefined}
+          className="field"
+          value={String(value ?? "")}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+
+      {field.help && <p className="mt-1.5 text-[11px] text-ink/50">{field.help}</p>}
+    </div>
   );
 }

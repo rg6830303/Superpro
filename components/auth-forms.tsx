@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Alert, Spinner } from "@/components/ui";
-import { DUPR_BANDS, skillFromDupr } from "@/lib/dupr";
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -87,10 +86,10 @@ export function SignupForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The category is never chosen — it follows the rating, live as you type.
+  // The band is derived server-side from the rating and never surfaced here —
+  // players enter a DUPR, they do not pick a category.
   const rating = Number(form.dupr);
   const hasRating = form.dupr.trim() !== "" && Number.isFinite(rating);
-  const derived = skillFromDupr(hasRating ? rating : null);
   const ratingOutOfRange = hasRating && (rating < 2 || rating > 8);
 
   async function submit(e: React.FormEvent) {
@@ -169,25 +168,6 @@ export function SignupForm() {
           />
           {ratingOutOfRange && <p className="field-error">DUPR ratings run from 2.0 to 8.0.</p>}
         </div>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-line bg-mist p-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Your category</p>
-        <p className="mt-1 font-display text-2xl uppercase text-volt-deep">
-          {DUPR_BANDS.find((b) => b.level === derived)?.label}
-        </p>
-        <p className="mt-1 text-xs text-ink/55">
-          {hasRating && !ratingOutOfRange
-            ? `Set automatically from DUPR ${rating.toFixed(2)}.`
-            : "Not rated yet? You'll start as a beginner — add your DUPR any time from your profile."}
-        </p>
-        <ul className="mt-3 space-y-1 text-[11px] text-ink/45">
-          {DUPR_BANDS.map((b) => (
-            <li key={b.level} className={b.level === derived ? "text-volt-deep" : undefined}>
-              {b.label} — {b.range}
-            </li>
-          ))}
-        </ul>
       </div>
 
       {error && (

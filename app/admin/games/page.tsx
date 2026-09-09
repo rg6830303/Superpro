@@ -12,7 +12,7 @@ import {
 } from "@/components/admin/crud";
 import { Alert, Spinner } from "@/components/ui";
 import { formatDate, formatTime, istToday, upcomingDates } from "@/lib/dates";
-import { formatPaise } from "@/lib/money";
+import { formatPaise, perPlayerPaise, splitCaption } from "@/lib/money";
 
 type Venue = {
   id: string;
@@ -27,6 +27,8 @@ type Venue = {
 
 type Session = {
   id: string;
+  pricing_mode: string;
+  court_fee_paise: number;
   venue_id: string;
   venue_name: string;
   session_date: string;
@@ -66,6 +68,14 @@ const LEVELS = [
   { value: "advanced", label: "Advanced" },
 ];
 
+const TIME_SLOT_FIELDS: FieldDef[] = [
+  { name: "start_time", label: "Start", type: "time", required: true },
+  { name: "end_time", label: "End", type: "time", required: true },
+  { name: "label", label: "Label", full: true, placeholder: "Prime evening" },
+  { name: "sort_order", label: "Sort order", type: "number" },
+  { name: "active", label: "Offer this slot", type: "checkbox" },
+];
+
 const VENUE_FIELDS: FieldDef[] = [
   { name: "name", label: "Venue name", required: true },
   { name: "area", label: "Area", placeholder: "New Alipore" },
@@ -82,7 +92,22 @@ const SESSION_EDIT_FIELDS: FieldDef[] = [
   { name: "court_number", label: "Court number", type: "number" },
   { name: "capacity", label: "Capacity", type: "number" },
   { name: "level", label: "Level", type: "select", options: LEVELS },
-  { name: "price_paise", label: "Price (paise)", type: "number", hint: "35000 = ₹350" },
+  {
+    name: "pricing_mode",
+    label: "Pricing",
+    type: "select",
+    options: [
+      { value: "fixed", label: "Fixed price per player" },
+      { value: "split", label: "Split the court fee" },
+    ],
+  },
+  { name: "price_paise", label: "Price per player (paise)", type: "number", hint: "35000 = ₹350 · used when pricing is fixed" },
+  {
+    name: "court_fee_paise",
+    label: "Court fee per hour (paise)",
+    type: "number",
+    hint: "140000 = ₹1,400 · split evenly across capacity",
+  },
   {
     name: "status",
     label: "Status",
@@ -96,12 +121,22 @@ const SESSION_EDIT_FIELDS: FieldDef[] = [
   { name: "notes", label: "Notes", type: "textarea" },
 ];
 
-type Tab = "slots" | "venues" | "registrations";
+type TimeSlot = {
+  id: string;
+  label: string | null;
+  start_time: string;
+  end_time: string;
+  sort_order: number;
+  active: boolean;
+};
+
+type Tab = "slots" | "times" | "venues" | "registrations";
 
 export default function AdminGamesPage() {
   const [tab, setTab] = useState<Tab>("slots");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,20 +147,24 @@ export default function AdminGamesPage() {
   const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [creatingVenue, setCreatingVenue] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [editingTime, setEditingTime] = useState<TimeSlot | null>(null);
+  const [creatingTime, setCreatingTime] = useState(false);
   const [regDate, setRegDate] = useState(istToday());
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [s, v] = await Promise.all([
+      const [s, v, t] = await Promise.all([
         fetch("/api/admin/sessions").then((r) => r.json()),
         fetch("/api/admin/venues").then((r) => r.json()),
+        fetch("/api/admin/time-slots").then((r) => r.json()),
       ]);
       if (s.error) throw new Error(s.error);
       if (v.error) throw new Error(v.error);
       setSessions(s.sessions ?? []);
       setVenues(v.venues ?? []);
+      setTimeSlots(t.slots ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load the schedule.");
     } finally {
@@ -206,7 +245,7 @@ export default function AdminGamesPage() {
       )}
 
       <div className="mb-5 flex gap-2">
-        {(["slots", "venues", "registrations"] as Tab[]).map((t) => (
+        {(["slots", "times", "venues", "registrations"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -245,7 +284,7 @@ export default function AdminGamesPage() {
                       <th>Court</th>
                       <th>Level</th>
                       <th>Booked</th>
-                      <th>Price</th>
+                      <th>Per player</th>
                       <th>Status</th>
                       <th />
                     </tr>
@@ -264,7 +303,12 @@ export default function AdminGamesPage() {
                             {s.booked}/{s.capacity}
                           </span>
                         </td>
-                        <td>{formatPaise(s.price_paise)}</td>
+                        <td>
+                          <span className="block tabular-nums text-ink">{formatPaise(perPlayerPaise(s))}</span>
+                          {s.pricing_mode === "split" && (
+                            <span className="block text-[11px] text-ink/45">{splitCaption(s)}</span>
+                          )}
+                        </td>
                         <td>
                           <span className={s.status === "open" ? "chip-volt" : "chip"}>{s.status}</span>
                         </td>
@@ -292,6 +336,61 @@ export default function AdminGamesPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── Time slots ────────────────────────────────────────────────────
+          The reusable library the daily schedule is composed from, so a slot
+          means the same thing at every venue. ──────────────────────────── */}
+      {tab === "times" && !loading && (
+        <div>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <p className="text-sm text-ink/60">
+              Define a slot once and reuse it across venues and days.
+            </p>
+            <AddButton label="Add time slot" onClick={() => setCreatingTime(true)} />
+          </div>
+
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Label</th>
+                  <th>Order</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {timeSlots.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-ink/45">
+                      No time slots yet.
+                    </td>
+                  </tr>
+                ) : (
+                  timeSlots.map((t) => (
+                    <tr key={t.id}>
+                      <td className="whitespace-nowrap font-mono tabular-nums text-ink">
+                        {formatTime(t.start_time)} – {formatTime(t.end_time)}
+                      </td>
+                      <td>{t.label ?? "—"}</td>
+                      <td>{t.sort_order}</td>
+                      <td>
+                        <span className={t.active ? "chip-volt" : "chip"}>{t.active ? "Active" : "Retired"}</span>
+                      </td>
+                      <td>
+                        <button type="button" onClick={() => setEditingTime(t)} className="btn-outline btn-sm">
+                          <Pencil size={13} /> Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -431,7 +530,9 @@ export default function AdminGamesPage() {
       )}
 
       {/* ── Editors ───────────────────────────────────────────────────── */}
-      {bulkOpen && <BulkSlotEditor venues={venues} onClose={() => setBulkOpen(false)} onDone={load} />}
+      {bulkOpen && (
+        <BulkSlotEditor venues={venues} timeSlots={timeSlots} onClose={() => setBulkOpen(false)} onDone={load} />
+      )}
 
       {editingSession && (
         <RecordEditor
@@ -444,7 +545,9 @@ export default function AdminGamesPage() {
             court_number: editingSession.court_number,
             capacity: editingSession.capacity,
             level: editingSession.level,
+            pricing_mode: editingSession.pricing_mode ?? "fixed",
             price_paise: editingSession.price_paise,
+            court_fee_paise: editingSession.court_fee_paise ?? 0,
             status: editingSession.status,
             notes: "",
           }}
@@ -460,6 +563,46 @@ export default function AdminGamesPage() {
             if (!err) await load();
             return err;
           }}
+        />
+      )}
+
+      {(creatingTime || editingTime) && (
+        <RecordEditor
+          title={editingTime ? "Edit time slot" : "New time slot"}
+          sub="Used by the game builder; existing games keep the times they were created with."
+          fields={TIME_SLOT_FIELDS}
+          initial={
+            editingTime
+              ? {
+                  label: editingTime.label ?? "",
+                  start_time: editingTime.start_time,
+                  end_time: editingTime.end_time,
+                  sort_order: editingTime.sort_order,
+                  active: editingTime.active,
+                }
+              : { start_time: "18:00", end_time: "19:00", sort_order: timeSlots.length + 1, active: true }
+          }
+          submitLabel={editingTime ? "Save slot" : "Add slot"}
+          onClose={() => {
+            setCreatingTime(false);
+            setEditingTime(null);
+          }}
+          onSubmit={async (values) => {
+            const err = editingTime
+              ? await submitResource("/api/admin/time-slots", "PATCH", { id: editingTime.id, ...values })
+              : await submitResource("/api/admin/time-slots", "POST", values);
+            if (!err) await load();
+            return err;
+          }}
+          onDelete={
+            editingTime
+              ? async () => {
+                  const err = await submitResource(`/api/admin/time-slots?id=${editingTime.id}`, "DELETE");
+                  if (!err) await load();
+                  return err;
+                }
+              : undefined
+          }
         />
       )}
 
@@ -502,41 +645,59 @@ export default function AdminGamesPage() {
  * Bulk slot builder — the usual case is "these times, these courts, every day
  * this week", which would be dozens of single-row creates otherwise.
  */
+/**
+ * Builds a week of games in one pass: pick the venues, the dates, the slots
+ * from the reusable library, and how many courts each slot runs on. The unique
+ * key on game_sessions is (venue, date, start, court), so the same time slot
+ * can run at every venue on the same day, and re-running this is safe —
+ * duplicates are skipped rather than doubled.
+ */
 function BulkSlotEditor({
   venues,
+  timeSlots,
   onClose,
   onDone,
 }: {
   venues: Venue[];
+  timeSlots: TimeSlot[];
   onClose: () => void;
   onDone: () => void;
 }) {
   const dates = upcomingDates(14);
-  const [venueId, setVenueId] = useState(venues[0]?.id ?? "");
+  const [venueIds, setVenueIds] = useState<string[]>(venues[0] ? [venues[0].id] : []);
   const [selectedDates, setSelectedDates] = useState<string[]>(dates.slice(0, 7));
-  const [times, setTimes] = useState([{ start: "06:30", end: "07:30" }]);
+  const [slotIds, setSlotIds] = useState<string[]>([]);
   const [courts, setCourts] = useState(2);
   const [level, setLevel] = useState("all");
   const [capacity, setCapacity] = useState(8);
+  const [pricingMode, setPricingMode] = useState<"fixed" | "split">("fixed");
   const [priceRupees, setPriceRupees] = useState(350);
+  const [courtFeeRupees, setCourtFeeRupees] = useState(1400);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const total = selectedDates.length * times.length * courts;
+  const total = selectedDates.length * slotIds.length * courts * venueIds.length;
+  const perPlayer = pricingMode === "split" ? Math.ceil(courtFeeRupees / Math.max(1, capacity)) : priceRupees;
+
+  const toggle = (list: string[], id: string) =>
+    list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
 
   async function submit() {
-    if (!venueId) return setError("Pick a venue first.");
+    if (venueIds.length === 0) return setError("Pick at least one venue.");
     if (selectedDates.length === 0) return setError("Pick at least one date.");
+    if (slotIds.length === 0) return setError("Pick at least one time slot.");
     setBusy(true);
     setError(null);
     const err = await submitResource("/api/admin/sessions", "POST", {
-      venue_id: venueId,
+      venue_ids: venueIds,
       dates: selectedDates,
-      times,
+      time_slot_ids: slotIds,
       courts,
       level,
       capacity,
+      pricing_mode: pricingMode,
       price_paise: Math.round(priceRupees * 100),
+      court_fee_paise: Math.round(courtFeeRupees * 100),
     });
     setBusy(false);
     if (err) return setError(err);
@@ -546,25 +707,38 @@ function BulkSlotEditor({
 
   return (
     <RecordEditorShell
-      title="Add slots"
-      sub={`${total} slot${total === 1 ? "" : "s"} will be created (duplicates are skipped)`}
+      title="Add games"
+      sub={`${total} slot${total === 1 ? "" : "s"} · ${perPlayer} per player`}
       onClose={onClose}
       busy={busy}
       onSubmit={submit}
-      submitLabel="Create slots"
+      submitLabel="Create games"
       error={error}
     >
-      <div className="space-y-5">
+      <div className="space-y-6">
         <div>
-          <label className="label" htmlFor="bulk-venue">Venue</label>
-          <select id="bulk-venue" className="field" value={venueId} onChange={(e) => setVenueId(e.target.value)}>
-            {venues.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-                {v.area ? ` — ${v.area}` : ""}
-              </option>
-            ))}
-          </select>
+          <span className="label">Venues</span>
+          <div className="flex flex-wrap gap-2">
+            {venues.map((v) => {
+              const on = venueIds.includes(v.id);
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setVenueIds((prev) => toggle(prev, v.id))}
+                  className={`rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors ${
+                    on ? "border-ink bg-volt-soft text-ink" : "border-line text-ink/60 hover:border-ink/40"
+                  }`}
+                >
+                  {v.name}
+                  {v.area ? ` \u00b7 ${v.area}` : ""}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-[11px] text-ink/45">
+            The same slot can run at several venues on the same day — pick as many as you need.
+          </p>
         </div>
 
         <div>
@@ -576,11 +750,9 @@ function BulkSlotEditor({
                 <button
                   key={d}
                   type="button"
-                  onClick={() =>
-                    setSelectedDates((prev) => (on ? prev.filter((x) => x !== d) : [...prev, d]))
-                  }
-                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                    on ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/65"
+                  onClick={() => setSelectedDates((prev) => toggle(prev, d))}
+                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    on ? "border-ink bg-volt-soft text-ink" : "border-line text-ink/55 hover:border-ink/40"
                   }`}
                 >
                   {formatDate(d)}
@@ -591,61 +763,63 @@ function BulkSlotEditor({
         </div>
 
         <div>
-          <span className="label">Times</span>
-          <div className="space-y-2">
-            {times.map((t, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="time"
-                  className="field"
-                  value={t.start}
-                  aria-label={`Start time ${i + 1}`}
-                  onChange={(e) =>
-                    setTimes((prev) => prev.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))
-                  }
-                />
-                <span className="text-ink/45">→</span>
-                <input
-                  type="time"
-                  className="field"
-                  value={t.end}
-                  aria-label={`End time ${i + 1}`}
-                  onChange={(e) =>
-                    setTimes((prev) => prev.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))
-                  }
-                />
-                {times.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setTimes((prev) => prev.filter((_, j) => j !== i))}
-                    className="btn-ghost btn-sm"
-                    aria-label={`Remove time ${i + 1}`}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setTimes((prev) => [...prev, { start: "18:00", end: "19:00" }])}
-            className="btn-outline btn-sm mt-2"
-          >
-            <CalendarPlus size={13} /> Add another time
-          </button>
+          <span className="label">Time slots</span>
+          {timeSlots.filter((t) => t.active).length === 0 ? (
+            <p className="text-sm text-ink/55">
+              No slots defined yet — add them under the <strong>Times</strong> tab first.
+            </p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {timeSlots
+                .filter((t) => t.active)
+                .map((t) => {
+                  const on = slotIds.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setSlotIds((prev) => toggle(prev, t.id))}
+                      className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                        on ? "border-ink bg-volt-soft" : "border-line hover:border-ink/40"
+                      }`}
+                    >
+                      <span className="block font-mono text-sm tabular-nums text-ink">
+                        {formatTime(t.start_time)} – {formatTime(t.end_time)}
+                      </span>
+                      {t.label && <span className="block text-[11px] text-ink/50">{t.label}</span>}
+                    </button>
+                  );
+                })}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="bulk-courts">Courts per slot</label>
-            <input id="bulk-courts" type="number" min={1} max={12} className="field" value={courts} onChange={(e) => setCourts(Number(e.target.value))} />
+            <input
+              id="bulk-courts"
+              type="number"
+              min={1}
+              max={12}
+              className="field"
+              value={courts}
+              onChange={(e) => setCourts(Number(e.target.value))}
+            />
           </div>
           <div>
-            <label className="label" htmlFor="bulk-cap">Capacity per court</label>
-            <input id="bulk-cap" type="number" min={2} max={24} className="field" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} />
+            <label className="label" htmlFor="bulk-cap">Players per court</label>
+            <input
+              id="bulk-cap"
+              type="number"
+              min={2}
+              max={24}
+              className="field"
+              value={capacity}
+              onChange={(e) => setCapacity(Number(e.target.value))}
+            />
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <label className="label" htmlFor="bulk-level">Level</label>
             <select id="bulk-level" className="field" value={level} onChange={(e) => setLevel(e.target.value)}>
               {LEVELS.map((l) => (
@@ -655,9 +829,66 @@ function BulkSlotEditor({
               ))}
             </select>
           </div>
-          <div>
-            <label className="label" htmlFor="bulk-price">Price per player (₹)</label>
-            <input id="bulk-price" type="number" min={0} className="field" value={priceRupees} onChange={(e) => setPriceRupees(Number(e.target.value))} />
+        </div>
+
+        <div>
+          <span className="label">How players are charged</span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPricingMode("fixed")}
+              className={`rounded-lg border p-3 text-left transition-colors ${
+                pricingMode === "fixed" ? "border-ink bg-volt-soft" : "border-line hover:border-ink/40"
+              }`}
+            >
+              <span className="block text-sm font-semibold text-ink">Fixed per player</span>
+              <span className="block text-[11px] text-ink/55">Everyone pays the same set amount.</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPricingMode("split")}
+              className={`rounded-lg border p-3 text-left transition-colors ${
+                pricingMode === "split" ? "border-ink bg-volt-soft" : "border-line hover:border-ink/40"
+              }`}
+            >
+              <span className="block text-sm font-semibold text-ink">Split the court fee</span>
+              <span className="block text-[11px] text-ink/55">Hourly court cost divided by players.</span>
+            </button>
+          </div>
+
+          <div className="mt-4">
+            {pricingMode === "fixed" ? (
+              <div>
+                <label className="label" htmlFor="bulk-price">Price per player (INR)</label>
+                <input
+                  id="bulk-price"
+                  type="number"
+                  min={0}
+                  className="field"
+                  value={priceRupees}
+                  onChange={(e) => setPriceRupees(Number(e.target.value))}
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="label" htmlFor="bulk-fee">Court fee per hour (INR)</label>
+                <input
+                  id="bulk-fee"
+                  type="number"
+                  min={0}
+                  className="field"
+                  value={courtFeeRupees}
+                  onChange={(e) => setCourtFeeRupees(Number(e.target.value))}
+                />
+                <p className="mt-2 rounded-lg bg-mist px-3 py-2 font-mono text-[12px] tabular-nums text-ink/70">
+                  {courtFeeRupees} / {capacity} players = <strong className="text-ink">{perPlayer}</strong> each
+                </p>
+                <p className="mt-1.5 text-[11px] text-ink/45">
+                  Divided by capacity rather than by who has booked so far, so the price a player was shown
+                  never changes behind them.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

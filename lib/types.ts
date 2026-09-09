@@ -42,6 +42,8 @@ export type GameSession = {
   level: "all" | "beginner" | "intermediate" | "advanced";
   capacity: number;
   price_paise: number;
+  pricing_mode?: "fixed" | "split" | string;
+  court_fee_paise?: number;
   status: "open" | "closed" | "cancelled";
   notes: string | null;
   whatsapp_posted_at: string | null;

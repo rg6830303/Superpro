@@ -110,6 +110,8 @@ export const tournamentRegistrationSchema = z.object({
   email: emailSchema.optional().or(z.literal("")),
   payment_method: paymentMethodSchema.default("venue"),
   notes: z.string().trim().max(400).optional(),
+  /** Answers to the tournament's own form fields, keyed by field_key. */
+  answers: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
 });
 
 /** Flatten a ZodError into one human sentence for the API response. */

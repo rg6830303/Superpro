@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Layers, Megaphone, Pencil, Users } from "lucide-react";
+import { ClipboardList, Layers, Megaphone, Pencil, Users } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import {
   AddButton,
@@ -12,6 +12,7 @@ import {
   type FieldDef,
 } from "@/components/admin/crud";
 import { Alert, Spinner } from "@/components/ui";
+import { FormBuilder } from "@/components/admin/form-builder";
 import { formatDateRange } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 
@@ -103,6 +104,7 @@ export default function AdminTournamentsPage() {
   const [editing, setEditing] = useState<Tournament | null>(null);
   const [creating, setCreating] = useState(false);
   const [drawFor, setDrawFor] = useState<Tournament | null>(null);
+  const [formFor, setFormFor] = useState<Tournament | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -181,6 +183,14 @@ export default function AdminTournamentsPage() {
                       <button type="button" onClick={() => setEditing(t)} className="btn-outline btn-sm">
                         <Pencil size={13} />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormFor(t)}
+                        title="Build the entry form"
+                        className="btn-outline btn-sm"
+                      >
+                        <ClipboardList size={13} /> Form
+                      </button>
                       <button type="button" onClick={() => setDrawFor(t)} className="btn-outline btn-sm">
                         <Layers size={13} /> Draw
                       </button>
@@ -258,6 +268,14 @@ export default function AdminTournamentsPage() {
                 }
               : undefined
           }
+        />
+      )}
+
+      {formFor && (
+        <FormBuilder
+          tournamentId={formFor.id}
+          tournamentTitle={formFor.title}
+          onClose={() => setFormFor(null)}
         />
       )}
 

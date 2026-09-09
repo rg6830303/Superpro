@@ -464,6 +464,26 @@ export async function seedSessions(days = 7): Promise<number> {
   return created;
 }
 
+/** Reusable time-slot templates the console composes daily games from. */
+async function seedTimeSlots() {
+  const slots = [
+    { label: "Early morning", start: "06:30", end: "07:30", sort: 1 },
+    { label: "Morning", start: "07:30", end: "08:30", sort: 2 },
+    { label: "Late morning", start: "08:30", end: "09:30", sort: 3 },
+    { label: "Evening", start: "18:00", end: "19:00", sort: 4 },
+    { label: "Prime evening", start: "19:00", end: "20:00", sort: 5 },
+    { label: "Night", start: "20:00", end: "21:00", sort: 6 },
+    { label: "Late night", start: "21:00", end: "22:00", sort: 7 },
+  ];
+  for (const t of slots) {
+    await query(
+      `INSERT INTO time_slots (label, start_time, end_time, sort_order, active)
+       VALUES ($1,$2,$3,$4,true) ON CONFLICT (start_time, end_time) DO NOTHING`,
+      [t.label, t.start, t.end, t.sort],
+    );
+  }
+}
+
 async function seedAnnouncements() {
   const existing = await queryOne<{ id: string }>("SELECT id FROM announcements LIMIT 1");
   if (existing) return;
@@ -506,6 +526,7 @@ export async function seedAll(): Promise<Record<string, unknown>> {
   await seedVenues();
   await seedCoaches();
   await seedTournaments();
+  await seedTimeSlots();
   await seedAnnouncements();
   const sessions = await seedSessions(7);
   const admin = await seedAdmin();

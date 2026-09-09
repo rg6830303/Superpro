@@ -6,7 +6,18 @@ import { addDays, istToday } from "@/lib/dates";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const EDITABLE = ["start_time", "end_time", "court_number", "level", "capacity", "price_paise", "status", "notes"] as const;
+const EDITABLE = [
+  "start_time",
+  "end_time",
+  "court_number",
+  "level",
+  "capacity",
+  "price_paise",
+  "pricing_mode",
+  "court_fee_paise",
+  "status",
+  "notes",
+] as const;
 
 export async function GET(req: Request) {
   const gate = await adminGate();
@@ -40,22 +51,40 @@ export async function POST(req: Request) {
   if (gate instanceof NextResponse) return gate;
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!body.venue_id) return badRequest("Pick a venue.");
+    const venueIds: string[] = Array.isArray(body.venue_ids)
+      ? (body.venue_ids as string[])
+      : body.venue_id
+        ? [body.venue_id as string]
+        : [];
+    if (venueIds.length === 0) return badRequest("Pick at least one venue.");
 
     const level = (body.level as string) ?? "all";
     const capacity = Number(body.capacity ?? 8);
     const price = Number(body.price_paise ?? 35000);
+    // "split" divides a court's hourly fee across the slot's capacity; "fixed"
+    // charges the per-player price directly.
+    const pricingMode = body.pricing_mode === "split" ? "split" : "fixed";
+    const courtFee = Number(body.court_fee_paise ?? 0);
 
     const dates: string[] = Array.isArray(body.dates)
       ? (body.dates as string[])
       : body.session_date
         ? [body.session_date as string]
         : [];
-    const times: Array<{ start: string; end: string }> = Array.isArray(body.times)
+    let times: Array<{ start: string; end: string }> = Array.isArray(body.times)
       ? (body.times as Array<{ start: string; end: string }>)
       : body.start_time && body.end_time
         ? [{ start: body.start_time as string, end: body.end_time as string }]
         : [];
+
+    // Slots can be picked from the reusable library instead of retyped.
+    if (Array.isArray(body.time_slot_ids) && (body.time_slot_ids as string[]).length > 0) {
+      const picked = await query<{ start_time: string; end_time: string }>(
+        `SELECT start_time, end_time FROM time_slots WHERE id = ANY($1::uuid[]) ORDER BY sort_order, start_time`,
+        [body.time_slot_ids],
+      );
+      times = picked.map((t) => ({ start: t.start_time, end: t.end_time }));
+    }
     const courts = Number(body.courts ?? body.court_number ?? 1);
     const courtList = Array.isArray(body.court_numbers)
       ? (body.court_numbers as number[])
@@ -65,22 +94,30 @@ export async function POST(req: Request) {
 
     let created = 0;
     for (const date of dates) {
-      for (const t of times) {
-        for (const court of courtList) {
-          const rows = await query<{ id: string }>(
-            `INSERT INTO game_sessions (venue_id, session_date, start_time, end_time, court_number,
-               level, capacity, price_paise, status)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'open')
+      for (const venueId of venueIds) {
+        for (const t of times) {
+          for (const court of courtList) {
+            const rows = await query<{ id: string }>(
+              `INSERT INTO game_sessions (venue_id, session_date, start_time, end_time, court_number,
+               level, capacity, price_paise, pricing_mode, court_fee_paise, status)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'open')
              ON CONFLICT (venue_id, session_date, start_time, court_number) DO NOTHING
              RETURNING id`,
-            [body.venue_id, date, t.start, t.end, court, level, capacity, price],
-          );
-          created += rows.length;
+              [venueId, date, t.start, t.end, court, level, capacity, price, pricingMode, courtFee],
+            );
+            created += rows.length;
+          }
         }
       }
     }
 
-    await audit(gate, "session.create", "game_sessions", undefined, { created, dates, times, courtList });
+    await audit(gate, "session.create", "game_sessions", undefined, {
+      created,
+      venues: venueIds.length,
+      dates: dates.length,
+      times: times.length,
+      courts: courtList.length,
+    });
     return NextResponse.json({ ok: true, created });
   } catch (err) {
     return serverError("sessions:create", err);

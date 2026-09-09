@@ -7,7 +7,7 @@ import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
 import { formatDate, formatTime, formatTimeRange, isPast } from "@/lib/dates";
-import { formatPaise } from "@/lib/money";
+import { formatPaise, perPlayerPaise, splitCaption } from "@/lib/money";
 import { waLink, WHATSAPP_GROUP_URL } from "@/lib/site";
 import type { GameSession, SkillLevel } from "@/lib/types";
 
@@ -80,7 +80,7 @@ export function GamesFlow({
     () => sessions.filter((s) => picked.includes(s.id)),
     [sessions, picked],
   );
-  const totalPaise = pickedSessions.reduce((sum, s) => sum + s.price_paise * players, 0);
+  const totalPaise = pickedSessions.reduce((sum, s) => sum + perPlayerPaise(s) * players, 0);
 
   const spotsLeft = (s: GameSession) => s.capacity - (s.booked ?? 0);
 
@@ -313,7 +313,7 @@ export function GamesFlow({
                   })}
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div key={shownDate} className="stagger mt-5 grid gap-3 sm:grid-cols-2">
                   {daySessions.map((s) => {
                     const left = spotsLeft(s);
                     const past = isPast(s.session_date, s.start_time);
@@ -345,7 +345,14 @@ export function GamesFlow({
                         </p>
                         <div className="mt-2.5 flex items-center justify-between">
                           <span className="chip py-0.5 text-[10px]">{s.level === "all" ? "All levels" : s.level}</span>
-                          <span className="text-sm font-semibold text-volt-deep">{formatPaise(s.price_paise)}</span>
+                          <span className="text-right">
+                            <span className="block text-sm font-semibold text-volt-deep">
+                              {formatPaise(perPlayerPaise(s))}
+                            </span>
+                            {splitCaption(s) && (
+                              <span className="block text-[10px] text-ink/45">{splitCaption(s)}</span>
+                            )}
+                          </span>
                         </div>
                       </button>
                     );
@@ -420,7 +427,7 @@ export function GamesFlow({
                 <span className="text-ink/75">
                   {formatDate(s.session_date)} · {formatTime(s.start_time)} · {s.venue_name} C{s.court_number}
                 </span>
-                <span className="text-ink/80">{formatPaise(s.price_paise * players)}</span>
+                <span className="text-ink/80">{formatPaise(perPlayerPaise(s) * players)}</span>
               </li>
             ))}
             <li className="flex justify-between gap-4 border-t border-line pt-3">

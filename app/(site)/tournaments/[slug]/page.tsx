@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, ChevronLeft, MapPin, MessageCircle, Trophy, Users } from "lucide-react";
 import { TournamentRegistration } from "@/components/tournament-registration";
-import { getTournamentBySlug, getTournamentGroups } from "@/lib/queries";
+import { getTournamentBySlug, getTournamentFormFields, getTournamentGroups } from "@/lib/queries";
+import { getPlayerSession } from "@/lib/auth";
+import { getUserRow } from "@/lib/accounts";
 import { formatDateRange } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
@@ -27,7 +29,13 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
   const t = await getTournamentBySlug(slug);
   if (!t) notFound();
 
-  const groups = await getTournamentGroups(t.id);
+  const [groups, fields, session] = await Promise.all([
+    getTournamentGroups(t.id),
+    getTournamentFormFields(t.id),
+    getPlayerSession(),
+  ]);
+  // Signed-in players get their own details back rather than retyping them.
+  const profile = session ? await getUserRow(session.id) : null;
   const categories = Array.isArray(t.categories) ? t.categories : [];
   const canRegister = t.status === "open" && t.registration_open;
 
@@ -155,7 +163,22 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
 
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           {canRegister ? (
-            <TournamentRegistration tournament={t} razorpayEnabled={isRazorpayEnabled} razorpayKeyId={razorpayKeyId} />
+            <TournamentRegistration
+              tournament={t}
+              razorpayEnabled={isRazorpayEnabled}
+              razorpayKeyId={razorpayKeyId}
+              fields={fields}
+              prefill={
+                profile
+                  ? {
+                      name: profile.full_name,
+                      phone: profile.phone,
+                      email: profile.email,
+                      dupr: profile.dupr != null ? Number(profile.dupr) : null,
+                    }
+                  : null
+              }
+            />
           ) : (
             <div className="card p-7 text-center">
               <h2 className="text-2xl">

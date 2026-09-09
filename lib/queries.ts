@@ -405,3 +405,28 @@ export async function getAnnouncements(limit = 3): Promise<Announcement[]> {
     FALLBACK_ANNOUNCEMENTS.slice(0, limit),
   );
 }
+
+export type FormField = {
+  id: string;
+  field_key: string;
+  label: string;
+  type: "text" | "textarea" | "number" | "select" | "checkbox" | "date" | "email" | "phone";
+  options: string[];
+  required: boolean;
+  help: string | null;
+  sort_order: number;
+};
+
+/** The admin-authored questions on a tournament's entry form. */
+export async function getTournamentFormFields(tournamentId: string): Promise<FormField[]> {
+  return safe(
+    "getTournamentFormFields",
+    async () =>
+      query<FormField>(
+        `SELECT id, field_key, label, type, options, required, help, sort_order
+         FROM tournament_form_fields WHERE tournament_id = $1 ORDER BY sort_order, created_at`,
+        [tournamentId],
+      ),
+    [],
+  );
+}

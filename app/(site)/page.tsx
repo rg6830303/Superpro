@@ -2,12 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, MapPin } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
-import { BounceBall, Counter, Reveal, ScoreMeter, TiltCard } from "@/components/motion";
+import { Counter, Reveal, ScoreMeter, TiltCard } from "@/components/motion";
 import { Paddle3D } from "@/components/paddle-3d";
 import { getAnnouncements, getCoaches, getFeaturedProducts, getTournaments, getWeekSessions } from "@/lib/queries";
 import { formatDate, formatTime, isPast } from "@/lib/dates";
 import { DUPR_BANDS } from "@/lib/dupr";
-import { formatPaise } from "@/lib/money";
+import { formatPaise, perPlayerPaise } from "@/lib/money";
 import { PRODUCT_CATEGORIES, SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -34,14 +34,14 @@ export default async function HomePage() {
           Asymmetric on purpose: the claim sits left, the object right, so the
           eye lands on the sentence before the product. ──────────────────── */}
       <section className="border-b border-line">
-        <div className="wrap grid min-w-0 items-center gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+        <div className="wrap grid min-w-0 items-center gap-10 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
           <div>
             <p className="eyebrow animate-wipe-in">Kolkata · since 2024</p>
 
             <h1 className="mt-5 animate-rise-in headline-hero">
               Pickleball,
               <br />
-              played <span className="marker">properly</span>.
+              played <span className="underscore">properly</span>.
             </h1>
 
             <p className="lede mt-6 max-w-md animate-rise-in [animation-delay:80ms]">
@@ -66,7 +66,7 @@ export default async function HomePage() {
             </div>
 
             {/* A scoreboard rail, not a stat-card triple. */}
-            <dl className="mt-12 flex flex-wrap items-end gap-x-10 gap-y-6 border-t border-line pt-7">
+            <dl className="mt-9 grid grid-cols-3 items-end gap-4 border-t border-line pt-6">
               {[
                 { n: live.length, label: "Open slots this week" },
                 { n: coaches.length, label: "Certified coaches" },
@@ -75,15 +75,14 @@ export default async function HomePage() {
                 <div key={s.label}>
                   <dt className="sr-only">{s.label}</dt>
                   <dd>
-                    <Counter to={s.n} className="block font-display text-5xl leading-none text-ink" />
-                    <span className="mt-2 block max-w-[9rem] font-mono text-[10px] uppercase leading-tight tracking-[0.14em] text-ink/50">
+                    <Counter to={s.n} className="block font-display text-[2rem] leading-none text-ink sm:text-[2.75rem]" />
+                    <span className="mt-2 block font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-ink/50 sm:text-[10px]">
                       {s.label}
                     </span>
                   </dd>
                 </div>
               ))}
-              <BounceBall className="ml-auto hidden sm:inline-flex" />
-            </dl>
+                          </dl>
           </div>
 
           <div className="relative">
@@ -126,7 +125,7 @@ export default async function HomePage() {
         </Reveal>
 
         {nextUp.length > 0 ? (
-          <div className="mt-10 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="stagger mt-10 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {nextUp.map((s, i) => {
               const left = s.capacity - (s.booked ?? 0);
               return (
@@ -136,7 +135,10 @@ export default async function HomePage() {
                       <article className="card-hover flex h-full flex-col p-6">
                         <div className="flex items-start justify-between gap-3">
                           <span className="kicker">{formatDate(s.session_date)}</span>
-                          <span className={left <= 2 ? "chip-warn" : "chip-volt"}>{left} left</span>
+                          <span className={left <= 2 ? "chip-warn" : "chip-volt"}>
+                            <span className="live-dot" aria-hidden />
+                            {left} left
+                          </span>
                         </div>
                         <p className="mt-5 font-display text-5xl leading-none tabular-nums text-ink">
                           {formatTime(s.start_time)}
@@ -147,7 +149,7 @@ export default async function HomePage() {
                         <div className="mt-6 border-t border-line pt-4">
                           <ScoreMeter value={s.booked ?? 0} max={s.capacity} label="Court filling" />
                         </div>
-                        <p className="mt-4 font-mono text-sm tabular-nums text-ink">{formatPaise(s.price_paise)}</p>
+                        <p className="mt-4 font-mono text-sm tabular-nums text-ink">{formatPaise(perPlayerPaise(s))}</p>
                       </article>
                     </TiltCard>
                   </Link>

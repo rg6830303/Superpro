@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { MessageCircle, Wallet } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
-import { DUPR_BANDS, skillFromDupr } from "@/lib/dupr";
 import { formatPaise } from "@/lib/money";
 import { waLink } from "@/lib/site";
 import type { WalletTransaction } from "@/lib/wallet";
@@ -36,10 +35,10 @@ export function ProfileForm({
     whatsapp_opt_in: profile.whatsapp_opt_in,
   });
 
-  // Category follows the rating — it is shown, never picked.
+  // The band is derived server-side from the rating; the player only ever
+  // sees and edits the rating itself.
   const rating = Number(form.dupr);
   const hasRating = form.dupr.trim() !== "" && Number.isFinite(rating);
-  const derived = skillFromDupr(hasRating ? rating : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -158,16 +157,6 @@ export function ProfileForm({
               placeholder="3.75"
             />
           </div>
-        </div>
-
-        <div className="mt-5 rounded-xl border border-line bg-mist p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Category</p>
-          <p className="mt-1 font-display text-2xl uppercase text-volt-deep">
-            {DUPR_BANDS.find((b) => b.level === derived)?.label}
-          </p>
-          <p className="mt-1 text-xs text-ink/55">
-            Set automatically from your DUPR rating: below 3.5 beginner, 3.5&ndash;4.0 intermediate, 4.0+ advanced.
-          </p>
         </div>
 
         <label className="mt-5 flex items-start gap-3 text-sm text-ink/70">

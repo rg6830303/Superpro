@@ -3,7 +3,7 @@ import { getPlayerSession } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { formatDate, formatTimeRange } from "@/lib/dates";
-import { newRef } from "@/lib/money";
+import { newRef, perPlayerPaise } from "@/lib/money";
 import { createRazorpayOrder, isRazorpayEnabled } from "@/lib/razorpay";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, playerRegistrationSchema } from "@/lib/validation";
@@ -21,6 +21,8 @@ type SessionRow = {
   court_number: number;
   capacity: number;
   price_paise: number;
+  pricing_mode: string;
+  court_fee_paise: number;
   status: string;
   venue_name: string;
   booked: number;
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
 
     const sessions = await query<SessionRow>(
       `SELECT s.id, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, s.capacity,
-              s.price_paise, s.status, v.name AS venue_name,
+              s.price_paise, s.pricing_mode, s.court_fee_paise, s.status, v.name AS venue_name,
               COALESCE((SELECT SUM(players_count) FROM game_registrations r
                         WHERE r.session_id = s.id AND r.status <> 'cancelled'), 0)::int AS booked
        FROM game_sessions s JOIN venues v ON v.id = s.venue_id
@@ -76,7 +78,10 @@ export async function POST(req: Request) {
       }
     }
 
-    const total = sessions.reduce((sum, s) => sum + s.price_paise * input.players_count, 0);
+    // Price is resolved server-side from the slot's own pricing mode; the client
+    // never gets to say what a slot costs.
+    const priceOf = (s: SessionRow) => perPlayerPaise(s);
+    const total = sessions.reduce((sum, s) => sum + priceOf(s) * input.players_count, 0);
     const reference = newRef("SPG");
     const session = await getPlayerSession();
 
@@ -127,7 +132,7 @@ export async function POST(req: Request) {
           input.skill_level,
           input.players_count,
           s.court_number,
-          s.price_paise * input.players_count,
+          priceOf(s) * input.players_count,
           method,
           input.notes ?? null,
           paymentStatus,
