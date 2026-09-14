@@ -36,6 +36,33 @@ export function WalletTopUp({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  /**
+   * The escape hatch for a payment that went through while the callback did
+   * not. Asks the server to re-check this player's unconfirmed top-ups against
+   * Razorpay directly, which is the only authoritative answer.
+   */
+  async function recheck() {
+    setChecking(true);
+    setError(null);
+    setDone(null);
+    try {
+      const res = await fetch("/api/wallet/reconcile", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not check those payments.");
+      if (data.credited > 0) {
+        setDone(`Found ${data.credited} payment${data.credited === 1 ? "" : "s"} — ${formatPaise(data.creditedPaise)} added.`);
+        router.refresh();
+      } else {
+        setDone("No unconfirmed payments found. If money left your account, message a rep with the reference.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not check those payments.");
+    } finally {
+      setChecking(false);
+    }
+  }
 
   const value = custom.trim() !== "" ? Number(custom) : amount;
   const valid = Number.isFinite(value) && value >= 100 && value <= 50000;
@@ -80,9 +107,11 @@ export function WalletTopUp({
             );
             router.refresh();
           } else {
-            setError(
-              "The payment went through but the credit did not land. Message a rep with your reference — nothing is lost.",
-            );
+            // The money is taken and the ledger row is still pending; the
+            // reconciler will find it. Try immediately rather than making the
+            // player wait and worry.
+            setBusy(false);
+            await recheck();
           }
           setBusy(false);
         },
@@ -171,6 +200,15 @@ export function WalletTopUp({
       <p className="mt-2 text-center text-[11px] text-ink/45">
         Wallet credit can be spent on court slots and gear at checkout.
       </p>
+
+      <button
+        type="button"
+        onClick={recheck}
+        disabled={checking || busy}
+        className="mt-3 w-full text-center text-[11px] text-ink/45 underline transition-colors hover:text-ink"
+      >
+        {checking ? "Checking…" : "Paid but not showing? Check again"}
+      </button>
     </div>
   );
 }

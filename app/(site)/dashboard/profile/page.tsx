@@ -6,7 +6,7 @@ import { ProfileForm } from "@/components/profile-form";
 import { getUserRow } from "@/lib/accounts";
 import { getPlayerSession } from "@/lib/auth";
 import { ensureSchema } from "@/lib/schema";
-import { listWalletTransactions } from "@/lib/wallet";
+import { listWalletTransactions, reconcilePendingTopups } from "@/lib/wallet";
 import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,12 @@ export default async function ProfilePage() {
   if (!session) redirect("/login?next=/dashboard/profile");
 
   await ensureSchema();
+
+  // Settle anything paid at the gateway that never made it back to us, so the
+  // balance below is right even if the player closed the tab mid-payment.
+  // No-ops instantly when there is nothing pending or Razorpay is not set up.
+  await reconcilePendingTopups(session.id).catch(() => {});
+
   const [profile, transactions] = await Promise.all([
     getUserRow(session.id),
     listWalletTransactions(session.id, 25),

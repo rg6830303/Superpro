@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasSigningSecret, signingSecretSource } from "@/lib/auth";
 import { dbConnInfo } from "@/lib/db";
-import { isRazorpayEnabled } from "@/lib/razorpay";
+import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { isSupabaseAdminConfigured, isSupabaseConfigured } from "@/lib/supabase";
 import { whatsappConfig } from "@/lib/whatsapp";
 
@@ -40,6 +40,18 @@ export async function GET() {
     RAZORPAY: isRazorpayEnabled,
   };
 
+  // Broken out on its own, because "did my Razorpay keys take effect?" is the
+  // question asked right after a redeploy. Never echoes the secret, and shows
+  // only the key id's public prefix so live and test keys can be told apart.
+  const payments = {
+    enabled: isRazorpayEnabled,
+    key_id_present: Boolean(razorpayKeyId),
+    key_secret_present: Boolean(process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET_KEY),
+    mode: razorpayKeyId.startsWith("rzp_live") ? "live" : razorpayKeyId.startsWith("rzp_test") ? "test" : null,
+    key_id_prefix: razorpayKeyId ? `${razorpayKeyId.slice(0, 12)}…` : null,
+    wallet_topups: isRazorpayEnabled ? "online" : "at the venue only",
+  };
+
   const missing = Object.entries(required)
     .filter(([, present]) => !present)
     .map(([name]) => name);
@@ -50,6 +62,7 @@ export async function GET() {
       missing,
       required,
       optional,
+      payments,
       signing_key: signingSecretSource(),
       surface: process.env.NEXT_PUBLIC_ADMIN_HOST ? "admin" : "public",
       db: dbConnInfo(),

@@ -1,4 +1,5 @@
 import { query, queryOne } from "@/lib/db";
+import { capturedPayment, fetchOrderPayments, isRazorpayEnabled } from "@/lib/razorpay";
 
 /**
  * SuperPro wallet — prepaid store credit, held in PAISE on `users`.
@@ -149,4 +150,79 @@ export async function chargeWallet(args: {
         ? "Not enough wallet balance for this booking."
         : "Wallet could not be charged.",
   };
+}
+
+export type ReconcileResult = { checked: number; credited: number; creditedPaise: number };
+
+/**
+ * Settle top-ups that were paid but never confirmed back to us.
+ *
+ * A player can pay and immediately close the tab, drop off the network, or hit
+ * a failed verify request. Razorpay has their money and our ledger row is still
+ * `pending`, so the wallet is short. This asks Razorpay what happened to each
+ * pending order and credits the ones that were actually captured.
+ *
+ * Safe to call as often as you like: crediting goes through the same
+ * `pending -> paid` UPDATE guard as the callback path, so a row can only ever
+ * be credited once no matter how many callers race here.
+ */
+export async function reconcilePendingTopups(userId?: string): Promise<ReconcileResult> {
+  const result: ReconcileResult = { checked: 0, credited: 0, creditedPaise: 0 };
+  if (!isRazorpayEnabled) return result;
+
+  // Only rows old enough that the gateway has settled, and young enough to
+  // still be worth chasing. A minute of grace keeps this off the happy path,
+  // where the callback is about to do the job anyway.
+  const pending = await query<{ id: string; user_id: string; amount_paise: number; reference: string; razorpay_order_id: string }>(
+    `SELECT id, user_id, amount_paise, reference, razorpay_order_id
+     FROM wallet_topups
+     WHERE status = 'pending'
+       AND razorpay_order_id IS NOT NULL
+       AND created_at < now() - interval '1 minute'
+       AND created_at > now() - interval '7 days'
+       ${userId ? "AND user_id = $1" : ""}
+     ORDER BY created_at
+     LIMIT 25`,
+    userId ? [userId] : [],
+  ).catch(() => []);
+
+  for (const row of pending) {
+    result.checked += 1;
+    let captured;
+    try {
+      captured = capturedPayment(await fetchOrderPayments(row.razorpay_order_id));
+    } catch (err) {
+      console.error("[wallet] reconcile lookup failed:", err instanceof Error ? err.message : err);
+      continue;
+    }
+    if (!captured) continue;
+
+    // Never credit more than the order was for, whatever the gateway reports.
+    const amount = Math.min(row.amount_paise, captured.amount);
+
+    const claimed = await query<{ id: string }>(
+      `UPDATE wallet_topups
+       SET status = 'paid', razorpay_payment_id = $1, credited_at = now()
+       WHERE id = $2 AND status = 'pending'
+       RETURNING id`,
+      [captured.id, row.id],
+    );
+    if (claimed.length === 0) continue;
+
+    const credit = await adjustWallet({
+      userId: row.user_id,
+      deltaPaise: amount,
+      kind: "topup",
+      reason: `Online top-up ${row.reference} (reconciled)`,
+      refTable: "wallet_topups",
+      refId: row.id,
+      createdBy: "razorpay-reconcile",
+    });
+    if (credit.ok) {
+      result.credited += 1;
+      result.creditedPaise += amount;
+    }
+  }
+
+  return result;
 }
