@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { WhatsAppFab } from "@/components/whatsapp-fab";
 import { ReadProgress } from "@/components/motion";
 import { WelcomePopup } from "@/components/welcome-popup";
+import { SmashIntro } from "@/components/smash-intro";
 import { Suspense } from "react";
 
 /**
@@ -17,8 +18,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <main className="flex-1">{children}</main>
       <SiteFooter />
       <WhatsAppFab />
-      {/* Reads the `welcome` query param, so it needs its own suspense boundary. */}
+      {/* Both read the `welcome` query param, so both need a suspense boundary. */}
       <Suspense fallback={null}>
+        <SmashIntro />
         <WelcomePopup />
       </Suspense>
     </div>

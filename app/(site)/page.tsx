@@ -4,7 +4,6 @@ import { ArrowRight, ArrowUpRight, CalendarDays, GraduationCap, MapPin, Shopping
 import { ProductCard } from "@/components/product-card";
 import { Counter, Reveal, ScoreMeter, TiltCard } from "@/components/motion";
 import { Paddle3D } from "@/components/paddle-3d";
-import { BallIntro } from "@/components/ball-intro";
 import { getAnnouncements, getCoaches, getFeaturedProducts, getTournaments, getWeekSessions } from "@/lib/queries";
 import { formatDate, formatTime, isPast } from "@/lib/dates";
 import { DUPR_BANDS } from "@/lib/dupr";
@@ -31,8 +30,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <BallIntro />
-
       {/* ── Hero ───────────────────────────────────────────────────────────
           Asymmetric on purpose: the claim sits left, the object right, so the
           eye lands on the sentence before the product. ──────────────────── */}

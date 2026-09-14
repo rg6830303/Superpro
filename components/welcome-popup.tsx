@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { Confetti } from "@/components/motion";
+import { INTRO_DONE_EVENT } from "@/components/smash-intro";
 
 /**
  * The welcome pop-up.
@@ -47,7 +48,11 @@ const INTENTS = [
   { label: "Investment", href: "/about", emoji: "🤝", note: "Partner with SuperPro" },
 ];
 
-const SEEN_KEY = "superpro:welcomed";
+/**
+ * One appearance per page load, so the tagline lands on every open and refresh
+ * but not on each client-side route change. Same reasoning as the entrance.
+ */
+let shownThisLoad = false;
 
 function pick(list: string[]) {
   return list[Math.floor(Math.random() * list.length)];
@@ -75,33 +80,31 @@ export function WelcomePopup() {
   }, [params, pathname, router, welcome]);
 
   useEffect(() => {
-    if (welcome === "signup" || welcome === "login") {
-      setMode(welcome);
-      setLine(pick(welcome === "signup" ? JOIN_LINES : BACK_LINES));
-      setOpen(true);
-      return;
-    }
+    const celebrating = welcome === "signup" || welcome === "login";
 
-    let seen = false;
-    try {
-      seen = sessionStorage.getItem(SEEN_KEY) === "1";
-    } catch {
-      // Private browsing can throw on access — treat it as a first visit.
-    }
-    if (seen) return;
+    if (!celebrating && shownThisLoad) return;
+    shownThisLoad = true;
 
-    setMode("intent");
-    setLine(pick(TAGLINES));
-    // Long enough for the arrival animation to clear the screen first.
-    const t = setTimeout(() => {
+    setMode(celebrating ? (welcome as "signup" | "login") : "intent");
+    setLine(pick(celebrating ? (welcome === "signup" ? JOIN_LINES : BACK_LINES) : TAGLINES));
+
+    // The smash entrance owns the screen first. Wait for it to say it is done
+    // rather than racing it on a timer — a slow device takes longer to load the
+    // scene than a fast one, and the card must never land on top of it.
+    let timer = 0;
+    const show = () => {
+      window.clearTimeout(timer);
       setOpen(true);
-      try {
-        sessionStorage.setItem(SEEN_KEY, "1");
-      } catch {
-        /* nothing to do */
-      }
-    }, 1500);
-    return () => clearTimeout(t);
+    };
+
+    window.addEventListener(INTRO_DONE_EVENT, show, { once: true });
+    // Backstop, in case the intro never reports — the card still has to appear.
+    timer = window.setTimeout(show, 6500);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(INTRO_DONE_EVENT, show);
+    };
   }, [welcome]);
 
   useEffect(() => {
