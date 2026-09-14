@@ -7,6 +7,7 @@ import { getUserRow } from "@/lib/accounts";
 import { getPlayerSession } from "@/lib/auth";
 import { ensureSchema } from "@/lib/schema";
 import { listWalletTransactions } from "@/lib/wallet";
+import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,8 @@ export default async function ProfilePage() {
             wallet_balance_paise: Number(profile?.wallet_balance_paise ?? 0),
           }}
           transactions={transactions}
+          razorpayEnabled={isRazorpayEnabled}
+          razorpayKeyId={razorpayKeyId}
         />
       </div>
     </div>

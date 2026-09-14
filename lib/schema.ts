@@ -144,7 +144,7 @@ export const SCHEMA_TABLES: string[] = [
     payment_status TEXT NOT NULL DEFAULT 'pending'
       CHECK (payment_status IN ('pending','paid','failed','refunded')),
     status TEXT NOT NULL DEFAULT 'confirmed'
-      CHECK (status IN ('confirmed','waitlist','cancelled')),
+      CHECK (status IN ('confirmed','waitlist','cancelled','pending_approval','declined')),
     razorpay_order_id TEXT,
     razorpay_payment_id TEXT,
     notes TEXT,
@@ -327,6 +327,18 @@ export const SCHEMA_TABLES: string[] = [
     UNIQUE (tournament_id, field_key)
   )`,
 
+  `CREATE TABLE IF NOT EXISTS wallet_topups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reference TEXT UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount_paise INTEGER NOT NULL CHECK (amount_paise > 0),
+    razorpay_order_id TEXT,
+    razorpay_payment_id TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    credited_at TIMESTAMPTZ
+  )`,
+
   `CREATE TABLE IF NOT EXISTS wallet_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -372,6 +384,13 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // Answers to the admin-authored fields on a tournament entry form.
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS answers JSONB NOT NULL DEFAULT '{}'::jsonb`,
 
+  // Playing up a band is allowed, but an admin decides. Playing down never is.
+  `ALTER TABLE game_registrations DROP CONSTRAINT IF EXISTS game_registrations_status_check`,
+  `ALTER TABLE game_registrations ADD CONSTRAINT game_registrations_status_check
+     CHECK (status IN ('confirmed','waitlist','cancelled','pending_approval','declined'))`,
+  `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS approval_note TEXT`,
+  `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ`,
+
   // Supabase Auth owns passwords from here on: `users` mirrors auth.users with
   // the app-level profile, so password_hash is legacy and must be nullable.
   `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`,
@@ -416,6 +435,7 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_tourn_reg_tournament ON tournament_registrations(tournament_id)`,
   `CREATE INDEX IF NOT EXISTS idx_outbox_status ON whatsapp_outbox(status, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_wallet_user ON wallet_transactions(user_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_topups_status ON wallet_topups(status, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_form_fields_tournament ON tournament_form_fields(tournament_id, sort_order)`,
   `CREATE INDEX IF NOT EXISTS idx_time_slots_active ON time_slots(sort_order) WHERE active`,
   `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,

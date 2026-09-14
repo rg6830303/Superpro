@@ -8,6 +8,7 @@ import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
 import { formatDate, formatTime, formatTimeRange, isPast } from "@/lib/dates";
 import { formatPaise, perPlayerPaise, splitCaption } from "@/lib/money";
+import { LEVEL_LABEL, approvalReason, needsApproval } from "@/lib/levels";
 import { waLink, WHATSAPP_GROUP_URL } from "@/lib/site";
 import type { GameSession, SkillLevel } from "@/lib/types";
 
@@ -30,8 +31,11 @@ type Confirmation = {
     end_time: string;
     venue_name: string;
     court_number: number;
+    level?: string;
     status: string;
   }>;
+  /** Slots the player reached above their band; an admin decides on these. */
+  pending_approval?: Array<{ date: string; time: string; level: string }>;
 };
 
 export function GamesFlow({
@@ -61,16 +65,40 @@ export function GamesFlow({
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [activeDate, setActiveDate] = useState<string | null>(null);
+  const [activeVenue, setActiveVenue] = useState<string | null>(null);
 
-  // Group the week's sessions by date so the picker reads like a calendar.
+  // Venues come first: a player is choosing where to play before when, and
+  // interleaving two venues in one list made the schedule unreadable.
+  const venues = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; area?: string | null; open: number }>();
+    for (const s of sessions) {
+      const entry = map.get(s.venue_id) ?? {
+        id: s.venue_id,
+        name: s.venue_name ?? "Venue",
+        area: s.venue_area,
+        open: 0,
+      };
+      if (s.capacity - (s.booked ?? 0) > 0 && !isPast(s.session_date, s.start_time)) entry.open += 1;
+      map.set(s.venue_id, entry);
+    }
+    return [...map.values()];
+  }, [sessions]);
+
+  const shownVenue = activeVenue && venues.some((v) => v.id === activeVenue) ? activeVenue : venues[0]?.id;
+  const venueSessions = useMemo(
+    () => sessions.filter((s) => s.venue_id === shownVenue),
+    [sessions, shownVenue],
+  );
+
+  // Then group that venue's slots by date so the picker reads like a calendar.
   const byDate = useMemo(() => {
     const map = new Map<string, GameSession[]>();
-    for (const s of sessions) {
+    for (const s of venueSessions) {
       if (!map.has(s.session_date)) map.set(s.session_date, []);
       map.get(s.session_date)!.push(s);
     }
     return map;
-  }, [sessions]);
+  }, [venueSessions]);
 
   const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
   const shownDate = activeDate && byDate.has(activeDate) ? activeDate : dates[0];
@@ -273,8 +301,38 @@ export function GamesFlow({
           <div className="card min-w-0 p-6">
             <h2 className="text-2xl">This week&apos;s slots</h2>
             <p className="mt-1.5 text-sm text-ink/65">
-              Pick as many as you like — one tap each. Full slots are greyed out.
+              Choose a venue, then pick as many slots as you like — one tap each.
             </p>
+
+            {venues.length > 1 && (
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                {venues.map((v) => {
+                  const on = v.id === shownVenue;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveVenue(v.id);
+                        setActiveDate(null);
+                      }}
+                      className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
+                        on ? "border-ink bg-volt-soft shadow-card" : "border-line hover:border-ink/40"
+                      }`}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="font-display text-lg text-ink">{v.name}</span>
+                        {on && <Check size={15} className="shrink-0 text-volt-deep" />}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-ink/55">
+                        {v.area ? `${v.area} · ` : ""}
+                        {v.open} open
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {dates.length === 0 ? (
               <div className="mt-8 rounded-xl border border-line p-8 text-center">
@@ -319,6 +377,8 @@ export function GamesFlow({
                     const past = isPast(s.session_date, s.start_time);
                     const disabled = past || left < players;
                     const selected = picked.includes(s.id);
+                    const gated = needsApproval(s.level, skill);
+                    const roster = s.roster ?? [];
                     return (
                       <button
                         key={s.id}
@@ -344,7 +404,9 @@ export function GamesFlow({
                           <MapPin size={11} /> {s.venue_name} · Court {s.court_number}
                         </p>
                         <div className="mt-2.5 flex items-center justify-between">
-                          <span className="chip py-0.5 text-[10px]">{s.level === "all" ? "All levels" : s.level}</span>
+                          <span className={gated ? "chip-warn py-0.5 text-[10px]" : "chip py-0.5 text-[10px]"}>
+                            {LEVEL_LABEL[s.level] ?? s.level}
+                          </span>
                           <span className="text-right">
                             <span className="block text-sm font-semibold text-volt-deep">
                               {formatPaise(perPlayerPaise(s))}
@@ -354,6 +416,29 @@ export function GamesFlow({
                             )}
                           </span>
                         </div>
+
+                        {/* Who is already in, so the next player can choose a game
+                            rather than a time. */}
+                        {roster.length > 0 && (
+                          <div className="mt-3 border-t border-line pt-2.5">
+                            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink/45">
+                              Playing
+                            </p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-ink/70">
+                              {roster
+                                .slice(0, 4)
+                                .map((r) => (r.guests > 0 ? `${r.name} +${r.guests}` : r.name))
+                                .join(", ")}
+                              {roster.length > 4 ? ` +${roster.length - 4} more` : ""}
+                            </p>
+                          </div>
+                        )}
+
+                        {gated && (
+                          <p className="mt-2 text-[10px] leading-snug text-amber">
+                            {approvalReason(s.level, skill)}
+                          </p>
+                        )}
                       </button>
                     );
                   })}
@@ -520,19 +605,36 @@ export function GamesFlow({
           </p>
 
           <ul className="mt-7 space-y-3 border-t border-line pt-6 text-left">
-            {confirmation.bookings.map((b, i) => (
-              <li key={i} className="flex items-center justify-between gap-4 rounded-xl bg-mist px-4 py-3">
-                <span>
-                  <span className="block font-display text-xl text-ink">
-                    {formatDate(b.session_date)} · {formatTime(b.start_time)}
+            {confirmation.bookings.map((b, i) => {
+              const waiting = b.status === "pending_approval";
+              return (
+                <li
+                  key={i}
+                  className={`flex items-center justify-between gap-4 rounded-xl px-4 py-3 ${
+                    waiting ? "border border-amber/30 bg-amber/5" : "bg-mist"
+                  }`}
+                >
+                  <span>
+                    <span className="block font-display text-xl text-ink">
+                      {formatDate(b.session_date)} · {formatTime(b.start_time)}
+                    </span>
+                    <span className="block text-xs text-ink/65">{b.venue_name}</span>
+                    {waiting && (
+                      <span className="mt-1 block text-[11px] text-amber">
+                        Awaiting admin approval — this court is above your band.
+                      </span>
+                    )}
                   </span>
-                  <span className="block text-xs text-ink/65">{b.venue_name}</span>
-                </span>
-                <span className="rounded-lg bg-volt px-3 py-1.5 font-display text-lg text-ink">
-                  Court {b.court_number}
-                </span>
-              </li>
-            ))}
+                  {waiting ? (
+                    <span className="chip-warn shrink-0">Pending</span>
+                  ) : (
+                    <span className="shrink-0 rounded-lg bg-volt px-3 py-1.5 font-display text-lg text-ink">
+                      Court {b.court_number}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           <div className="mt-7 rounded-xl border border-line bg-mist p-4 text-left">
@@ -540,8 +642,9 @@ export function GamesFlow({
               <Users size={15} className="text-volt-deep" /> Posted to the games group
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-ink/65">
-              Your name and court number go into the SuperPro daily-games WhatsApp group so everyone knows who
-              they&apos;re playing with.
+              Your name and court number go into the SuperPro daily-games WhatsApp group, and onto the slot on
+              this site, so everyone knows who they&apos;re playing with. Slots awaiting approval are posted
+              once an admin confirms them.
             </p>
             {WHATSAPP_GROUP_URL && (
               <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm mt-3">

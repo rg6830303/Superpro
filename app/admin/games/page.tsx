@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarPlus, MapPin, MessageSquare, Pencil, Trash2, Users } from "lucide-react";
+import { CalendarPlus, Check, MapPin, MessageSquare, Pencil, Trash2, Users } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import {
   AddButton,
@@ -130,13 +130,29 @@ type TimeSlot = {
   active: boolean;
 };
 
-type Tab = "slots" | "times" | "venues" | "registrations";
+type ApprovalRequest = {
+  id: string;
+  player_name: string;
+  player_phone: string;
+  skill_level: string;
+  players_count: number;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  slot_level: string;
+  venue_name: string;
+  capacity: number;
+  confirmed: number;
+};
+
+type Tab = "slots" | "approvals" | "times" | "venues" | "registrations";
 
 export default function AdminGamesPage() {
   const [tab, setTab] = useState<Tab>("slots");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,16 +171,18 @@ export default function AdminGamesPage() {
     setLoading(true);
     setError(null);
     try {
-      const [s, v, t] = await Promise.all([
+      const [s, v, t, a] = await Promise.all([
         fetch("/api/admin/sessions").then((r) => r.json()),
         fetch("/api/admin/venues").then((r) => r.json()),
         fetch("/api/admin/time-slots").then((r) => r.json()),
+        fetch("/api/admin/approvals").then((r) => r.json()),
       ]);
       if (s.error) throw new Error(s.error);
       if (v.error) throw new Error(v.error);
       setSessions(s.sessions ?? []);
       setVenues(v.venues ?? []);
       setTimeSlots(t.slots ?? []);
+      setApprovals(a.requests ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load the schedule.");
     } finally {
@@ -198,6 +216,22 @@ export default function AdminGamesPage() {
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [sessions]);
+
+  async function decide(id: string, action: "approve" | "decline") {
+    setNotice(null);
+    const res = await fetch("/api/admin/approvals", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error ?? "Could not record that decision.");
+      return;
+    }
+    setNotice(action === "approve" ? "Approved — the player has been told." : "Declined — the player has been told.");
+    load();
+  }
 
   async function postToGroup(sessionId: string) {
     setPosting(sessionId);
@@ -235,7 +269,11 @@ export default function AdminGamesPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatTile label="Slots today" value={todaySlots.length} />
         <StatTile label="Open spots (2 weeks)" value={openSpots} tone="accent" />
-        <StatTile label="Active venues" value={venues.filter((v) => v.active).length} />
+        <StatTile
+          label="Approvals waiting"
+          value={approvals.length}
+          tone={approvals.length > 0 ? "warn" : "default"}
+        />
       </div>
 
       {notice && (
@@ -245,7 +283,7 @@ export default function AdminGamesPage() {
       )}
 
       <div className="mb-5 flex gap-2">
-        {(["slots", "times", "venues", "registrations"] as Tab[]).map((t) => (
+        {(["slots", "approvals", "times", "venues", "registrations"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -255,6 +293,11 @@ export default function AdminGamesPage() {
             }`}
           >
             {t}
+            {t === "approvals" && approvals.length > 0 && (
+              <span className="ml-2 rounded-pill bg-amber px-1.5 py-0.5 font-mono text-[10px] text-paper">
+                {approvals.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -336,6 +379,48 @@ export default function AdminGamesPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ── Play-up approvals ──────────────────────────────────────────────
+          A player below a court's band asked in. Approving confirms the spot
+          and re-posts the roster; declining frees it. ──────────────────── */}
+      {tab === "approvals" && !loading && (
+        <div>
+          {approvals.length === 0 ? (
+            <p className="rounded-card border border-dashed border-line-strong px-6 py-12 text-center text-sm text-ink/50">
+              Nothing waiting. Requests appear here when a player books a court above their band.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {approvals.map((a) => (
+                <li key={a.id} className="card flex flex-wrap items-start justify-between gap-4 p-5">
+                  <div className="min-w-0">
+                    <p className="font-display text-2xl text-ink">{a.player_name}</p>
+                    <p className="mt-1 text-xs text-ink/55">
+                      {a.player_phone} · listed as <span className="capitalize">{a.skill_level}</span>
+                      {a.players_count > 1 ? ` · bringing ${a.players_count - 1}` : ""}
+                    </p>
+                    <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink/75">
+                      <span className="chip-warn">{a.slot_level}</span>
+                      {formatDate(a.session_date)} · {formatTime(a.start_time)} · {a.venue_name}
+                    </p>
+                    <p className="mt-1.5 font-mono text-[11px] tabular-nums text-ink/45">
+                      Court {a.confirmed}/{a.capacity} confirmed
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button type="button" onClick={() => decide(a.id, "approve")} className="btn-volt btn-sm">
+                      <Check size={14} /> Approve
+                    </button>
+                    <button type="button" onClick={() => decide(a.id, "decline")} className="btn-danger btn-sm">
+                      Decline
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

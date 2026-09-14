@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 import { formatPaise } from "@/lib/money";
-import { waLink } from "@/lib/site";
+import { WalletTopUp } from "@/components/wallet-topup";
 import type { WalletTransaction } from "@/lib/wallet";
 
 type Profile = {
@@ -22,9 +22,13 @@ type Profile = {
 export function ProfileForm({
   profile,
   transactions,
+  razorpayEnabled,
+  razorpayKeyId,
 }: {
   profile: Profile;
   transactions: WalletTransaction[];
+  razorpayEnabled: boolean;
+  razorpayKeyId: string;
 }) {
   const [form, setForm] = useState({
     full_name: profile.full_name,
@@ -81,19 +85,17 @@ export function ProfileForm({
             </p>
             <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(profile.wallet_balance_paise)}</p>
           </div>
-          <a
-            href={waLink("Hi SuperPro! I'd like to top up my wallet.")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary btn-sm"
-          >
-            <MessageCircle size={14} /> Top up
-          </a>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-ink/55">
-          Wallet credit can be spent on court slots and gear at checkout. Top-ups are loaded by a SuperPro rep
-          at the venue and appear here immediately.
-        </p>
+
+        <div className="mt-5">
+          <WalletTopUp
+            razorpayEnabled={razorpayEnabled}
+            razorpayKeyId={razorpayKeyId}
+            name={profile.full_name}
+            email={profile.email}
+            phone={profile.phone}
+          />
+        </div>
       </div>
 
       <form onSubmit={submit} className="card p-6">

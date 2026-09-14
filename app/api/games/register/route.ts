@@ -10,6 +10,7 @@ import { formatZodError, playerRegistrationSchema } from "@/lib/validation";
 import { bookingReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
 import { adjustWallet, chargeWallet } from "@/lib/wallet";
 import { postSlotToGroup } from "@/lib/games";
+import { needsApproval, LEVEL_LABEL } from "@/lib/levels";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ type SessionRow = {
   end_time: string;
   court_number: number;
   capacity: number;
+  level: string;
   price_paise: number;
   pricing_mode: string;
   court_fee_paise: number;
@@ -50,10 +52,11 @@ export async function POST(req: Request) {
     await ensureSchema();
 
     const sessions = await query<SessionRow>(
-      `SELECT s.id, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, s.capacity,
+      `SELECT s.id, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, s.capacity, s.level,
               s.price_paise, s.pricing_mode, s.court_fee_paise, s.status, v.name AS venue_name,
               COALESCE((SELECT SUM(players_count) FROM game_registrations r
-                        WHERE r.session_id = s.id AND r.status <> 'cancelled'), 0)::int AS booked
+                        WHERE r.session_id = s.id
+                          AND r.status IN ('confirmed','waitlist','pending_approval')), 0)::int AS booked
        FROM game_sessions s JOIN venues v ON v.id = s.venue_id
        WHERE s.id = ANY($1::uuid[])`,
       [input.session_ids],
@@ -106,6 +109,11 @@ export async function POST(req: Request) {
       refundOnFailure = { userId: session.id, amountPaise: total, reference };
     }
 
+    // Reaching above your band is a request, not a booking. Playing down is
+    // always fine, so only the upward direction is gated.
+    const gated = sessions.filter((s) => needsApproval(s.level, input.skill_level));
+    const gatedIds = new Set(gated.map((s) => s.id));
+
     const wantsOnline = !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled;
     const method = wantsWallet ? "wallet" : wantsOnline ? "razorpay" : "venue";
     const paymentStatus = wantsWallet ? "paid" : "pending";
@@ -115,10 +123,10 @@ export async function POST(req: Request) {
         `INSERT INTO game_registrations (reference, session_id, user_id, player_name, player_phone,
            player_email, skill_level, players_count, court_number, amount_paise, payment_method,
            payment_status, status, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,'confirmed',$12)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,$14,$12)
          ON CONFLICT (session_id, player_phone) DO UPDATE
            SET players_count = EXCLUDED.players_count,
-               status = 'confirmed',
+               status = EXCLUDED.status,
                reference = EXCLUDED.reference,
                amount_paise = EXCLUDED.amount_paise,
                payment_method = EXCLUDED.payment_method`,
@@ -136,6 +144,7 @@ export async function POST(req: Request) {
           method,
           input.notes ?? null,
           paymentStatus,
+          gatedIds.has(s.id) ? "pending_approval" : "confirmed",
         ],
       );
     }
@@ -165,8 +174,11 @@ export async function POST(req: Request) {
       end_time: s.end_time,
       venue_name: s.venue_name,
       court_number: s.court_number,
-      status: "confirmed",
+      level: s.level,
+      status: gatedIds.has(s.id) ? "pending_approval" : "confirmed",
     }));
+
+    const confirmedSessions = sessions.filter((s) => !gatedIds.has(s.id));
 
     // Pay-at-venue bookings are confirmed now; online ones confirm after
     // /api/payments/verify so we never announce an unpaid slot.
@@ -174,7 +186,7 @@ export async function POST(req: Request) {
       // Receipts and the group post are best-effort: the slot is already
       // booked and (for wallet) already paid, so a WhatsApp hiccup must never
       // turn into an error the player sees.
-      await confirmComms({ reference, input, sessions, total, method }).catch((err) =>
+      await confirmComms({ reference, input, sessions: confirmedSessions, total, method }).catch((err) =>
         console.error("[games] confirmation comms failed:", err),
       );
     }
@@ -187,6 +199,11 @@ export async function POST(req: Request) {
       total_paise: total,
       payment_method: method,
       bookings,
+      pending_approval: gated.map((s) => ({
+        date: s.session_date,
+        time: s.start_time,
+        level: LEVEL_LABEL[s.level] ?? s.level,
+      })),
       razorpay_order_id: razorpayOrderId,
     });
   } catch (err) {

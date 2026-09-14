@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CalendarDays, Clock, MapPin, Users } from "lucide-react";
 import { GamesFlow } from "@/components/games-flow";
+import { MixerRules } from "@/components/mixer-rules";
 import { getPlayerSession } from "@/lib/auth";
 import { getUserRow } from "@/lib/accounts";
 import { getVenues, getWeekSessions } from "@/lib/queries";
@@ -82,6 +83,8 @@ export default async function GamesPage() {
           }
         />
       </div>
+
+      <MixerRules />
 
       {settings.booking_terms && (
         <p className="mt-10 max-w-2xl text-xs leading-relaxed text-ink/45">{settings.booking_terms}</p>

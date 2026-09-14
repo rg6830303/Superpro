@@ -48,6 +48,8 @@ export type GameSession = {
   notes: string | null;
   whatsapp_posted_at: string | null;
   booked?: number;
+  /** Confirmed players on this slot, shown publicly so others can pick a game. */
+  roster?: Array<{ name: string; level: string; guests: number }>;
 };
 
 export type GameRegistration = {

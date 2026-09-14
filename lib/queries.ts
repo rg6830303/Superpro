@@ -240,14 +240,23 @@ export async function getWeekSessions(days = 7): Promise<GameSession[]> {
     "getWeekSessions",
     async () =>
       query<GameSession>(
+        // The roster is public on purpose: players pick a slot partly by who is
+        // already in it. Only confirmed names are listed — a pending request is
+        // not a booking, and showing it would misrepresent who is on court.
         `SELECT s.*, s.session_date::text AS session_date, v.name AS venue_name, v.area AS venue_area,
-                COALESCE(r.booked, 0)::int AS booked
+                COALESCE(r.booked, 0)::int AS booked,
+                COALESCE(r.roster, '[]'::json) AS roster
          FROM game_sessions s
          JOIN venues v ON v.id = s.venue_id
          LEFT JOIN (
-           SELECT session_id, SUM(players_count) AS booked
+           SELECT session_id,
+                  SUM(players_count) AS booked,
+                  json_agg(
+                    json_build_object('name', player_name, 'level', skill_level, 'guests', players_count - 1)
+                    ORDER BY created_at
+                  ) AS roster
            FROM game_registrations
-           WHERE status <> 'cancelled'
+           WHERE status = 'confirmed'
            GROUP BY session_id
          ) r ON r.session_id = s.id
          WHERE s.session_date BETWEEN $1 AND $2 AND s.status = 'open' AND v.active

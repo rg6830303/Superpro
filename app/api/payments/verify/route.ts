@@ -6,12 +6,13 @@ import { formatDate, formatTimeRange } from "@/lib/dates";
 import { postSlotToGroup } from "@/lib/games";
 import { fulfilOnlineOrder } from "@/lib/orders";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
+import { adjustWallet } from "@/lib/wallet";
 import { bookingReceiptMessage, orderReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
 
 export const runtime = "nodejs";
 
 const schema = z.object({
-  kind: z.enum(["order", "game", "coaching", "tournament"]),
+  kind: z.enum(["order", "game", "coaching", "tournament", "wallet_topup"]),
   id: z.string().uuid().optional(),
   reference: z.string().min(3).max(40).optional(),
   razorpay_order_id: z.string().min(3),
@@ -56,6 +57,8 @@ export async function POST(req: Request) {
         return await settleCoaching(p);
       case "tournament":
         return await settleTournament(p);
+      case "wallet_topup":
+        return await settleTopup(p);
     }
   } catch (err) {
     console.error("[payments/verify]", err);
@@ -248,4 +251,43 @@ async function settleTournament(p: Payload) {
   });
 
   return NextResponse.json({ ok: true, reference: p.reference });
+}
+
+/**
+ * Credit a verified wallet top-up. The ledger row is flipped to `paid` first
+ * and only credited if that UPDATE actually matched a pending row, so a
+ * replayed callback cannot credit the same payment twice.
+ */
+async function settleTopup(p: Payload) {
+  if (!p.reference) return NextResponse.json({ error: "Missing top-up reference." }, { status: 400 });
+
+  const rows = await query<{ id: string; user_id: string; amount_paise: number }>(
+    `UPDATE wallet_topups
+     SET status = 'paid', razorpay_payment_id = $1, credited_at = now()
+     WHERE reference = $2 AND razorpay_order_id = $3 AND status = 'pending'
+     RETURNING id, user_id, amount_paise`,
+    [p.razorpay_payment_id, p.reference, p.razorpay_order_id],
+  );
+
+  if (rows.length === 0) {
+    const existing = await queryOne<{ status: string }>(
+      `SELECT status FROM wallet_topups WHERE reference = $1`,
+      [p.reference],
+    );
+    if (existing?.status === "paid") return NextResponse.json({ ok: true, already: true });
+    return NextResponse.json({ error: "That payment does not match this top-up." }, { status: 409 });
+  }
+
+  const topup = rows[0];
+  const result = await adjustWallet({
+    userId: topup.user_id,
+    deltaPaise: topup.amount_paise,
+    kind: "topup",
+    reason: `Online top-up ${p.reference}`,
+    refTable: "wallet_topups",
+    refId: topup.id,
+    createdBy: "razorpay",
+  });
+
+  return NextResponse.json({ ok: true, balance_paise: result.ok ? result.balancePaise : null });
 }
