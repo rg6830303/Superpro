@@ -10,3 +10,15 @@ coverage
 .env
 .env*
 !.env.example
+
+# Playwright review artefacts. The intro source and the review page are tracked;
+# the recordings, stills and browser session logs are rebuilt on demand and are
+# far too heavy to carry in the repository.
+.playwright-cli
+output/playwright/**/node_modules
+output/playwright/**/dist
+output/playwright/**/*.png
+output/playwright/**/*.webm
+output/playwright/**/*.mp4
+output/playwright/**/*.log
+output/playwright/**/*.txt

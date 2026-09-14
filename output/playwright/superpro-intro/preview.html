@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SuperPro — Smash entrance preview</title><link rel="icon" href="data:,">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#051721;color:#eaf3f7;font-family:Arial,sans-serif}main{max-width:1180px;margin:auto;padding:32px 32px 24px}header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:25px}.eyebrow{font:10px monospace;letter-spacing:.2em;color:#4ee391;margin:0 0 10px}h1{font-size:26px;letter-spacing:-.04em;margin:0}nav{display:flex;gap:6px;padding:5px;background:#ffffff09;border:1px solid #ffffff12;border-radius:30px}button{border:0;cursor:pointer;background:transparent;color:#9bb6c5;border-radius:20px;padding:10px 18px;font:12px Arial}button[aria-pressed=true]{background:#00e55f;color:#031c2c}figure{margin:0;border:1px solid #ffffff20;border-radius:14px;overflow:hidden;background:#020e15;display:flex;justify-content:center;min-height:200px}video{display:block;width:100%;max-height:72vh}video.mobile{width:auto;max-width:100%;height:72vh}footer{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-top:19px;color:#93aeba;font-size:12px;line-height:1.65}a{color:#e1f4ed;text-underline-offset:3px}.beats{display:flex;gap:12px;flex-wrap:wrap}.beats span{padding-right:12px;border-right:1px solid #ffffff25}.beats span:last-child{border:0}.note{font-size:11px;color:#7996a7;margin-top:18px}@media(max-width:650px){main{padding:22px 15px}header,footer{align-items:flex-start;flex-direction:column}h1{font-size:24px}.beats{gap:6px;font-size:10px}}
+</style>
+<main>
+<header><div><p class="eyebrow">SUPERPRO / MOTION STUDY 01</p><h1>The smash entrance.</h1></div><nav aria-label="Preview size"><button id="desktop" aria-pressed="true">Desktop</button><button id="mobile" aria-pressed="false">Mobile</button></nav></header>
+<figure><video id="video" controls autoplay muted loop playsinline poster="court.png" src="superpro-smash-desktop.mp4"></video></figure>
+<footer><div class="beats"><span>01 &nbsp; Wind-up</span><span>02 &nbsp; Smash</span><span>03 &nbsp; Logo reveal</span><span>04 &nbsp; Into the header</span></div><a id="download" href="superpro-smash-desktop.mp4" download>Download video ↗</a></footer>
+<p class="note">Three.js design preview recorded over the live SuperPro home page. Website integration is pending your approval.</p>
+</main>
+<script>
+const video=document.querySelector('#video');
+for(const mode of ['desktop','mobile'])document.getElementById(mode).addEventListener('click',()=>{for(const name of ['desktop','mobile'])document.getElementById(name).setAttribute('aria-pressed',String(name===mode));video.src=`superpro-smash-${mode}.mp4`;video.poster=mode==='mobile'?'mobile-court.png':'court.png';video.className=mode==='mobile'?'mobile':'';document.querySelector('#download').href=video.src;video.play();});
+if(location.search.includes('mobile')||matchMedia('(max-width:650px)').matches)document.getElementById('mobile').click();
+</script>
+</html>
