@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
+import { BootCover } from "@/components/boot-cover";
 import { CartProvider } from "@/components/cart-provider";
 import { SITE } from "@/lib/site";
 
@@ -84,6 +85,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body>
+        {/* First in the body so it is painted before anything it covers. */}
+        <BootCover />
         <CartProvider>{children}</CartProvider>
       </body>
     </html>

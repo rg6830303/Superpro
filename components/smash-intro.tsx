@@ -31,6 +31,28 @@ function announceDone() {
   window.dispatchEvent(new CustomEvent(INTRO_DONE_EVENT));
 }
 
+/**
+ * Lift the server-rendered cover. Called only once the scene has actually put a
+ * frame on screen, so the two never both step aside and reveal the page.
+ */
+type BootCoverApi = { __superproBootClear?: () => void; __superproBootHold?: (ms: number) => void };
+
+function clearBootCover() {
+  (window as unknown as BootCoverApi).__superproBootClear?.();
+}
+
+/**
+ * How long the cover is allowed to hold while the scene loads. Past this, the
+ * entrance is abandoned for this visit: on a slow connection a visitor is far
+ * better served by the site than by a logo they are made to watch, and starting
+ * the animation after they have begun reading is worse than not playing it.
+ */
+const LOAD_BUDGET_MS = 2600;
+
+function holdBootCover() {
+  (window as unknown as BootCoverApi).__superproBootHold?.(LOAD_BUDGET_MS);
+}
+
 export function SmashIntro() {
   const pathname = usePathname();
   const params = useSearchParams();
@@ -44,43 +66,62 @@ export function SmashIntro() {
     // page load, which is what a refresh is.
     const celebrating = welcome === "signup" || welcome === "login";
     if (!celebrating && playedThisLoad) {
+      clearBootCover();
       announceDone();
       return;
     }
 
     // Nothing to show on a screen that cannot paint it.
     if (typeof WebGLRenderingContext === "undefined") {
+      clearBootCover();
       announceDone();
       return;
     }
 
-    const timer = window.setTimeout(() => {
-      import("@/lib/intro/scene")
-        .then(mod => mod.createIntro())
-        .then(created => {
-          if (cancelled) {
-            created.dispose();
-            return;
-          }
-          api = created;
-          // Marked here rather than up front: this effect can be torn down and
-          // re-run during hydration, and claiming the slot before the scene is
-          // actually on screen would make the second pass skip it entirely.
-          playedThisLoad = true;
-          created.play();
-          // The scene clears itself; this is the cue for everything downstream.
-          window.setTimeout(announceDone, created.duration * 1000);
-        })
-        .catch(err => {
-          console.error("[intro] could not start:", err);
+    // Tell the cover to wait: it has its own timer, and without this it would
+    // lift on schedule and show the page moments before the scene paints.
+    holdBootCover();
+    const deadline = Date.now() + LOAD_BUDGET_MS;
+
+    // Started immediately rather than on a timer: the cover is holding the
+    // screen, so every millisecond here is a millisecond of blank branding.
+    // The scene waits for the header logo itself.
+    import("@/lib/intro/scene")
+      .then(mod => mod.createIntro())
+      .then(created => {
+        // Too late to be an entrance. The cover has already lifted and the
+        // visitor is looking at the page; dropping an animation over it now
+        // would be worse than the flash this all exists to prevent.
+        if (cancelled || Date.now() > deadline) {
+          created.dispose();
+          clearBootCover();
           announceDone();
-        });
-      // One frame of delay so the header logo has mounted and measured.
-    }, 60);
+          return;
+        }
+        api = created;
+        // Marked here rather than up front: this effect can be torn down and
+        // re-run during hydration, and claiming the slot before the scene is
+        // actually on screen would make the second pass skip it entirely.
+        playedThisLoad = true;
+        created.play();
+
+        // Hand off only once the scene has genuinely painted. Two frames:
+        // the first schedules the render, the second is after it has landed.
+        // Lifting the cover any earlier puts the home page back on screen for
+        // exactly the blink this whole mechanism exists to remove.
+        requestAnimationFrame(() => requestAnimationFrame(clearBootCover));
+
+        // The scene clears itself; this is the cue for everything downstream.
+        window.setTimeout(announceDone, created.duration * 1000);
+      })
+      .catch(err => {
+        console.error("[intro] could not start:", err);
+        clearBootCover();
+        announceDone();
+      });
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
       api?.dispose();
     };
     // Keyed on the route so a post-auth redirect retriggers it, and on nothing
