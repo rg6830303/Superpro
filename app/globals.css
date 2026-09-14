@@ -472,8 +472,15 @@
 .stagger > *:nth-child(7) { animation-delay: 270ms; }
 .stagger > *:nth-child(n + 8) { animation-delay: 300ms; }
 
+/* One item of a hand-timed list — the delay comes from an inline style so a
+   list of five can cascade without five utility classes. */
+.stagger-item {
+  animation: wipe-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .live-dot::after,
+  .stagger-item,
   .stagger > * {
     animation: none;
   }
@@ -554,6 +561,35 @@
     animation: none;
   }
   .read-progress {
+    display: none;
+  }
+}
+
+/* ── Arrival ──────────────────────────────────────────────────────────────
+   The ball fills the frame and pulls away, taking the paper backdrop with it.
+   Two separate animations so the ball keeps spinning while the sheet fades.
+   ------------------------------------------------------------------------ */
+@keyframes intro-clear {
+  0%, 45% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes intro-pull-back {
+  0% { transform: scale(1.6) rotate(-12deg); }
+  55% { transform: scale(0.42) rotate(6deg); }
+  100% { transform: scale(0.08) rotate(14deg); opacity: 0; }
+}
+.ball-intro {
+  animation: intro-clear 1.25s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.ball-intro-ball {
+  animation: intro-pull-back 1.25s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ball-intro,
+  .ball-intro-ball {
+    animation: none;
     display: none;
   }
 }

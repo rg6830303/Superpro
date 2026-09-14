@@ -439,3 +439,19 @@ export async function getTournamentFormFields(tournamentId: string): Promise<For
     [],
   );
 }
+
+export type CoachSlot = { coach_id: string; weekday: number; start_time: string; end_time: string };
+
+/** Indicative weekly availability, shown on the coach cards. */
+export async function getCoachAvailability(): Promise<CoachSlot[]> {
+  return safe(
+    "getCoachAvailability",
+    async () =>
+      query<CoachSlot>(
+        `SELECT coach_id, weekday, start_time, end_time
+         FROM coach_availability WHERE active
+         ORDER BY weekday, start_time`,
+      ),
+    [],
+  );
+}

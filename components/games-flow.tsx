@@ -9,17 +9,10 @@ import { Confetti } from "@/components/motion";
 import { formatDate, formatTime, formatTimeRange, isPast } from "@/lib/dates";
 import { formatPaise, perPlayerPaise, splitCaption } from "@/lib/money";
 import { LEVEL_LABEL, approvalReason, needsApproval } from "@/lib/levels";
-import { waLink, WHATSAPP_GROUP_URL } from "@/lib/site";
-import type { GameSession, SkillLevel } from "@/lib/types";
+import { WHATSAPP_GROUP_URL, waLink } from "@/lib/site";
+import type { GameSession } from "@/lib/types";
 
-const STEPS = ["Register", "Pick slots", "Checkout", "Confirmed"];
-
-const SKILLS: Array<{ value: SkillLevel; label: string }> = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
-  { value: "pro", label: "DUPR rated" },
-];
+const STEPS = ["Pick slots", "Checkout", "Confirmed"];
 
 type Confirmation = {
   reference: string;
@@ -30,34 +23,40 @@ type Confirmation = {
     start_time: string;
     end_time: string;
     venue_name: string;
-    court_number: number;
     level?: string;
     status: string;
   }>;
-  /** Slots the player reached above their band; an admin decides on these. */
   pending_approval?: Array<{ date: string; time: string; level: string }>;
 };
 
+export type BookingPlayer = {
+  name: string;
+  phone: string;
+  email: string;
+  skill: string;
+};
+
+/**
+ * Slot booking for a signed-in player.
+ *
+ * There is no guest details step: the account already holds the name, number
+ * and rating, so the flow starts at the thing the player came to do. Venue is
+ * chosen before date because that is the order the decision is made in.
+ */
 export function GamesFlow({
   sessions,
   razorpayEnabled,
   razorpayKeyId,
   walletPaise = 0,
-  defaults,
+  player,
 }: {
   sessions: GameSession[];
   razorpayEnabled: boolean;
   razorpayKeyId: string;
-  /** Signed-in player's wallet balance; 0 (or signed out) hides the option. */
   walletPaise?: number;
-  defaults?: { name?: string; phone?: string; email?: string; skill?: SkillLevel };
+  player: BookingPlayer;
 }) {
   const [step, setStep] = useState(1);
-  const [name, setName] = useState(defaults?.name ?? "");
-  const [phone, setPhone] = useState(defaults?.phone ?? "");
-  const [email, setEmail] = useState(defaults?.email ?? "");
-  const [skill, setSkill] = useState<SkillLevel>(defaults?.skill ?? "beginner");
-  const [players, setPlayers] = useState(1);
   const [picked, setPicked] = useState<string[]>([]);
   const [pay, setPay] = useState<"razorpay" | "venue" | "wallet">(razorpayEnabled ? "razorpay" : "venue");
   const [notes, setNotes] = useState("");
@@ -67,8 +66,7 @@ export function GamesFlow({
   const [activeDate, setActiveDate] = useState<string | null>(null);
   const [activeVenue, setActiveVenue] = useState<string | null>(null);
 
-  // Venues come first: a player is choosing where to play before when, and
-  // interleaving two venues in one list made the schedule unreadable.
+  // Venue first: a player decides where before when.
   const venues = useMemo(() => {
     const map = new Map<string, { id: string; name: string; area?: string | null; open: number }>();
     for (const s of sessions) {
@@ -85,12 +83,8 @@ export function GamesFlow({
   }, [sessions]);
 
   const shownVenue = activeVenue && venues.some((v) => v.id === activeVenue) ? activeVenue : venues[0]?.id;
-  const venueSessions = useMemo(
-    () => sessions.filter((s) => s.venue_id === shownVenue),
-    [sessions, shownVenue],
-  );
+  const venueSessions = useMemo(() => sessions.filter((s) => s.venue_id === shownVenue), [sessions, shownVenue]);
 
-  // Then group that venue's slots by date so the picker reads like a calendar.
   const byDate = useMemo(() => {
     const map = new Map<string, GameSession[]>();
     for (const s of venueSessions) {
@@ -104,40 +98,23 @@ export function GamesFlow({
   const shownDate = activeDate && byDate.has(activeDate) ? activeDate : dates[0];
   const daySessions = shownDate ? (byDate.get(shownDate) ?? []) : [];
 
-  const pickedSessions = useMemo(
-    () => sessions.filter((s) => picked.includes(s.id)),
-    [sessions, picked],
-  );
-  const totalPaise = pickedSessions.reduce((sum, s) => sum + perPlayerPaise(s) * players, 0);
+  const pickedSessions = useMemo(() => sessions.filter((s) => picked.includes(s.id)), [sessions, picked]);
+  const totalPaise = pickedSessions.reduce((sum, s) => sum + perPlayerPaise(s), 0);
+  const gatedPicks = pickedSessions.filter((s) => needsApproval(s.level, player.skill));
 
   const spotsLeft = (s: GameSession) => s.capacity - (s.booked ?? 0);
 
   function toggle(session: GameSession) {
-    if (spotsLeft(session) < players) return;
+    if (spotsLeft(session) < 1) return;
     setPicked((prev) =>
       prev.includes(session.id) ? prev.filter((id) => id !== session.id) : [...prev, session.id],
     );
   }
 
-  function validateStep1() {
-    if (name.trim().length < 2) return "Enter your full name.";
-    if (!/^[6-9]\d{9}$/.test(phone.replace(/\D/g, ""))) return "Enter a valid 10-digit mobile number.";
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) return "That email doesn't look right.";
-    return null;
-  }
-
   function next() {
     setError(null);
-    if (step === 1) {
-      const err = validateStep1();
-      if (err) return setError(err);
-      setStep(2);
-      return;
-    }
-    if (step === 2) {
-      if (picked.length === 0) return setError("Pick at least one slot to continue.");
-      setStep(3);
-    }
+    if (picked.length === 0) return setError("Pick at least one slot to continue.");
+    setStep(2);
   }
 
   async function confirmBooking() {
@@ -148,12 +125,12 @@ export function GamesFlow({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          player_name: name,
-          player_phone: phone,
-          player_email: email,
-          skill_level: skill,
+          player_name: player.name,
+          player_phone: player.phone,
+          player_email: player.email,
+          skill_level: player.skill,
           session_ids: picked,
-          players_count: players,
+          players_count: 1,
           payment_method: pay,
           notes,
         }),
@@ -163,7 +140,7 @@ export function GamesFlow({
 
       if (!data.razorpay_order_id) {
         setConfirmation(data);
-        setStep(4);
+        setStep(3);
         setBusy(false);
         return;
       }
@@ -174,7 +151,7 @@ export function GamesFlow({
         amountPaise: data.total_paise,
         name: "SuperPro Daily Games",
         description: `${picked.length} slot${picked.length > 1 ? "s" : ""}`,
-        prefill: { name, email, contact: phone },
+        prefill: { name: player.name, email: player.email, contact: player.phone },
         notes: { reference: data.reference },
         onSuccess: async (payload) => {
           const verify = await fetch("/api/payments/verify", {
@@ -185,7 +162,7 @@ export function GamesFlow({
           const verified = await verify.json();
           if (verify.ok) {
             setConfirmation({ ...data, ...verified, payment_method: "razorpay" });
-            setStep(4);
+            setStep(3);
           } else {
             setError("Payment could not be verified. Your slot is held — message a rep with your reference.");
           }
@@ -209,16 +186,12 @@ export function GamesFlow({
     setNotes("");
     setConfirmation(null);
     setError(null);
-    setStep(2);
+    setStep(1);
   }
 
   return (
     <div>
       <Stepper steps={STEPS} current={step} />
-
-      {/* Keyed on the step so a change replays the entrance rather than
-          swapping content in place. */}
-      <div key={step} className="step-in">
 
       {error && (
         <div className="mb-5">
@@ -226,443 +199,414 @@ export function GamesFlow({
         </div>
       )}
 
-      {/* ── Step 1 — register ─────────────────────────────────────────── */}
-      {step === 1 && (
-        <div className="card max-w-2xl p-7">
-          <h2 className="text-2xl">Player details</h2>
-          <p className="mt-1.5 text-sm text-ink/65">
-            One time only. Next week, the same number picks up where you left off.
-          </p>
+      <div key={step} className="step-in">
+        {/* ── Step 1 — venue, date, slots ───────────────────────────────── */}
+        {step === 1 && (
+          <div className="grid min-w-0 gap-6 lg:grid-cols-[1.6fr_1fr]">
+            <div className="card min-w-0 p-6">
+              <h2 className="text-2xl">This week&apos;s slots</h2>
+              <p className="mt-1.5 text-sm text-ink/65">Choose a venue, then tap the slots you want.</p>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="g-name">Full name</label>
-              <input id="g-name" className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ishaan Sanghvi" />
-            </div>
-            <div>
-              <label className="label" htmlFor="g-phone">WhatsApp number</label>
-              <input id="g-phone" className="field" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="98xxxxxxxx" />
-              <p className="mt-1.5 text-[11px] text-ink/45">Your confirmation and court number come here.</p>
-            </div>
-            <div>
-              <label className="label" htmlFor="g-email">Email (optional)</label>
-              <input id="g-email" type="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <span className="label">Skill level</span>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {SKILLS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setSkill(s.value)}
-                  className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                    skill === s.value ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <span className="label">How many of you are coming?</span>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setPlayers(n)}
-                  className={`h-11 w-11 rounded-xl border font-display text-lg transition-colors ${
-                    players === n ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1.5 text-[11px] text-ink/45">Bringing friends? We&apos;ll hold that many spots per slot.</p>
-          </div>
-
-          <div className="mt-7 flex justify-end">
-            <button type="button" onClick={next} className="btn-volt">
-              Pick your slots <ArrowRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Step 2 — slot picking ─────────────────────────────────────── */}
-      {step === 2 && (
-        <div className="grid min-w-0 gap-6 lg:grid-cols-[1.6fr_1fr]">
-          <div className="card min-w-0 p-6">
-            <h2 className="text-2xl">This week&apos;s slots</h2>
-            <p className="mt-1.5 text-sm text-ink/65">
-              Choose a venue, then pick as many slots as you like — one tap each.
-            </p>
-
-            {venues.length > 1 && (
-              <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                {venues.map((v) => {
-                  const on = v.id === shownVenue;
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveVenue(v.id);
-                        setActiveDate(null);
-                      }}
-                      className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
-                        on ? "border-ink bg-volt-soft shadow-card" : "border-line hover:border-ink/40"
-                      }`}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="font-display text-lg text-ink">{v.name}</span>
-                        {on && <Check size={15} className="shrink-0 text-volt-deep" />}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-ink/55">
-                        {v.area ? `${v.area} · ` : ""}
-                        {v.open} open
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {dates.length === 0 ? (
-              <div className="mt-8 rounded-xl border border-line p-8 text-center">
-                <p className="font-display text-xl text-ink/75">No slots published yet</p>
-                <p className="mt-2 text-sm text-ink/55">The week&apos;s schedule goes up every Sunday evening.</p>
-                <a href={waLink("Hi SuperPro! When do this week's slots open?")} target="_blank" rel="noopener noreferrer" className="btn-outline btn-sm mt-5">
-                  <MessageCircle size={14} /> Ask a rep
-                </a>
-              </div>
-            ) : (
-              <>
-                <div className="scroll-x mt-6 flex gap-2 pb-2 no-scrollbar">
-                  {dates.map((d) => {
-                    const open = (byDate.get(d) ?? []).filter(
-                      (s) => spotsLeft(s) > 0 && !isPast(s.session_date, s.start_time),
-                    ).length;
-                    const isActive = d === shownDate;
+              {venues.length > 1 && (
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  {venues.map((v) => {
+                    const on = v.id === shownVenue;
                     return (
                       <button
-                        key={d}
+                        key={v.id}
                         type="button"
-                        onClick={() => setActiveDate(d)}
-                        className={`shrink-0 rounded-xl border px-4 py-2.5 text-left transition-colors ${
-                          isActive ? "border-ink bg-volt-soft" : "border-line hover:border-line-strong"
+                        onClick={() => {
+                          setActiveVenue(v.id);
+                          setActiveDate(null);
+                        }}
+                        className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
+                          on ? "border-ink bg-volt-soft shadow-card" : "border-line hover:border-ink/40"
                         }`}
                       >
-                        <span className={`block font-mono text-[11px] uppercase tracking-[0.14em] ${isActive ? "text-volt-deep" : "text-ink/55"}`}>
-                          {formatDate(d).split(",")[0]}
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="font-display text-lg text-ink">{v.name}</span>
+                          {on && <Check size={15} className="shrink-0 text-volt-deep" />}
                         </span>
-                        <span className={`block font-display text-lg ${isActive ? "text-ink" : "text-ink/75"}`}>
-                          {formatDate(d).split(", ")[1]}
+                        <span className="mt-0.5 block text-xs text-ink/55">
+                          {v.area ? `${v.area} · ` : ""}
+                          {v.open} open
                         </span>
-                        <span className="mt-0.5 block text-[10px] text-ink/45">{open} open</span>
                       </button>
                     );
                   })}
                 </div>
-
-                <div key={shownDate} className="stagger mt-5 grid gap-3 sm:grid-cols-2">
-                  {daySessions.map((s) => {
-                    const left = spotsLeft(s);
-                    const past = isPast(s.session_date, s.start_time);
-                    const disabled = past || left < players;
-                    const selected = picked.includes(s.id);
-                    const gated = needsApproval(s.level, skill);
-                    const roster = s.roster ?? [];
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => !disabled && toggle(s)}
-                        disabled={disabled}
-                        className={`tile ${selected ? "tile-selected" : ""} ${disabled ? "tile-disabled" : ""}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-display text-2xl text-ink">{formatTime(s.start_time)}</span>
-                          {selected ? (
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-volt text-ink">
-                              <Check size={12} />
-                            </span>
-                          ) : (
-                            <span className={`font-mono text-[10px] uppercase tracking-[0.14em] ${left <= 2 ? "text-amber" : "text-volt-deep"}`}>
-                              {past ? "Started" : left <= 0 ? "Full" : `${left} left`}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-1 text-xs text-ink/65">{formatTimeRange(s.start_time, s.end_time)}</p>
-                        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
-                          <MapPin size={11} /> {s.venue_name} · Court {s.court_number}
-                        </p>
-                        <div className="mt-2.5 flex items-center justify-between">
-                          <span className={gated ? "chip-warn py-0.5 text-[10px]" : "chip py-0.5 text-[10px]"}>
-                            {LEVEL_LABEL[s.level] ?? s.level}
-                          </span>
-                          <span className="text-right">
-                            <span className="block text-sm font-semibold text-volt-deep">
-                              {formatPaise(perPlayerPaise(s))}
-                            </span>
-                            {splitCaption(s) && (
-                              <span className="block text-[10px] text-ink/45">{splitCaption(s)}</span>
-                            )}
-                          </span>
-                        </div>
-
-                        {/* Who is already in, so the next player can choose a game
-                            rather than a time. */}
-                        {roster.length > 0 && (
-                          <div className="mt-3 border-t border-line pt-2.5">
-                            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink/45">
-                              Playing
-                            </p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-ink/70">
-                              {roster
-                                .slice(0, 4)
-                                .map((r) => (r.guests > 0 ? `${r.name} +${r.guests}` : r.name))
-                                .join(", ")}
-                              {roster.length > 4 ? ` +${roster.length - 4} more` : ""}
-                            </p>
-                          </div>
-                        )}
-
-                        {gated && (
-                          <p className="mt-2 text-[10px] leading-snug text-amber">
-                            {approvalReason(s.level, skill)}
-                          </p>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
-          <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-            <div className="card p-6">
-              <h3 className="text-xl">Your picks</h3>
-              {pickedSessions.length === 0 ? (
-                <p className="mt-3 text-sm text-ink/55">Nothing picked yet.</p>
-              ) : (
-                <ul className="mt-4 space-y-3">
-                  {pickedSessions.map((s) => (
-                    <li key={s.id} className="flex items-start justify-between gap-3 text-sm">
-                      <span>
-                        <span className="block text-ink">{formatDate(s.session_date)} · {formatTime(s.start_time)}</span>
-                        <span className="block text-xs text-ink/55">{s.venue_name} · Court {s.court_number}</span>
-                      </span>
-                      <button type="button" onClick={() => toggle(s)} className="text-xs text-ink/45 hover:text-signal">
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
               )}
 
-              <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
-                <span className="text-sm text-ink/70">
-                  {picked.length} slot{picked.length === 1 ? "" : "s"} × {players} player{players === 1 ? "" : "s"}
-                </span>
-                <span className="font-display text-2xl text-volt-deep">{formatPaise(totalPaise)}</span>
+              {dates.length === 0 ? (
+                <div className="mt-8 rounded-xl border border-dashed border-line-strong p-8 text-center">
+                  <p className="font-display text-xl text-ink/75">No slots published yet</p>
+                  <p className="mt-2 text-sm text-ink/55">The week&apos;s schedule goes up every Sunday evening.</p>
+                  <a
+                    href={waLink("Hi SuperPro! When do this week's slots open?")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-outline btn-sm mt-5"
+                  >
+                    <MessageCircle size={14} /> Ask a rep
+                  </a>
+                </div>
+              ) : (
+                <>
+                  <div className="scroll-x mt-6 flex gap-2 pb-2 no-scrollbar">
+                    {dates.map((d) => {
+                      const open = (byDate.get(d) ?? []).filter(
+                        (s) => spotsLeft(s) > 0 && !isPast(s.session_date, s.start_time),
+                      ).length;
+                      const isActive = d === shownDate;
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setActiveDate(d)}
+                          className={`shrink-0 rounded-xl border px-4 py-2.5 text-left transition-colors ${
+                            isActive ? "border-ink bg-volt-soft" : "border-line hover:border-line-strong"
+                          }`}
+                        >
+                          <span
+                            className={`block font-mono text-[11px] uppercase tracking-[0.14em] ${
+                              isActive ? "text-volt-deep" : "text-ink/55"
+                            }`}
+                          >
+                            {formatDate(d).split(",")[0]}
+                          </span>
+                          <span className={`block font-display text-lg ${isActive ? "text-ink" : "text-ink/75"}`}>
+                            {formatDate(d).split(", ")[1]}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] text-ink/45">{open} open</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div key={shownDate} className="stagger mt-5 grid gap-3 sm:grid-cols-2">
+                    {daySessions.map((s) => {
+                      const left = spotsLeft(s);
+                      const past = isPast(s.session_date, s.start_time);
+                      const disabled = past || left < 1;
+                      const selected = picked.includes(s.id);
+                      const gated = needsApproval(s.level, player.skill);
+                      const roster = s.roster ?? [];
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => !disabled && toggle(s)}
+                          disabled={disabled}
+                          className={`tile ${selected ? "tile-selected" : ""} ${disabled ? "tile-disabled" : ""}`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-display text-2xl text-ink">{formatTime(s.start_time)}</span>
+                            {selected ? (
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-volt text-ink">
+                                <Check size={12} />
+                              </span>
+                            ) : (
+                              <span
+                                className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
+                                  left <= 2 ? "text-amber" : "text-volt-deep"
+                                }`}
+                              >
+                                {past ? "Started" : left <= 0 ? "Full" : `${left} left`}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs text-ink/65">{formatTimeRange(s.start_time, s.end_time)}</p>
+                          {/* Courts are assigned on the day, so only the venue
+                              is advertised here. */}
+                          <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
+                            <MapPin size={11} /> {s.venue_name}
+                          </p>
+
+                          <div className="mt-2.5 flex items-center justify-between">
+                            <span className={gated ? "chip-warn py-0.5 text-[10px]" : "chip py-0.5 text-[10px]"}>
+                              {LEVEL_LABEL[s.level] ?? s.level}
+                            </span>
+                            <span className="text-right">
+                              <span className="block text-sm font-semibold text-volt-deep">
+                                {formatPaise(perPlayerPaise(s))}
+                              </span>
+                              {splitCaption(s) && (
+                                <span className="block text-[10px] text-ink/45">{splitCaption(s)}</span>
+                              )}
+                            </span>
+                          </div>
+
+                          {roster.length > 0 && (
+                            <div className="mt-3 border-t border-line pt-2.5">
+                              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink/45">
+                                Already coming
+                              </p>
+                              <p className="mt-1 text-[11px] leading-relaxed text-ink/70">
+                                {roster
+                                  .slice(0, 4)
+                                  .map((r) => (r.guests > 0 ? `${r.name} +${r.guests}` : r.name))
+                                  .join(", ")}
+                                {roster.length > 4 ? ` +${roster.length - 4} more` : ""}
+                              </p>
+                            </div>
+                          )}
+
+                          {gated && (
+                            <p className="mt-2 text-[10px] leading-snug text-amber">
+                              {approvalReason(s.level, player.skill)}
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+              <div className="card p-6">
+                <h3 className="text-xl">Your picks</h3>
+                <p className="mt-1 text-xs text-ink/50">Booking as {player.name}</p>
+
+                {pickedSessions.length === 0 ? (
+                  <p className="mt-4 text-sm text-ink/55">Nothing picked yet.</p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {pickedSessions.map((s) => (
+                      <li key={s.id} className="flex items-start justify-between gap-3 text-sm">
+                        <span>
+                          <span className="block text-ink">
+                            {formatDate(s.session_date)} · {formatTime(s.start_time)}
+                          </span>
+                          <span className="block text-xs text-ink/55">{s.venue_name}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggle(s)}
+                          className="text-xs text-ink/40 hover:text-signal"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
+                  <span className="text-sm text-ink/60">
+                    {picked.length} slot{picked.length === 1 ? "" : "s"}
+                  </span>
+                  <span className="font-display text-2xl text-volt-deep">{formatPaise(totalPaise)}</span>
+                </div>
+
+                <button type="button" onClick={next} disabled={picked.length === 0} className="btn-volt mt-5 w-full">
+                  Continue to checkout <ArrowRight size={16} />
+                </button>
               </div>
+            </aside>
+          </div>
+        )}
 
-              <button type="button" onClick={next} disabled={picked.length === 0} className="btn-volt mt-5 w-full">
-                Continue to checkout <ArrowRight size={16} />
-              </button>
-              <button type="button" onClick={() => setStep(1)} className="btn-ghost mt-2 w-full">
-                <ArrowLeft size={15} /> Back to details
-              </button>
-            </div>
-          </aside>
-        </div>
-      )}
+        {/* ── Step 2 — checkout ─────────────────────────────────────────── */}
+        {step === 2 && (
+          <div className="card max-w-2xl p-7">
+            <h2 className="text-2xl">Checkout</h2>
 
-      {/* ── Step 3 — checkout ─────────────────────────────────────────── */}
-      {step === 3 && (
-        <div className="card max-w-2xl p-7">
-          <h2 className="text-2xl">Checkout</h2>
+            <dl className="mt-5 space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-ink/60">Player</dt>
+                <dd className="text-ink">{player.name}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink/60">WhatsApp</dt>
+                <dd className="tabular-nums text-ink">+91 {player.phone}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink/60">Playing as</dt>
+                <dd className="capitalize text-ink">{player.skill}</dd>
+              </div>
+            </dl>
 
-          <dl className="mt-5 space-y-2.5 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-ink/70">Player</dt>
-              <dd className="text-ink">{name}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/70">WhatsApp</dt>
-              <dd className="text-ink">+91 {phone}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/70">Playing as</dt>
-              <dd className="text-ink capitalize">{skill}</dd>
-            </div>
-          </dl>
-
-          <ul className="mt-5 space-y-2 border-t border-line pt-5 text-sm">
-            {pickedSessions.map((s) => (
-              <li key={s.id} className="flex justify-between gap-4">
-                <span className="text-ink/75">
-                  {formatDate(s.session_date)} · {formatTime(s.start_time)} · {s.venue_name} C{s.court_number}
-                </span>
-                <span className="text-ink/80">{formatPaise(perPlayerPaise(s) * players)}</span>
+            <ul className="mt-5 space-y-2 border-t border-line pt-5 text-sm">
+              {pickedSessions.map((s) => (
+                <li key={s.id} className="flex justify-between gap-4">
+                  <span className="text-ink/70">
+                    {formatDate(s.session_date)} · {formatTime(s.start_time)} · {s.venue_name}
+                  </span>
+                  <span className="tabular-nums text-ink/80">{formatPaise(perPlayerPaise(s))}</span>
+                </li>
+              ))}
+              <li className="flex justify-between gap-4 border-t border-line pt-3">
+                <span className="font-display text-xl text-ink">Total</span>
+                <span className="font-display text-xl tabular-nums text-volt-deep">{formatPaise(totalPaise)}</span>
               </li>
-            ))}
-            <li className="flex justify-between gap-4 border-t border-line pt-3">
-              <span className="font-display text-xl uppercase text-ink">Total</span>
-              <span className="font-display text-xl text-volt-deep">{formatPaise(totalPaise)}</span>
-            </li>
-          </ul>
+            </ul>
 
-          <div className="mt-6">
-            <span className="label">Payment</span>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {walletPaise > 0 && (
+            {gatedPicks.length > 0 && (
+              <div className="mt-5">
+                <Alert tone="info">
+                  {gatedPicks.length === 1 ? "One of these courts is" : `${gatedPicks.length} of these courts are`}{" "}
+                  above your band, so an admin approves before you appear on the roster.
+                </Alert>
+              </div>
+            )}
+
+            <div className="mt-6">
+              <span className="label">Payment</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {walletPaise > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPay("wallet")}
+                    disabled={walletPaise < totalPaise}
+                    className={`tile ${pay === "wallet" ? "tile-selected" : ""} ${
+                      walletPaise < totalPaise ? "opacity-40" : ""
+                    }`}
+                  >
+                    <Wallet size={18} className="text-volt-deep" />
+                    <p className="mt-2 font-display text-lg uppercase text-ink">SuperPro wallet</p>
+                    <p className="mt-1 text-xs text-ink/55">
+                      {walletPaise < totalPaise
+                        ? `Only ${formatPaise(walletPaise)} left — top up first.`
+                        : `${formatPaise(walletPaise)} available.`}
+                    </p>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setPay("wallet")}
-                  disabled={walletPaise < totalPaise}
-                  className={`tile ${pay === "wallet" ? "tile-selected" : ""} ${walletPaise < totalPaise ? "opacity-40" : ""}`}
+                  onClick={() => razorpayEnabled && setPay("razorpay")}
+                  disabled={!razorpayEnabled}
+                  className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
                 >
-                  <Wallet size={18} className="text-volt-deep" />
-                  <p className="mt-2 font-display text-lg uppercase text-ink">SuperPro wallet</p>
-                  <p className="mt-1 text-xs text-ink/65">
-                    {walletPaise < totalPaise
-                      ? `Only ${formatPaise(walletPaise)} left — top up with a rep.`
-                      : `${formatPaise(walletPaise)} available. Confirms instantly.`}
+                  <CreditCard size={18} className="text-volt-deep" />
+                  <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
+                  <p className="mt-1 text-xs text-ink/55">
+                    {razorpayEnabled ? "UPI or card. Confirms instantly." : "Temporarily unavailable."}
                   </p>
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => razorpayEnabled && setPay("razorpay")}
-                disabled={!razorpayEnabled}
-                className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
-              >
-                <CreditCard size={18} className="text-volt-deep" />
-                <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
-                <p className="mt-1 text-xs text-ink/65">
-                  {razorpayEnabled ? "UPI or card. Slot confirms instantly." : "Temporarily unavailable."}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setPay("venue")}
+                  className={`tile ${pay === "venue" ? "tile-selected" : ""}`}
+                >
+                  <Banknote size={18} className="text-volt-deep" />
+                  <p className="mt-2 font-display text-lg uppercase text-ink">Pay at venue</p>
+                  <p className="mt-1 text-xs text-ink/55">Held for 20 minutes from slot start.</p>
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <label className="label" htmlFor="g-notes">
+                Notes for the organiser (optional)
+              </label>
+              <textarea
+                id="g-notes"
+                rows={2}
+                className="field resize-none"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Running five minutes late, need a spare paddle…"
+              />
+            </div>
+
+            <div className="mt-7 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStep(1)} className="btn-outline">
+                <ArrowLeft size={16} /> Back
               </button>
-              <button type="button" onClick={() => setPay("venue")} className={`tile ${pay === "venue" ? "tile-selected" : ""}`}>
-                <Banknote size={18} className="text-volt-deep" />
-                <p className="mt-2 font-display text-lg uppercase text-ink">Pay at venue</p>
-                <p className="mt-1 text-xs text-ink/65">Held for 20 minutes from slot start.</p>
+              <button type="button" onClick={confirmBooking} disabled={busy} className="btn-volt">
+                {busy ? <Spinner /> : null}
+                {busy
+                  ? "Confirming…"
+                  : pay === "razorpay"
+                    ? `Pay ${formatPaise(totalPaise)}`
+                    : pay === "wallet"
+                      ? `Pay ${formatPaise(totalPaise)} from wallet`
+                      : "Confirm booking"}
               </button>
             </div>
           </div>
+        )}
 
-          <div className="mt-5">
-            <label className="label" htmlFor="g-notes">Notes for the organiser (optional)</label>
-            <textarea id="g-notes" rows={2} className="field resize-none" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Bringing a friend, need a spare paddle…" />
-          </div>
+        {/* ── Step 3 — confirmed ────────────────────────────────────────── */}
+        {step === 3 && confirmation && (
+          <div className="card relative max-w-2xl overflow-hidden p-8 text-center">
+            <Confetti trigger={1} />
+            <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
+              <Check size={30} strokeWidth={3} />
+            </div>
+            <h2 className="headline-section mt-5">
+              {confirmation.payment_method === "razorpay" || confirmation.payment_method === "wallet"
+                ? "Paid & confirmed"
+                : "Slot confirmed"}
+            </h2>
+            <p className="mt-3 text-sm text-ink/60">
+              Reference <span className="font-semibold text-volt-deep">{confirmation.reference}</span>.
+              {confirmation.payment_method === "venue"
+                ? " Pay at the venue — your spot is held for 20 minutes from the start time."
+                : " See you on court."}
+            </p>
 
-          <div className="mt-7 flex items-center justify-between gap-3">
-            <button type="button" onClick={() => setStep(2)} className="btn-outline">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <button type="button" onClick={confirmBooking} disabled={busy} className="btn-volt">
-              {busy ? <Spinner /> : null}
-              {busy
-                ? "Confirming…"
-                : pay === "razorpay"
-                  ? `Pay ${formatPaise(totalPaise)}`
-                  : pay === "wallet"
-                    ? `Pay ${formatPaise(totalPaise)} from wallet`
-                    : "Confirm booking"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Step 4 — confirmed ────────────────────────────────────────── */}
-      {step === 4 && confirmation && (
-        <div className="card relative max-w-2xl overflow-hidden p-8 text-center">
-          <Confetti trigger={confirmation ? 1 : 0} />
-          <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
-            <Check size={30} strokeWidth={3} />
-          </div>
-          <h2 className="mt-5 text-4xl">
-            {confirmation.payment_method === "razorpay" || confirmation.payment_method === "wallet"
-              ? "Paid & confirmed"
-              : "Slot confirmed"}
-          </h2>
-          <p className="mt-3 text-sm text-ink/70">
-            Reference <span className="font-semibold text-volt-deep">{confirmation.reference}</span>.
-            {confirmation.payment_method === "razorpay"
-              ? " See you on court."
-              : confirmation.payment_method === "wallet"
-                ? " Paid from your SuperPro wallet. See you on court."
-                : " Pay at the venue — your spot is held for 20 minutes from the start time."}
-          </p>
-
-          <ul className="mt-7 space-y-3 border-t border-line pt-6 text-left">
-            {confirmation.bookings.map((b, i) => {
-              const waiting = b.status === "pending_approval";
-              return (
-                <li
-                  key={i}
-                  className={`flex items-center justify-between gap-4 rounded-xl px-4 py-3 ${
-                    waiting ? "border border-amber/30 bg-amber/5" : "bg-mist"
-                  }`}
-                >
-                  <span>
-                    <span className="block font-display text-xl text-ink">
-                      {formatDate(b.session_date)} · {formatTime(b.start_time)}
-                    </span>
-                    <span className="block text-xs text-ink/65">{b.venue_name}</span>
-                    {waiting && (
-                      <span className="mt-1 block text-[11px] text-amber">
-                        Awaiting admin approval — this court is above your band.
+            <ul className="mt-7 space-y-3 border-t border-line pt-6 text-left">
+              {confirmation.bookings.map((b, i) => {
+                const waiting = b.status === "pending_approval";
+                return (
+                  <li
+                    key={i}
+                    className={`flex items-center justify-between gap-4 rounded-xl px-4 py-3 ${
+                      waiting ? "border border-amber/30 bg-amber/5" : "bg-mist"
+                    }`}
+                  >
+                    <span>
+                      <span className="block font-display text-xl text-ink">
+                        {formatDate(b.session_date)} · {formatTime(b.start_time)}
                       </span>
-                    )}
-                  </span>
-                  {waiting ? (
-                    <span className="chip-warn shrink-0">Pending</span>
-                  ) : (
-                    <span className="shrink-0 rounded-lg bg-volt px-3 py-1.5 font-display text-lg text-ink">
-                      Court {b.court_number}
+                      <span className="block text-xs text-ink/65">{b.venue_name}</span>
+                      {waiting && (
+                        <span className="mt-1 block text-[11px] text-amber">
+                          Awaiting admin approval — this court is above your band.
+                        </span>
+                      )}
                     </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                    <span className={waiting ? "chip-warn shrink-0" : "chip-volt shrink-0"}>
+                      {waiting ? "Pending" : "Confirmed"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
 
-          <div className="mt-7 rounded-xl border border-line bg-mist p-4 text-left">
-            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-              <Users size={15} className="text-volt-deep" /> Posted to the games group
-            </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-ink/65">
-              Your name and court number go into the SuperPro daily-games WhatsApp group, and onto the slot on
-              this site, so everyone knows who they&apos;re playing with. Slots awaiting approval are posted
-              once an admin confirms them.
-            </p>
-            {WHATSAPP_GROUP_URL && (
-              <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm mt-3">
-                <MessageCircle size={14} /> Open the group
-              </a>
-            )}
-          </div>
+            <div className="mt-7 rounded-xl border border-line bg-mist p-4 text-left">
+              <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                <Users size={15} className="text-volt-deep" /> Posted to the games group
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-ink/65">
+                Your name goes into the SuperPro daily-games WhatsApp group and onto the slot on this site, so
+                everyone knows who they&apos;re playing with. Courts are assigned on the day.
+              </p>
+              {WHATSAPP_GROUP_URL && (
+                <a
+                  href={WHATSAPP_GROUP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary btn-sm mt-3"
+                >
+                  <MessageCircle size={14} /> Open the group
+                </a>
+              )}
+            </div>
 
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={reset} className="btn-volt">
-              Book another slot
-            </button>
-            <Link href="/dashboard" className="btn-outline">
-              My bookings
-            </Link>
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <button type="button" onClick={reset} className="btn-volt">
+                Book another slot
+              </button>
+              <Link href="/dashboard" className="btn-outline">
+                My bookings
+              </Link>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

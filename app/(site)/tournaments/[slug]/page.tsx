@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, ChevronLeft, MapPin, MessageCircle, Trophy, Users } from "lucide-react";
 import { TournamentRegistration } from "@/components/tournament-registration";
+import { SignInGate } from "@/components/sign-in-gate";
 import { getTournamentBySlug, getTournamentFormFields, getTournamentGroups } from "@/lib/queries";
 import { getPlayerSession } from "@/lib/auth";
 import { getUserRow } from "@/lib/accounts";
@@ -162,7 +163,13 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
         </div>
 
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-          {canRegister ? (
+          {canRegister && !profile ? (
+            <SignInGate
+              title="Sign in to enter"
+              detail="Draws are seeded off your DUPR rating and the organisers need one contact per team, so entries run through your account. Everything we already know about you is filled in for you."
+              next={`/tournaments/${t.slug}`}
+            />
+          ) : canRegister ? (
             <TournamentRegistration
               tournament={t}
               razorpayEnabled={isRazorpayEnabled}

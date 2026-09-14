@@ -7,6 +7,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, signupSchema } from "@/lib/validation";
 import { isSupabaseAdminConfigured } from "@/lib/supabase";
 import { normaliseDuprId, skillFromDupr } from "@/lib/dupr";
+import { handleFrom } from "@/lib/profile";
 
 export const runtime = "nodejs";
 
@@ -72,6 +73,11 @@ export async function POST(req: Request) {
       skill_level,
       dupr_id,
       dupr: dupr ?? null,
+      date_of_birth: parsed.data.date_of_birth || null,
+      gender: parsed.data.gender ?? null,
+      city: parsed.data.city ?? null,
+      // A readable public address for the player's profile page.
+      handle: handleFrom(full_name, created.id),
       role: "player",
     });
 

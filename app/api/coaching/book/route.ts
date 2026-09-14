@@ -20,6 +20,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Too many attempts. Try again in ${rl.retryAfterSec}s.` }, { status: 429 });
     }
 
+    // Booking is account-only: the roster, the level gate and the wallet all
+    // key off a real player, so there is no guest path behind the UI either.
+    const session = await getPlayerSession();
+    if (!session) {
+      return NextResponse.json({ error: "Sign in to book coaching." }, { status: 401 });
+    }
+
     const parsed = coachingBookingSchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
       return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
@@ -41,7 +48,6 @@ export async function POST(req: Request) {
     const wantsOnline = input.payment_method === "razorpay" && isRazorpayEnabled;
     const method = wantsOnline ? "razorpay" : "venue";
     const bookingNo = newRef("SPC");
-    const session = await getPlayerSession();
 
     const inserted = await query<{ id: string }>(
       `INSERT INTO coaching_bookings (booking_no, coach_id, user_id, player_name, player_phone, player_email,
@@ -52,15 +58,15 @@ export async function POST(req: Request) {
       [
         bookingNo,
         coach.id,
-        session?.id ?? null,
+        session.id,
         input.player_name,
         input.player_phone,
         input.player_email || null,
         input.skill_level,
         input.session_type,
         input.sessions_count,
-        input.preferred_date,
-        input.preferred_time,
+        input.preferred_date || null,
+        input.preferred_time || null,
         amount,
         method,
         input.notes ?? null,
@@ -83,7 +89,9 @@ export async function POST(req: Request) {
       }
     }
 
-    const when = `${formatDate(input.preferred_date)} at ${input.preferred_time}`;
+    const when = input.preferred_date
+      ? `${formatDate(input.preferred_date)} at ${input.preferred_time ?? ""}`.trim()
+      : "date to be agreed with the coach";
 
     if (!razorpayOrderId) {
       // Confirm to the player, and ping the coach directly when we have their number.

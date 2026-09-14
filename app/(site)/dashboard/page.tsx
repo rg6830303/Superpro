@@ -37,6 +37,19 @@ type CoachRow = {
   amount_paise: number;
 };
 
+type EntryRow = {
+  reference: string;
+  tournament_title: string;
+  tournament_slug: string;
+  starts_on: string;
+  category: string | null;
+  team_name: string;
+  status: string;
+  payment_status: string;
+  amount_paise: number;
+  group_name: string | null;
+};
+
 type OrderRow = {
   order_no: string;
   total_paise: number;
@@ -51,7 +64,7 @@ export default async function DashboardPage() {
 
   await ensureSchema();
 
-  const [games, coaching, orders] = await Promise.all([
+  const [games, coaching, entries, orders] = await Promise.all([
     query<GameRow>(
       `SELECT r.id, s.session_date::text AS session_date, s.start_time, v.name AS venue_name,
               COALESCE(r.court_number, s.court_number) AS court_number,
@@ -68,6 +81,18 @@ export default async function DashboardPage() {
               b.sessions_count, b.status, b.amount_paise
        FROM coaching_bookings b JOIN coaches c ON c.id = b.coach_id
        WHERE b.user_id = $1 ORDER BY b.created_at DESC LIMIT 10`,
+      [session.id],
+    ).catch(() => []),
+    query<EntryRow>(
+      `SELECT r.reference, t.title AS tournament_title, t.slug AS tournament_slug,
+              t.starts_on::text AS starts_on, r.category, r.team_name, r.status,
+              r.payment_status, r.amount_paise,
+              g.name AS group_name
+       FROM tournament_registrations r
+       JOIN tournaments t ON t.id = r.tournament_id
+       LEFT JOIN tournament_groups g ON g.id = r.group_id
+       WHERE r.user_id = $1
+       ORDER BY t.starts_on DESC LIMIT 10`,
       [session.id],
     ).catch(() => []),
     query<OrderRow>(
@@ -101,10 +126,11 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-9 grid gap-4 sm:grid-cols-3">
+      <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { icon: CalendarDays, k: `${upcoming}`, v: "Game bookings" },
           { icon: GraduationCap, k: `${coaching.length}`, v: "Coaching bookings" },
+          { icon: Trophy, k: `${entries.length}`, v: "Tournament entries" },
           { icon: Package, k: `${orders.length}`, v: "Orders" },
         ].map((s) => (
           <div key={s.v} className="card p-5">
@@ -231,6 +257,56 @@ export default async function DashboardPage() {
                     <td>{formatPaise(c.amount_paise)}</td>
                     <td>
                       <span className="chip capitalize">{c.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {entries.length > 0 && (
+        <section className="mt-12">
+          <h2 className="mb-5 text-3xl">Tournament entries</h2>
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Tournament</th>
+                  <th>Starts</th>
+                  <th>Team</th>
+                  <th>Category</th>
+                  <th>Group</th>
+                  <th>Entry fee</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => (
+                  <tr key={e.reference}>
+                    <td className="font-mono text-xs text-volt-deep">{e.reference}</td>
+                    <td>
+                      <Link href={`/tournaments/${e.tournament_slug}`} className="font-semibold hover:underline">
+                        {e.tournament_title}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap">{formatDate(e.starts_on)}</td>
+                    <td>{e.team_name}</td>
+                    <td className="capitalize">{e.category ?? "—"}</td>
+                    <td>{e.group_name ?? "To be drawn"}</td>
+                    <td>{formatPaise(e.amount_paise)}</td>
+                    <td>
+                      <span className={e.status === "withdrawn" ? "chip" : e.payment_status === "paid" ? "chip-volt" : "chip-warn"}>
+                        {e.status === "withdrawn"
+                          ? "Withdrawn"
+                          : e.status === "waitlist"
+                            ? "Waitlisted"
+                            : e.payment_status === "paid"
+                              ? "Confirmed"
+                              : "Fee due"}
+                      </span>
                     </td>
                   </tr>
                 ))}

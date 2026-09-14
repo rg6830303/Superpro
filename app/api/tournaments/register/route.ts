@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPlayerSession } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { newRef } from "@/lib/money";
@@ -19,6 +20,13 @@ export async function POST(req: Request) {
     const rl = await checkRateLimit(`tourn-reg:${getClientIp(req)}`, 10, 10 * 60 * 1000);
     if (!rl.ok) {
       return NextResponse.json({ error: `Too many attempts. Try again in ${rl.retryAfterSec}s.` }, { status: 429 });
+    }
+
+    // Booking is account-only: the roster, the level gate and the wallet all
+    // key off a real player, so there is no guest path behind the UI either.
+    const session = await getPlayerSession();
+    if (!session) {
+      return NextResponse.json({ error: "Sign in to enter a tournament." }, { status: 401 });
     }
 
     const parsed = tournamentRegistrationSchema.safeParse(await req.json().catch(() => ({})));
@@ -90,10 +98,10 @@ export async function POST(req: Request) {
     const reference = newRef("SPT");
 
     const inserted = await query<{ id: string }>(
-      `INSERT INTO tournament_registrations (reference, tournament_id, team_name, category,
+      `INSERT INTO tournament_registrations (reference, tournament_id, user_id, team_name, category,
          player1_name, player1_phone, player1_dupr, player2_name, player2_phone, player2_dupr,
          email, amount_paise, payment_method, payment_status, status, notes, answers)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,$15,$16::jsonb)
+       VALUES ($1,$2,$17,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14,$15,$16::jsonb)
        RETURNING id`,
       [
         reference,
@@ -112,6 +120,7 @@ export async function POST(req: Request) {
         waitlisted ? "waitlist" : "pending",
         input.notes ?? null,
         JSON.stringify(cleanAnswers),
+        session.id,
       ],
     );
 

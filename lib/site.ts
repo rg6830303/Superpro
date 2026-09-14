@@ -36,6 +36,7 @@ export const NAV_LINKS = [
   { href: "/games", label: "Daily Games" },
   { href: "/coaching", label: "Coaching" },
   { href: "/tournaments", label: "Tournaments" },
+  { href: "/players", label: "Players" },
 ] as const;
 
 export const PRODUCT_CATEGORIES = [

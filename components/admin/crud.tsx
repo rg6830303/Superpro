@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 
 /**
@@ -10,7 +10,17 @@ import { Alert, Spinner } from "@/components/ui";
  * and remove any row without each page reinventing the same form plumbing.
  */
 
-export type FieldType = "text" | "number" | "money" | "textarea" | "select" | "checkbox" | "date" | "time" | "list";
+export type FieldType =
+  | "text"
+  | "number"
+  | "money"
+  | "textarea"
+  | "select"
+  | "checkbox"
+  | "date"
+  | "time"
+  | "list"
+  | "image";
 
 export type FieldDef = {
   name: string;
@@ -22,6 +32,8 @@ export type FieldDef = {
   required?: boolean;
   /** Half-width on wide screens (default) or full row. */
   full?: boolean;
+  /** Upload folder for `image` fields. */
+  folder?: string;
 };
 
 export type RecordValues = Record<string, unknown>;
@@ -64,6 +76,82 @@ export function Drawer({
   );
 }
 
+function ImagePicker({
+  value,
+  folder,
+  onChange,
+}: {
+  value: string;
+  folder: string;
+  onChange: (v: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file: File) {
+    setBusy(true);
+    setError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      body.append("folder", folder);
+      const res = await fetch("/api/admin/media", { method: "POST", body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Upload failed.");
+      onChange(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-line bg-mist">
+          {value ? (
+            // Uploaded to Supabase Storage, so no next/image loader config needed.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={value} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-[10px] text-ink/35">No image</span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <label className="btn-outline btn-sm cursor-pointer">
+            {busy ? <Spinner /> : <Upload size={13} />}
+            {value ? "Replace" : "Upload"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) upload(file);
+              }}
+            />
+          </label>
+          {value && (
+            <button type="button" className="btn-ghost btn-sm" onClick={() => onChange("")}>
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+      <input
+        className="field"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="…or paste an image URL"
+      />
+      {error && <p className="field-error">{error}</p>}
+    </div>
+  );
+}
+
 export function Field({
   def,
   value,
@@ -95,13 +183,23 @@ export function Field({
   }
 
   return (
-    <div className={def.full || def.type === "textarea" || def.type === "list" ? "sm:col-span-2" : ""}>
+    <div
+      className={
+        def.full || def.type === "textarea" || def.type === "list" || def.type === "image" ? "sm:col-span-2" : ""
+      }
+    >
       <label className="label" htmlFor={id}>
         {def.label}
         {def.required && <span className="ml-1 text-signal">*</span>}
       </label>
 
-      {def.type === "select" ? (
+      {def.type === "image" ? (
+        <ImagePicker
+          value={String(value ?? "")}
+          folder={def.folder ?? "media"}
+          onChange={(v) => onChange(v || null)}
+        />
+      ) : def.type === "select" ? (
         <select id={id} className={common} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)}>
           {def.options?.map((o) => (
             <option key={o.value} value={o.value}>

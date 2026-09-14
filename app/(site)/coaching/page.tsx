@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { MessageCircle } from "lucide-react";
 import { CoachingFlow } from "@/components/coaching-flow";
+import { SignInGate } from "@/components/sign-in-gate";
+import { getUserRow } from "@/lib/accounts";
 import { EmptyState } from "@/components/ui";
 import { getPlayerSession } from "@/lib/auth";
-import { getCoaches } from "@/lib/queries";
+import { getCoachAvailability, getCoaches } from "@/lib/queries";
 import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { waLink } from "@/lib/site";
 
@@ -16,7 +18,12 @@ export const metadata: Metadata = {
 };
 
 export default async function CoachingPage() {
-  const [coaches, session] = await Promise.all([getCoaches(), getPlayerSession()]);
+  const [coaches, availability, session] = await Promise.all([
+    getCoaches(),
+    getCoachAvailability(),
+    getPlayerSession(),
+  ]);
+  const profile = session ? await getUserRow(session.id) : null;
 
   return (
     <div className="wrap section">
@@ -46,9 +53,19 @@ export default async function CoachingPage() {
         ) : (
           <CoachingFlow
             coaches={coaches}
+            availability={availability}
             razorpayEnabled={isRazorpayEnabled}
             razorpayKeyId={razorpayKeyId}
-            defaults={session ? { name: session.name, email: session.email } : undefined}
+            player={
+              profile
+                ? {
+                    name: profile.full_name,
+                    phone: profile.phone ?? "",
+                    email: profile.email,
+                    skill: profile.skill_level,
+                  }
+                : null
+            }
           />
         )}
       </div>

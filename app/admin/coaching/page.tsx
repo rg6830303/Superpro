@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
-import { AddButton, ListState, RecordEditor, submitResource, type FieldDef } from "@/components/admin/crud";
+import {
+  AddButton,
+  Drawer,
+  Field,
+  ListState,
+  RecordEditor,
+  submitResource,
+  type FieldDef,
+} from "@/components/admin/crud";
 import { formatDate } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 
@@ -20,10 +28,23 @@ type Coach = {
   languages: string | null;
   whatsapp: string | null;
   available_days: string[];
+  image_url: string | null;
   active: boolean;
   sort_order: number;
   bookings: number;
 };
+
+type Availability = {
+  id: string;
+  coach_id: string;
+  coach_name: string;
+  weekday: number;
+  start_time: string;
+  end_time: string;
+  active: boolean;
+};
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type Booking = {
   id: string;
@@ -45,6 +66,13 @@ const COACH_FIELDS: FieldDef[] = [
   { name: "slug", label: "URL slug", required: true, hint: "lowercase-with-dashes" },
   { name: "headline", label: "Headline", full: true, placeholder: "Head coach · DUPR 5.4 · third-shot discipline" },
   { name: "bio", label: "Bio", type: "textarea" },
+  {
+    name: "image_url",
+    label: "Photo",
+    type: "image",
+    folder: "coaches",
+    hint: "Shown on the coach card. Portrait or square works best.",
+  },
   { name: "specialties", label: "Specialties", type: "list", placeholder: "One per line" },
   { name: "available_days", label: "Available days", type: "list", placeholder: "Mon\nTue\nWed" },
   { name: "dupr", label: "DUPR rating", type: "number" },
@@ -59,24 +87,28 @@ const COACH_FIELDS: FieldDef[] = [
 const STATUSES = ["requested", "confirmed", "completed", "cancelled"];
 
 export default function AdminCoachingPage() {
-  const [tab, setTab] = useState<"coaches" | "bookings">("coaches");
+  const [tab, setTab] = useState<"coaches" | "availability" | "bookings">("coaches");
   const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [availability, setAvailability] = useState<Availability[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Coach | null>(null);
   const [creating, setCreating] = useState(false);
+  const [addingSlot, setAddingSlot] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [c, b] = await Promise.all([
+      const [c, a, b] = await Promise.all([
         fetch("/api/admin/coaches").then((r) => r.json()),
+        fetch("/api/admin/coach-availability").then((r) => r.json()),
         fetch("/api/admin/coaching").then((r) => r.json()),
       ]);
       if (c.error) throw new Error(c.error);
       setCoaches(c.coaches ?? []);
+      setAvailability(a.slots ?? []);
       setBookings(b.bookings ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load coaching.");
@@ -96,7 +128,13 @@ export default function AdminCoachingPage() {
       <AdminHeader
         title="Coaching"
         sub="Coach roster and session requests."
-        action={<AddButton label="Add coach" onClick={() => setCreating(true)} />}
+        action={
+          tab === "availability" ? (
+            <AddButton label="Add availability" onClick={() => setAddingSlot(true)} />
+          ) : (
+            <AddButton label="Add coach" onClick={() => setCreating(true)} />
+          )
+        }
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -106,7 +144,7 @@ export default function AdminCoachingPage() {
       </div>
 
       <div className="mb-5 flex gap-2">
-        {(["coaches", "bookings"] as const).map((t) => (
+        {(["coaches", "availability", "bookings"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -123,8 +161,20 @@ export default function AdminCoachingPage() {
       <ListState
         loading={loading}
         error={error}
-        empty={tab === "coaches" ? coaches.length === 0 : bookings.length === 0}
-        emptyLabel={tab === "coaches" ? "No coaches yet." : "No coaching requests yet."}
+        empty={
+          tab === "coaches"
+            ? coaches.length === 0
+            : tab === "availability"
+              ? availability.length === 0
+              : bookings.length === 0
+        }
+        emptyLabel={
+          tab === "coaches"
+            ? "No coaches yet."
+            : tab === "availability"
+              ? "No availability set. Add the hours each coach is usually on court."
+              : "No coaching requests yet."
+        }
       />
 
       {tab === "coaches" && !loading && coaches.length > 0 && (
@@ -165,6 +215,72 @@ export default function AdminCoachingPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {tab === "availability" && !loading && availability.length > 0 && (
+        <div className="table-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Coach</th>
+                <th>Day</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Shown</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {availability.map((a) => (
+                <tr key={a.id}>
+                  <td className="font-semibold text-ink">{a.coach_name}</td>
+                  <td>{WEEKDAYS[a.weekday]}</td>
+                  <td className="font-mono text-xs">{a.start_time}</td>
+                  <td className="font-mono text-xs">{a.end_time}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className={a.active ? "chip-volt" : "chip"}
+                      onClick={async () => {
+                        await submitResource("/api/admin/coach-availability", "PATCH", {
+                          id: a.id,
+                          active: !a.active,
+                        });
+                        load();
+                      }}
+                    >
+                      {a.active ? "Visible" : "Hidden"}
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${a.coach_name} ${WEEKDAYS[a.weekday]} ${a.start_time}`}
+                      onClick={async () => {
+                        await submitResource(`/api/admin/coach-availability?id=${a.id}`, "DELETE");
+                        load();
+                      }}
+                      className="rounded-md p-2 text-ink/40 transition-colors hover:bg-signal/10 hover:text-signal"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {addingSlot && (
+        <AvailabilityEditor
+          coaches={coaches}
+          onClose={() => setAddingSlot(false)}
+          onSaved={() => {
+            setAddingSlot(false);
+            load();
+          }}
+        />
       )}
 
       {tab === "bookings" && !loading && bookings.length > 0 && (
@@ -251,6 +367,7 @@ export default function AdminCoachingPage() {
                   slug: editing.slug,
                   headline: editing.headline ?? "",
                   bio: editing.bio ?? "",
+                  image_url: editing.image_url ?? "",
                   specialties: editing.specialties ?? [],
                   available_days: editing.available_days ?? [],
                   dupr: editing.dupr != null ? Number(editing.dupr) : null,
@@ -265,6 +382,7 @@ export default function AdminCoachingPage() {
                   experience_years: 1,
                   rate_paise: 120000,
                   languages: "English, Hindi, Bengali",
+                  image_url: "",
                   specialties: [],
                   available_days: [],
                   sort_order: 0,
@@ -302,5 +420,111 @@ export default function AdminCoachingPage() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Availability is added a block at a time — one start/end pair across however
+ * many weekdays the coach keeps free — because that is how coaches describe
+ * their week ("Mon, Wed, Fri mornings"), not day by day.
+ */
+function AvailabilityEditor({
+  coaches,
+  onClose,
+  onSaved,
+}: {
+  coaches: Coach[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [coachId, setCoachId] = useState(coaches[0]?.id ?? "");
+  const [days, setDays] = useState<number[]>([1, 3, 5]);
+  const [start, setStart] = useState("07:00");
+  const [end, setEnd] = useState("09:00");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    const err = await submitResource("/api/admin/coach-availability", "POST", {
+      coach_id: coachId,
+      weekdays: days,
+      start_time: start,
+      end_time: end,
+    });
+    setSaving(false);
+    if (err) setError(err);
+    else onSaved();
+  }
+
+  return (
+    <Drawer
+      title="Add availability"
+      sub="Recurring weekly hours. Players see these as a guide — the exact date is agreed with the coach."
+      onClose={onClose}
+      footer={
+        <div className="flex gap-3">
+          <button
+            type="button"
+            className="btn-primary flex-1"
+            disabled={saving || !coachId || days.length === 0}
+            onClick={save}
+          >
+            {saving ? "Saving…" : "Add availability"}
+          </button>
+          <button type="button" className="btn-outline" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+      }
+    >
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field
+          def={{
+            name: "coach_id",
+            label: "Coach",
+            type: "select",
+            full: true,
+            options: coaches.map((c) => ({ value: c.id, label: c.name })),
+          }}
+          value={coachId}
+          onChange={(v) => setCoachId(String(v ?? ""))}
+        />
+        <Field
+          def={{ name: "start", label: "From", type: "time" }}
+          value={start}
+          onChange={(v) => setStart(String(v ?? ""))}
+        />
+        <Field
+          def={{ name: "end", label: "To", type: "time" }}
+          value={end}
+          onChange={(v) => setEnd(String(v ?? ""))}
+        />
+
+        <div className="sm:col-span-2">
+          <p className="label">Days</p>
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAYS.map((label, i) => {
+              const on = days.includes(i);
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setDays(on ? days.filter((d) => d !== i) : [...days, i])}
+                  className={`rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
+                    on ? "bg-volt text-ink" : "border border-line text-ink/60 hover:text-ink"
+                  }`}
+                >
+                  {label.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {error && <p className="field-error sm:col-span-2">{error}</p>}
+      </div>
+    </Drawer>
   );
 }

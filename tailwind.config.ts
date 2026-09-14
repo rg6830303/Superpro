@@ -115,6 +115,15 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
           "50%": { transform: "translateY(-12px) rotate(2deg)" },
         },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "pop-in": {
+          "0%": { opacity: "0", transform: "translate3d(0, 24px, 0) scale(0.94)" },
+          "70%": { opacity: "1", transform: "translate3d(0, -4px, 0) scale(1.01)" },
+          "100%": { opacity: "1", transform: "translate3d(0, 0, 0) scale(1)" },
+        },
       },
       animation: {
         "rise-in": "rise-in 0.62s cubic-bezier(0.16,1,0.3,1) both",
@@ -126,6 +135,8 @@ const config: Config = {
         "score-pop": "score-pop 0.45s cubic-bezier(0.34,1.56,0.64,1) both",
         "shine-sweep": "shine-sweep 1.1s cubic-bezier(0.16,1,0.3,1)",
         float: "float 7s ease-in-out infinite",
+        "fade-in": "fade-in 0.3s ease-out both",
+        "pop-in": "pop-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both",
       },
     },
   },

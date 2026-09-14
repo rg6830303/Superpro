@@ -2,6 +2,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WhatsAppFab } from "@/components/whatsapp-fab";
 import { ReadProgress } from "@/components/motion";
+import { WelcomePopup } from "@/components/welcome-popup";
+import { Suspense } from "react";
 
 /**
  * Public-site chrome. The admin console sits outside this group so it never
@@ -15,6 +17,10 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <main className="flex-1">{children}</main>
       <SiteFooter />
       <WhatsAppFab />
+      {/* Reads the `welcome` query param, so it needs its own suspense boundary. */}
+      <Suspense fallback={null}>
+        <WelcomePopup />
+      </Suspense>
     </div>
   );
 }

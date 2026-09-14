@@ -40,6 +40,11 @@ export default async function ProfilePage() {
         <ProfileForm
           profile={{
             email: profile?.email ?? session.email,
+            handle: profile?.handle ?? null,
+            avatar_url: profile?.avatar_url ?? null,
+            bio: profile?.bio ?? null,
+            date_of_birth: profile?.date_of_birth ?? null,
+            gender: profile?.gender ?? null,
             full_name: profile?.full_name ?? session.name,
             phone: profile?.phone ?? "",
             skill_level: profile?.skill_level ?? "beginner",

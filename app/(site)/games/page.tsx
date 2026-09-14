@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CalendarDays, Clock, MapPin, Users } from "lucide-react";
 import { GamesFlow } from "@/components/games-flow";
+import { SignInGate } from "@/components/sign-in-gate";
 import { MixerRules } from "@/components/mixer-rules";
 import { getPlayerSession } from "@/lib/auth";
 import { getUserRow } from "@/lib/accounts";
@@ -24,7 +25,6 @@ export default async function GamesPage() {
     getSettings(),
   ]);
 
-  // Wallet is only an option for a signed-in player with credit on it.
   const profile = session ? await getUserRow(session.id) : null;
   const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
 
@@ -71,17 +71,26 @@ export default async function GamesPage() {
       )}
 
       <div className="mt-10">
-        <GamesFlow
-          sessions={sessions}
-          razorpayEnabled={isRazorpayEnabled}
-          razorpayKeyId={razorpayKeyId}
-          walletPaise={walletPaise}
-          defaults={
-            session
-              ? { name: profile?.full_name ?? session.name, email: session.email, phone: profile?.phone ?? undefined }
-              : undefined
-          }
-        />
+        {profile ? (
+          <GamesFlow
+            sessions={sessions}
+            razorpayEnabled={isRazorpayEnabled}
+            razorpayKeyId={razorpayKeyId}
+            walletPaise={walletPaise}
+            player={{
+              name: profile.full_name,
+              phone: profile.phone ?? "",
+              email: profile.email,
+              skill: profile.skill_level,
+            }}
+          />
+        ) : (
+          <SignInGate
+            title="Sign in to book"
+            detail="Slots are held against your account, so your name, rating and bookings stay in one place."
+            next="/games"
+          />
+        )}
       </div>
 
       <MixerRules />

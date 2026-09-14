@@ -43,6 +43,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Too many attempts. Try again in ${rl.retryAfterSec}s.` }, { status: 429 });
     }
 
+    // Booking is account-only: the roster, the level gate and the wallet all
+    // key off a real player, so there is no guest path behind the UI either.
+    const session = await getPlayerSession();
+    if (!session) {
+      return NextResponse.json({ error: "Sign in to book a slot." }, { status: 401 });
+    }
+
     const parsed = playerRegistrationSchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
       return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
@@ -86,16 +93,12 @@ export async function POST(req: Request) {
     const priceOf = (s: SessionRow) => perPlayerPaise(s);
     const total = sessions.reduce((sum, s) => sum + priceOf(s) * input.players_count, 0);
     const reference = newRef("SPG");
-    const session = await getPlayerSession();
 
     // Wallet is only offered to signed-in players, and the debit happens BEFORE
     // the rows are written so an insufficient balance never leaves a half-paid
     // booking behind.
     const wantsWallet = input.payment_method === "wallet";
-    if (wantsWallet && !session) {
-      return NextResponse.json({ error: "Sign in to pay from your wallet." }, { status: 401 });
-    }
-    if (wantsWallet && session) {
+    if (wantsWallet) {
       const charge = await chargeWallet({
         userId: session.id,
         amountPaise: total,
@@ -124,7 +127,7 @@ export async function POST(req: Request) {
            player_email, skill_level, players_count, court_number, amount_paise, payment_method,
            payment_status, status, notes)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,$14,$12)
-         ON CONFLICT (session_id, player_phone) DO UPDATE
+         ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL DO UPDATE
            SET players_count = EXCLUDED.players_count,
                status = EXCLUDED.status,
                reference = EXCLUDED.reference,
@@ -133,7 +136,7 @@ export async function POST(req: Request) {
         [
           reference,
           s.id,
-          session?.id ?? null,
+          session.id,
           input.player_name,
           input.player_phone,
           input.player_email || null,

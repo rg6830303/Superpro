@@ -30,6 +30,8 @@ export const duprRatingSchema = z
   .nullable()
   .optional();
 
+export const genderSchema = z.enum(["male", "female", "other", "undisclosed"]);
+
 export const signupSchema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(80),
   email: emailSchema,
@@ -37,6 +39,14 @@ export const signupSchema = z.object({
   phone: phoneSchema,
   dupr_id: duprIdSchema,
   dupr: duprRatingSchema,
+  date_of_birth: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Enter a valid date of birth")
+    .optional()
+    .or(z.literal("")),
+  gender: genderSchema.optional(),
+  city: z.string().trim().max(60).optional(),
 });
 
 export const loginSchema = z.object({
@@ -63,8 +73,9 @@ export const coachingBookingSchema = z.object({
   skill_level: skillSchema.default("beginner"),
   session_type: z.enum(["single", "pair", "group"]).default("single"),
   sessions_count: z.number().int().min(1).max(20).default(1),
-  preferred_date: z.string().trim().min(1, "Pick a preferred date"),
-  preferred_time: z.string().trim().min(1, "Pick a preferred time"),
+  // Dates are agreed with the coach afterwards, so neither is required here.
+  preferred_date: z.string().trim().optional().or(z.literal("")),
+  preferred_time: z.string().trim().optional().or(z.literal("")),
   payment_method: paymentMethodSchema.default("venue"),
   notes: z.string().trim().max(400).optional(),
 });

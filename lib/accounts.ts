@@ -26,6 +26,10 @@ export type UserRow = {
   skill_level: string;
   dupr: number | null;
   dupr_id: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  bio: string | null;
+  handle: string | null;
   city: string | null;
   role: "player" | "staff" | "admin";
   wallet_balance_paise: number;
@@ -61,6 +65,10 @@ export async function syncUserRow(input: {
   skill_level?: string | null;
   dupr?: number | null;
   dupr_id?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  city?: string | null;
+  handle?: string | null;
   role?: "player" | "staff" | "admin";
 }): Promise<UserRow | null> {
   const email = input.email.toLowerCase();
@@ -69,8 +77,9 @@ export async function syncUserRow(input: {
   try {
     await query(
       `INSERT INTO users (id, email, full_name, phone, skill_level, dupr, dupr_id, role,
-         auth_provider, password_hash)
-       VALUES ($1,$2,$3,$4,COALESCE($5,'beginner'),$6,$7,COALESCE($8,'player'),'supabase',NULL)
+         date_of_birth, gender, city, handle, auth_provider, password_hash)
+       VALUES ($1,$2,$3,$4,COALESCE($5,'beginner'),$6,$7,COALESCE($8,'player'),
+               $9,$10,COALESCE($11,'Kolkata'),$12,'supabase',NULL)
        ON CONFLICT (id) DO UPDATE SET
          email = EXCLUDED.email,
          full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), users.full_name),
@@ -78,6 +87,10 @@ export async function syncUserRow(input: {
          skill_level = COALESCE(EXCLUDED.skill_level, users.skill_level),
          dupr = COALESCE(EXCLUDED.dupr, users.dupr),
          dupr_id = COALESCE(EXCLUDED.dupr_id, users.dupr_id),
+         date_of_birth = COALESCE(EXCLUDED.date_of_birth, users.date_of_birth),
+         gender = COALESCE(EXCLUDED.gender, users.gender),
+         city = COALESCE(EXCLUDED.city, users.city),
+         handle = COALESCE(users.handle, EXCLUDED.handle),
          role = CASE WHEN EXCLUDED.role = 'admin' THEN 'admin' ELSE users.role END,
          last_login_at = now(),
          updated_at = now()`,
@@ -90,6 +103,10 @@ export async function syncUserRow(input: {
         input.dupr ?? null,
         input.dupr_id ?? null,
         input.role ?? null,
+        input.date_of_birth || null,
+        input.gender ?? null,
+        input.city ?? null,
+        input.handle ?? null,
       ],
     );
   } catch (err) {

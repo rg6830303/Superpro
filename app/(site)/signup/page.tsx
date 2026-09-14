@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth-forms";
 import { getPlayerSession } from "@/lib/auth";
@@ -13,7 +14,9 @@ export default async function SignupPage() {
 
   return (
     <div className="wrap max-w-xl section">
-      <SignupForm />
+      <Suspense fallback={<p className="text-sm text-ink/40">Loading…</p>}>
+        <SignupForm />
+      </Suspense>
     </div>
   );
 }

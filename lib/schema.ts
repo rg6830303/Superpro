@@ -327,6 +327,25 @@ export const SCHEMA_TABLES: string[] = [
     UNIQUE (tournament_id, field_key)
   )`,
 
+  `CREATE TABLE IF NOT EXISTS follows (
+    follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    following_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (follower_id, following_id),
+    CHECK (follower_id <> following_id)
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS coach_availability (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
+    weekday SMALLINT NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (coach_id, weekday, start_time)
+  )`,
+
   `CREATE TABLE IF NOT EXISTS wallet_topups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reference TEXT UNIQUE NOT NULL,
@@ -383,12 +402,37 @@ export const SCHEMA_MIGRATIONS: string[] = [
 
   // Answers to the admin-authored fields on a tournament entry form.
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS answers JSONB NOT NULL DEFAULT '{}'::jsonb`,
+  // Entries run through an account now, so a player can see their own draws.
+  `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL`,
 
   // Playing up a band is allowed, but an admin decides. Playing down never is.
   `ALTER TABLE game_registrations DROP CONSTRAINT IF EXISTS game_registrations_status_check`,
   `ALTER TABLE game_registrations ADD CONSTRAINT game_registrations_status_check
      CHECK (status IN ('confirmed','waitlist','cancelled','pending_approval','declined'))`,
   `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS approval_note TEXT`,
+
+  // Profile: date of birth rather than an age column, because a stored age is
+  // wrong within a year of being entered.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT`,
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_gender_check`,
+  `ALTER TABLE users ADD CONSTRAINT users_gender_check
+     CHECK (gender IS NULL OR gender IN ('male','female','other','undisclosed'))`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS handle TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_handle ON users(lower(handle)) WHERE handle IS NOT NULL`,
+
+  // Backfill handles for accounts created before public profiles existed, so
+  // every player is reachable in the directory rather than only new signups.
+  `UPDATE users SET handle = trim(both '-' from regexp_replace(lower(left(full_name, 24)), '[^a-z0-9]+', '-', 'g'))
+     || '-' || left(replace(id::text, '-', ''), 6)
+   WHERE handle IS NULL AND full_name IS NOT NULL AND full_name <> ''`,
+
+  // A booking is tied to an account now, so guest columns are optional.
+  `ALTER TABLE game_registrations ALTER COLUMN player_phone DROP NOT NULL`,
+  // Phone stopped being the booking identity once every booking carries an
+  // account; two players sharing a household number are two bookings.
+  `ALTER TABLE game_registrations DROP CONSTRAINT IF EXISTS game_registrations_session_id_player_phone_key`,
   `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS decided_at TIMESTAMPTZ`,
 
   // Supabase Auth owns passwords from here on: `users` mirrors auth.users with
@@ -428,6 +472,10 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_sessions_date ON game_sessions(session_date)`,
   `CREATE INDEX IF NOT EXISTS idx_regs_session ON game_registrations(session_id)`,
   `CREATE INDEX IF NOT EXISTS idx_regs_phone ON game_registrations(player_phone)`,
+  // Bookings are per account now, so one player can hold one place in a slot.
+  // Phone is no longer the identity — an account without one still books.
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_regs_session_user
+     ON game_registrations(session_id, user_id) WHERE user_id IS NOT NULL`,
   `CREATE INDEX IF NOT EXISTS idx_regs_reference ON game_registrations(reference)`,
   `CREATE INDEX IF NOT EXISTS idx_tourn_reg_reference ON tournament_registrations(reference)`,
   `CREATE INDEX IF NOT EXISTS idx_coaching_coach ON coaching_bookings(coach_id)`,
@@ -436,9 +484,12 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_outbox_status ON whatsapp_outbox(status, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_wallet_user ON wallet_transactions(user_id, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_topups_status ON wallet_topups(status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_coach_avail ON coach_availability(coach_id, weekday)`,
   `CREATE INDEX IF NOT EXISTS idx_form_fields_tournament ON tournament_form_fields(tournament_id, sort_order)`,
   `CREATE INDEX IF NOT EXISTS idx_time_slots_active ON time_slots(sort_order) WHERE active`,
   `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
+  `CREATE INDEX IF NOT EXISTS idx_tourn_regs_user ON tournament_registrations(user_id)`,
 ];
 
 let ensured = false;

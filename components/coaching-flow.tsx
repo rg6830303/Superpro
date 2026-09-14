@@ -5,16 +5,17 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Award, Banknote, Check, CreditCard, MessageCircle } from "lucide-react";
 import { openRazorpay } from "@/components/razorpay-client";
+import { SignInGate } from "@/components/sign-in-gate";
 import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
-import { upcomingDates, formatDate } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
+import { initials } from "@/lib/profile";
 import { waLink } from "@/lib/site";
-import type { Coach, SkillLevel } from "@/lib/types";
+import type { Coach } from "@/lib/types";
 
-const STEPS = ["Choose coach", "Session", "Checkout", "Confirmed"];
+const STEPS = ["Choose coach", "Session", "Checkout", "Connected"];
 
-const TIMES = ["06:00", "07:00", "08:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const SESSION_TYPES = [
   { value: "single", label: "1-on-1", note: "Just you and the coach", multiplier: 1 },
@@ -22,84 +23,9 @@ const SESSION_TYPES = [
   { value: "group", label: "Small group", note: "3–4 players · 2× rate, split it", multiplier: 2 },
 ] as const;
 
-const SKILLS: Array<{ value: SkillLevel; label: string }> = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
-  { value: "pro", label: "DUPR rated" },
-];
-
 type SessionType = (typeof SESSION_TYPES)[number]["value"];
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
-}
-
-export function CoachCard({
-  coach,
-  selected,
-  onSelect,
-}: {
-  coach: Coach;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const specialties = Array.isArray(coach.specialties) ? coach.specialties : [];
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`card-hover flex h-full flex-col p-6 text-left ${selected ? "border-ink shadow-volt" : ""}`}
-    >
-      <div className="flex items-center gap-4">
-        {coach.image_url ? (
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-mist">
-            <Image src={coach.image_url} alt={coach.name} fill sizes="64px" className="object-cover" />
-          </div>
-        ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-volt-deep/30 bg-volt-soft font-display text-2xl text-volt-deep">
-            {initials(coach.name)}
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="font-display text-2xl uppercase text-ink">{coach.name}</p>
-          {coach.dupr && (
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-volt-deep">
-              <Award size={12} /> DUPR {Number(coach.dupr).toFixed(1)} · {coach.experience_years} yrs
-            </p>
-          )}
-        </div>
-        {selected && (
-          <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-volt text-ink">
-            <Check size={14} />
-          </span>
-        )}
-      </div>
-
-      {coach.headline && <p className="mt-4 text-sm leading-relaxed text-ink/70">{coach.headline}</p>}
-
-      {specialties.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {specialties.map((s) => (
-            <span key={s} className="chip py-0.5 text-[10px]">
-              {s}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <p className="mt-auto pt-5 font-display text-2xl text-volt-deep">
-        {formatPaise(coach.rate_paise)}
-        <span className="ml-1 font-sans text-xs font-normal text-ink/55">/ session</span>
-      </p>
-    </button>
-  );
-}
+export type CoachAvailability = { coach_id: string; weekday: number; start_time: string; end_time: string };
 
 type Confirmation = {
   booking_no: string;
@@ -107,32 +33,111 @@ type Confirmation = {
   coach_whatsapp: string | null;
   amount_paise: number;
   payment_method: string;
-  preferred_date: string;
-  preferred_time: string;
   sessions_count: number;
 };
 
+export function CoachCard({
+  coach,
+  availability,
+  selected,
+  onSelect,
+}: {
+  coach: Coach;
+  availability: CoachAvailability[];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const specialties = Array.isArray(coach.specialties) ? coach.specialties : [];
+  const days = [...new Set(availability.map((a) => a.weekday))].sort();
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`card-hover flex h-full flex-col overflow-hidden text-left ${selected ? "border-ink shadow-card" : ""}`}
+    >
+      {/* A coach is a person you are choosing to spend an hour with — the photo
+          carries more than any amount of copy. */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-mist">
+        {coach.image_url ? (
+          <Image
+            src={coach.image_url}
+            alt={coach.name}
+            fill
+            sizes="(max-width:768px) 100vw, 33vw"
+            className="object-cover"
+          />
+        ) : (
+          <span className="flex h-full items-center justify-center font-display text-5xl text-ink/20">
+            {initials(coach.name)}
+          </span>
+        )}
+        {selected && (
+          <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-volt text-ink">
+            <Check size={15} strokeWidth={3} />
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        <p className="font-display text-2xl text-ink">{coach.name}</p>
+        {coach.dupr && (
+          <p className="mt-1 flex items-center gap-1.5 font-mono text-[11px] tabular-nums text-volt-deep">
+            <Award size={12} /> DUPR {Number(coach.dupr).toFixed(1)} · {coach.experience_years} yrs
+          </p>
+        )}
+        {coach.headline && <p className="mt-3 text-sm leading-relaxed text-ink/65">{coach.headline}</p>}
+
+        {specialties.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {specialties.slice(0, 3).map((sp) => (
+              <span key={sp} className="chip py-0.5 text-[10px]">
+                {sp}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {days.length > 0 && (
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/45">
+            Usually {days.map((d) => WEEKDAYS[d]).join(" · ")}
+          </p>
+        )}
+
+        <p className="mt-auto pt-5 font-display text-2xl tabular-nums text-volt-deep">
+          {formatPaise(coach.rate_paise)}
+          <span className="ml-1 font-sans text-xs font-normal text-ink/45">/ session</span>
+        </p>
+      </div>
+    </button>
+  );
+}
+
+/**
+ * Coaching request.
+ *
+ * No date is picked here. A coach's real availability shifts week to week, so
+ * asking a player to guess a slot only produces a booking that has to be
+ * renegotiated. The player chooses a coach and a block; SuperPro connects the
+ * two on WhatsApp and the date is set once the coach has confirmed it.
+ */
 export function CoachingFlow({
   coaches,
+  availability = [],
   razorpayEnabled,
   razorpayKeyId,
-  defaults,
+  player,
 }: {
   coaches: Coach[];
+  availability?: CoachAvailability[];
   razorpayEnabled: boolean;
   razorpayKeyId: string;
-  defaults?: { name?: string; email?: string };
+  player: { name: string; phone: string; email: string; skill: string } | null;
 }) {
   const [step, setStep] = useState(1);
   const [coachId, setCoachId] = useState<string | null>(null);
   const [sessionType, setSessionType] = useState<SessionType>("single");
   const [count, setCount] = useState(1);
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [name, setName] = useState(defaults?.name ?? "");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState(defaults?.email ?? "");
-  const [skill, setSkill] = useState<SkillLevel>("beginner");
   const [notes, setNotes] = useState("");
   const [pay, setPay] = useState<"razorpay" | "venue">(razorpayEnabled ? "razorpay" : "venue");
   const [busy, setBusy] = useState(false);
@@ -142,7 +147,7 @@ export function CoachingFlow({
   const coach = useMemo(() => coaches.find((c) => c.id === coachId) ?? null, [coaches, coachId]);
   const multiplier = SESSION_TYPES.find((t) => t.value === sessionType)?.multiplier ?? 1;
   const totalPaise = coach ? Math.round(coach.rate_paise * multiplier * count) : 0;
-  const dates = upcomingDates(14);
+  const coachDays = availability.filter((a) => a.coach_id === coachId);
 
   function next() {
     setError(null);
@@ -150,18 +155,12 @@ export function CoachingFlow({
       if (!coachId) return setError("Pick a coach to continue.");
       return setStep(2);
     }
-    if (step === 2) {
-      if (!date) return setError("Pick a preferred date.");
-      if (!time) return setError("Pick a preferred time.");
-      return setStep(3);
-    }
+    if (step === 2) setStep(3);
   }
 
   async function submit() {
+    if (!player) return;
     setError(null);
-    if (name.trim().length < 2) return setError("Enter your full name.");
-    if (!/^[6-9]\d{9}$/.test(phone.replace(/\D/g, ""))) return setError("Enter a valid 10-digit mobile number.");
-
     setBusy(true);
     try {
       const res = await fetch("/api/coaching/book", {
@@ -169,14 +168,12 @@ export function CoachingFlow({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           coach_id: coachId,
-          player_name: name,
-          player_phone: phone,
-          player_email: email,
-          skill_level: skill,
+          player_name: player.name,
+          player_phone: player.phone,
+          player_email: player.email,
+          skill_level: player.skill,
           session_type: sessionType,
           sessions_count: count,
-          preferred_date: date,
-          preferred_time: time,
           payment_method: pay,
           notes,
         }),
@@ -197,7 +194,7 @@ export function CoachingFlow({
         amountPaise: data.amount_paise,
         name: "SuperPro Coaching",
         description: `${count} session${count > 1 ? "s" : ""} with ${data.coach_name}`,
-        prefill: { name, email, contact: phone },
+        prefill: { name: player.name, email: player.email, contact: player.phone },
         notes: { booking_no: data.booking_no },
         onSuccess: async (payload) => {
           const verify = await fetch("/api/payments/verify", {
@@ -217,7 +214,7 @@ export function CoachingFlow({
       });
 
       if (!opened) {
-        setError("Payment window could not open. Switch to pay-at-venue, or message a rep.");
+        setError("Payment window could not open. Switch to pay-at-court, or message a rep.");
         setBusy(false);
       }
     } catch (err) {
@@ -226,13 +223,19 @@ export function CoachingFlow({
     }
   }
 
+  if (!player) {
+    return (
+      <SignInGate
+        title="Sign in to book coaching"
+        detail="Your coach needs to know who they are working with, and your rating shapes the first session."
+        next="/coaching"
+      />
+    );
+  }
+
   return (
     <div>
       <Stepper steps={STEPS} current={step} />
-
-      {/* Keyed on the step so a change replays the entrance rather than
-          swapping content in place. */}
-      <div key={step} className="step-in">
 
       {error && (
         <div className="mb-5">
@@ -240,248 +243,221 @@ export function CoachingFlow({
         </div>
       )}
 
-      {step === 1 && (
-        <>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {coaches.map((c) => (
-              <CoachCard key={c.id} coach={c} selected={c.id === coachId} onSelect={() => setCoachId(c.id)} />
-            ))}
-          </div>
-          <div className="mt-7 flex justify-end">
-            <button type="button" onClick={next} disabled={!coachId} className="btn-volt">
-              Continue <ArrowRight size={16} />
-            </button>
-          </div>
-        </>
-      )}
-
-      {step === 2 && coach && (
-        <div className="card max-w-3xl p-7">
-          <p className="eyebrow">Coaching with</p>
-          <h2 className="mt-1 text-3xl">{coach.name}</h2>
-          {coach.bio && <p className="mt-3 text-sm leading-relaxed text-ink/70">{coach.bio}</p>}
-
-          <div className="mt-7">
-            <span className="label">Session format</span>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {SESSION_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setSessionType(t.value)}
-                  className={`tile ${sessionType === t.value ? "tile-selected" : ""}`}
-                >
-                  <p className="font-display text-xl uppercase text-ink">{t.label}</p>
-                  <p className="mt-1 text-xs text-ink/65">{t.note}</p>
-                  <p className="mt-2 text-sm font-semibold text-volt-deep">
-                    {formatPaise(Math.round(coach.rate_paise * t.multiplier))}
-                  </p>
-                </button>
+      <div key={step} className="step-in">
+        {step === 1 && (
+          <>
+            <div className="stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {coaches.map((c) => (
+                <CoachCard
+                  key={c.id}
+                  coach={c}
+                  availability={availability.filter((a) => a.coach_id === c.id)}
+                  selected={c.id === coachId}
+                  onSelect={() => setCoachId(c.id)}
+                />
               ))}
             </div>
-          </div>
+            <div className="mt-7 flex justify-end">
+              <button type="button" onClick={next} disabled={!coachId} className="btn-volt">
+                Continue <ArrowRight size={16} />
+              </button>
+            </div>
+          </>
+        )}
 
-          <div className="mt-6">
-            <span className="label">How many sessions?</span>
-            <div className="flex flex-wrap gap-2">
-              {[1, 2, 4, 8, 12].map((n) => (
+        {step === 2 && coach && (
+          <div className="card max-w-3xl p-7">
+            <p className="eyebrow">Coaching with</p>
+            <h2 className="mt-1 text-3xl">{coach.name}</h2>
+            {coach.bio && <p className="mt-3 text-sm leading-relaxed text-ink/65">{coach.bio}</p>}
+
+            {coachDays.length > 0 && (
+              <div className="mt-5 rounded-xl border border-line bg-mist p-4">
+                <p className="label mb-2">When they usually coach</p>
+                <div className="flex flex-wrap gap-2">
+                  {coachDays.map((a, i) => (
+                    <span key={i} className="chip">
+                      {WEEKDAYS[a.weekday]} {a.start_time}–{a.end_time}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3 text-[11px] leading-relaxed text-ink/55">
+                  Indicative only. You and {coach.name.split(" ")[0]} agree the exact date on WhatsApp once this
+                  request is in — that way nobody books a slot the coach cannot make.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-7">
+              <span className="label">Session format</span>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {SESSION_TYPES.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setSessionType(t.value)}
+                    className={`tile ${sessionType === t.value ? "tile-selected" : ""}`}
+                  >
+                    <p className="font-display text-xl uppercase text-ink">{t.label}</p>
+                    <p className="mt-1 text-xs text-ink/55">{t.note}</p>
+                    <p className="mt-2 text-sm font-semibold tabular-nums text-volt-deep">
+                      {formatPaise(Math.round(coach.rate_paise * t.multiplier))}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <span className="label">How many sessions?</span>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 4, 8, 12].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCount(n)}
+                    className={`rounded-xl border px-4 py-2.5 font-display text-lg tabular-nums transition-colors ${
+                      count === n ? "border-ink bg-volt-soft text-ink" : "border-line text-ink/60 hover:border-ink/40"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="label" htmlFor="c-notes">
+                What do you want to work on?
+              </label>
+              <textarea
+                id="c-notes"
+                rows={3}
+                className="field resize-none"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Third shot drop, serve consistency, match play…"
+              />
+              <p className="mt-1.5 text-[11px] text-ink/45">Goes straight to the coach before they call you.</p>
+            </div>
+
+            <div className="mt-8 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStep(1)} className="btn-outline">
+                <ArrowLeft size={16} /> Change coach
+              </button>
+              <button type="button" onClick={next} className="btn-volt">
+                Continue <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && coach && (
+          <div className="card max-w-2xl p-7">
+            <h2 className="text-2xl">Confirm your request</h2>
+
+            <dl className="mt-5 space-y-2.5 border-b border-line pb-5 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-ink/60">Player</dt>
+                <dd className="text-ink">{player.name}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink/60">Coach</dt>
+                <dd className="text-ink">{coach.name}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink/60">Format</dt>
+                <dd className="capitalize text-ink">{sessionType}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink/60">Sessions</dt>
+                <dd className="tabular-nums text-ink">{count}</dd>
+              </div>
+              <div className="flex justify-between pt-2">
+                <dt className="font-display text-xl text-ink">Total</dt>
+                <dd className="font-display text-xl tabular-nums text-volt-deep">{formatPaise(totalPaise)}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-5">
+              <Alert tone="info">
+                Dates are set with your coach directly. SuperPro passes this request straight to{" "}
+                {coach.name.split(" ")[0]}, who confirms timing on WhatsApp — usually within a few hours.
+              </Alert>
+            </div>
+
+            <div className="mt-6">
+              <span className="label">Payment</span>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <button
-                  key={n}
                   type="button"
-                  onClick={() => setCount(n)}
-                  className={`rounded-xl border px-4 py-2.5 font-display text-lg transition-colors ${
-                    count === n ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
-                  }`}
+                  onClick={() => razorpayEnabled && setPay("razorpay")}
+                  disabled={!razorpayEnabled}
+                  className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
                 >
-                  {n}
+                  <CreditCard size={18} className="text-volt-deep" />
+                  <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
+                  <p className="mt-1 text-xs text-ink/55">Reserves the block with the coach.</p>
                 </button>
-              ))}
-            </div>
-            <p className="mt-1.5 text-[11px] text-ink/45">Blocks of 4+ are scheduled with the coach directly.</p>
-          </div>
-
-          <div className="mt-6">
-            <span className="label">Preferred first date</span>
-            <div className="scroll-x flex gap-2 pb-2 no-scrollbar">
-              {dates.map((d) => (
                 <button
-                  key={d}
                   type="button"
-                  onClick={() => setDate(d)}
-                  className={`shrink-0 rounded-xl border px-4 py-2.5 text-center transition-colors ${
-                    date === d ? "border-ink bg-volt-soft" : "border-line hover:border-line-strong"
-                  }`}
+                  onClick={() => setPay("venue")}
+                  className={`tile ${pay === "venue" ? "tile-selected" : ""}`}
                 >
-                  <span className={`block font-mono text-[10px] uppercase tracking-[0.14em] ${date === d ? "text-volt-deep" : "text-ink/55"}`}>
-                    {formatDate(d).split(",")[0]}
-                  </span>
-                  <span className="block font-display text-lg text-ink">{formatDate(d).split(", ")[1]}</span>
+                  <Banknote size={18} className="text-volt-deep" />
+                  <p className="mt-2 font-display text-lg uppercase text-ink">Pay at the court</p>
+                  <p className="mt-1 text-xs text-ink/55">Settle before the first session.</p>
                 </button>
-              ))}
+              </div>
+            </div>
+
+            <div className="mt-7 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStep(2)} className="btn-outline">
+                <ArrowLeft size={16} /> Back
+              </button>
+              <button type="button" onClick={submit} disabled={busy} className="btn-volt">
+                {busy ? <Spinner /> : null}
+                {busy ? "Sending…" : pay === "razorpay" ? `Pay ${formatPaise(totalPaise)}` : "Send request"}
+              </button>
             </div>
           </div>
+        )}
 
-          <div className="mt-6">
-            <span className="label">Preferred time</span>
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-              {TIMES.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTime(t)}
-                  className={`rounded-lg border py-2.5 text-xs font-semibold transition-colors ${
-                    time === t ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
+        {step === 4 && confirmation && (
+          <div className="card relative max-w-2xl overflow-hidden p-8 text-center">
+            <Confetti trigger={1} />
+            <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
+              <Check size={30} strokeWidth={3} />
             </div>
-          </div>
+            <h2 className="headline-section mt-5">
+              You&apos;re connected with {confirmation.coach_name.split(" ")[0]}
+            </h2>
+            <p className="mt-3 text-sm text-ink/60">
+              Booking <span className="font-semibold text-volt-deep">{confirmation.booking_no}</span> ·{" "}
+              {confirmation.sessions_count} session{confirmation.sessions_count > 1 ? "s" : ""}.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-ink/60">
+              {confirmation.coach_name} has your request and what you want to work on. They will message you on
+              WhatsApp to fix the date — it appears in your account as soon as it is agreed.
+            </p>
 
-          <div className="mt-8 flex items-center justify-between gap-3">
-            <button type="button" onClick={() => setStep(1)} className="btn-outline">
-              <ArrowLeft size={16} /> Change coach
-            </button>
-            <button type="button" onClick={next} className="btn-volt">
-              Continue <ArrowRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 3 && coach && (
-        <div className="card max-w-2xl p-7">
-          <h2 className="text-2xl">Your details</h2>
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="c-name">Full name</label>
-              <input id="c-name" className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ishaan Sanghvi" />
-            </div>
-            <div>
-              <label className="label" htmlFor="c-phone">WhatsApp number</label>
-              <input id="c-phone" className="field" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="98xxxxxxxx" />
-            </div>
-            <div>
-              <label className="label" htmlFor="c-email">Email (optional)</label>
-              <input id="c-email" type="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <span className="label">Your level</span>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {SKILLS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setSkill(s.value)}
-                  className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
-                    skill === s.value ? "border-ink bg-volt-soft text-volt-deep" : "border-line text-ink/70 hover:border-line-strong"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <dl className="mt-6 space-y-2.5 border-t border-line pt-5 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-ink/70">Coach</dt>
-              <dd className="text-ink">{coach.name}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/70">Format</dt>
-              <dd className="text-ink capitalize">{sessionType}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/70">Sessions</dt>
-              <dd className="text-ink">{count}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink/70">First session</dt>
-              <dd className="text-ink">{date ? `${formatDate(date)} · ${time}` : "—"}</dd>
-            </div>
-            <div className="flex justify-between border-t border-line pt-3">
-              <dt className="font-display text-xl uppercase text-ink">Total</dt>
-              <dd className="font-display text-xl text-volt-deep">{formatPaise(totalPaise)}</dd>
-            </div>
-          </dl>
-
-          <div className="mt-6">
-            <span className="label">Payment</span>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => razorpayEnabled && setPay("razorpay")}
-                disabled={!razorpayEnabled}
-                className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <a
+                href={waLink(
+                  `Hi SuperPro! I've booked coaching with ${confirmation.coach_name} (ref ${confirmation.booking_no}).`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
               >
-                <CreditCard size={18} className="text-volt-deep" />
-                <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
-                <p className="mt-1 text-xs text-ink/65">Coach confirms within a few hours.</p>
-              </button>
-              <button type="button" onClick={() => setPay("venue")} className={`tile ${pay === "venue" ? "tile-selected" : ""}`}>
-                <Banknote size={18} className="text-volt-deep" />
-                <p className="mt-2 font-display text-lg uppercase text-ink">Pay at the court</p>
-                <p className="mt-1 text-xs text-ink/65">Settle directly before the first session.</p>
-              </button>
+                <MessageCircle size={16} /> Message SuperPro
+              </a>
+              <Link href="/dashboard" className="btn-outline">
+                My bookings
+              </Link>
             </div>
           </div>
-
-          <div className="mt-5">
-            <label className="label" htmlFor="c-notes">What do you want to work on? (optional)</label>
-            <textarea id="c-notes" rows={2} className="field resize-none" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Third shot drop, serve consistency…" />
-          </div>
-
-          <div className="mt-7 flex items-center justify-between gap-3">
-            <button type="button" onClick={() => setStep(2)} className="btn-outline">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <button type="button" onClick={submit} disabled={busy} className="btn-volt">
-              {busy ? <Spinner /> : null}
-              {busy ? "Booking…" : pay === "razorpay" ? `Pay ${formatPaise(totalPaise)}` : "Request session"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 4 && confirmation && (
-        <div className="card relative max-w-2xl overflow-hidden p-8 text-center">
-          <Confetti trigger={confirmation ? 1 : 0} />
-          <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
-            <Check size={30} strokeWidth={3} />
-          </div>
-          <h2 className="mt-5 text-4xl">You&apos;re booked with {confirmation.coach_name.split(" ")[0]}</h2>
-          <p className="mt-3 text-sm text-ink/70">
-            Booking <span className="font-semibold text-volt-deep">{confirmation.booking_no}</span> ·{" "}
-            {confirmation.sessions_count} session{confirmation.sessions_count > 1 ? "s" : ""}, starting{" "}
-            {formatDate(confirmation.preferred_date)} at {confirmation.preferred_time}.
-          </p>
-          <p className="mt-3 text-sm text-ink/55">
-            SuperPro connects you to your coach on WhatsApp to lock the exact timing. Expect a message within a
-            few hours.
-          </p>
-
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <a
-              href={waLink(
-                `Hi SuperPro! I've booked coaching with ${confirmation.coach_name} (ref ${confirmation.booking_no}).`,
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary"
-            >
-              <MessageCircle size={16} /> Message SuperPro
-            </a>
-            <Link href="/games" className="btn-outline">
-              Book a game too
-            </Link>
-          </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

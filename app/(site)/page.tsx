@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, MapPin } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarDays, GraduationCap, MapPin, ShoppingBag, Trophy } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { Counter, Reveal, ScoreMeter, TiltCard } from "@/components/motion";
 import { Paddle3D } from "@/components/paddle-3d";
+import { BallIntro } from "@/components/ball-intro";
 import { getAnnouncements, getCoaches, getFeaturedProducts, getTournaments, getWeekSessions } from "@/lib/queries";
 import { formatDate, formatTime, isPast } from "@/lib/dates";
 import { DUPR_BANDS } from "@/lib/dupr";
@@ -30,6 +31,8 @@ export default async function HomePage() {
 
   return (
     <>
+      <BallIntro />
+
       {/* ── Hero ───────────────────────────────────────────────────────────
           Asymmetric on purpose: the claim sits left, the object right, so the
           eye lands on the sentence before the product. ──────────────────── */}
@@ -106,6 +109,210 @@ export default async function HomePage() {
           </div>
         </Link>
       )}
+
+      {/* ── The four doors ─────────────────────────────────────────────────
+          Every visitor is here for one of these. Rather than make them read
+          the nav, put the four rooms of the club on the page. ───────────── */}
+      <section className="wrap section-tight">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              href: "/products",
+              icon: ShoppingBag,
+              title: "Shop",
+              blurb: "Champion Series paddles, outdoor balls and grips built for Kolkata humidity.",
+              cta: "Browse the kit",
+            },
+            {
+              href: "/games",
+              icon: CalendarDays,
+              title: "Daily Games",
+              blurb: "Open slots at every venue, morning and evening. See who is coming before you book.",
+              cta: "Find today's slot",
+            },
+            {
+              href: "/coaching",
+              icon: GraduationCap,
+              title: "Coaching",
+              blurb: "Pick the coach who owns your next rung — first rally to first DUPR rating.",
+              cta: "Meet the coaches",
+            },
+            {
+              href: "/tournaments",
+              icon: Trophy,
+              title: "Tournaments",
+              blurb: "Draws SuperPro runs and events we back across the city. Enter with a partner.",
+              cta: "See the draws",
+            },
+          ].map((door, i) => (
+            <Reveal key={door.href} delay={i * 70}>
+              <Link
+                href={door.href}
+                className="group flex h-full flex-col rounded-card border border-line bg-paper p-6 transition-all duration-200 hover:-translate-y-1 hover:border-volt hover:shadow-[0_18px_40px_-24px_rgba(6,38,61,0.45)]"
+              >
+                <span className="grid h-11 w-11 place-items-center rounded-lg bg-volt-soft text-volt-deep transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
+                  <door.icon size={20} />
+                </span>
+                <h3 className="mt-5 font-display text-2xl text-ink">{door.title}</h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-ink/65">{door.blurb}</p>
+                <span className="mt-5 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-volt-deep">
+                  {door.cta}
+                  <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-1" />
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ── What is pickleball ─────────────────────────────────────────────── */}
+      <section className="section border-y border-line bg-mist">
+        <div className="wrap grid min-w-0 gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <Reveal>
+            <div>
+              <p className="eyebrow">The game</p>
+              <h2 className="rule-head mt-3 headline-section">What is pickleball?</h2>
+              <p className="lede mt-5 max-w-md">
+                A paddle sport played on a badminton-sized court with a perforated plastic ball, over a net a
+                little lower than tennis. Two or four players, underhand serve, and a seven-foot no-volley zone
+                either side of the net — the kitchen.
+              </p>
+              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-ink/70">
+                It is the fastest-growing sport in the world for one reason: a complete beginner can hold a rally
+                in ten minutes, and a good player still cannot win one cheaply. The court is small enough that
+                placement beats power, so the game rewards patience over athleticism.
+              </p>
+              <Link href="/about" className="btn-outline mt-7">
+                How the game works <ArrowRight size={15} />
+              </Link>
+            </div>
+          </Reveal>
+
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+            {[
+              { k: "20 × 44", l: "Feet of court", n: "Same as a doubles badminton court." },
+              { k: "11", l: "Points to win", n: "Win by two. Serve to score." },
+              { k: "7", l: "Foot kitchen", n: "No volleys inside it. Ever." },
+              { k: "10 min", l: "To your first rally", n: "That is the whole pitch." },
+            ].map((f, i) => (
+              <Reveal key={f.l} delay={i * 60}>
+                <div className="h-full rounded-card border border-line bg-paper p-5">
+                  <p className="font-display text-4xl text-volt-deep">{f.k}</p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{f.l}</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-ink/60">{f.n}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why SuperPro ───────────────────────────────────────────────────── */}
+      <section className="wrap section">
+        <Reveal>
+          <p className="eyebrow">Why SuperPro</p>
+          <h2 className="rule-head mt-3 headline-section">One place for the whole game</h2>
+          <p className="lede mt-5 max-w-2xl">
+            Most players in Kolkata juggle a WhatsApp group for games, a shop across town for gear and a friend
+            of a friend for coaching. SuperPro is the club that holds all three, so your rating, your bookings
+            and your kit live in one account.
+          </p>
+        </Reveal>
+
+        <div className="mt-10 grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              t: "Play at your level",
+              d: "Every slot is banded — beginner, intermediate, advanced. Your DUPR rating decides which courts open automatically, and you can always drop down a band to help someone learn.",
+            },
+            {
+              t: "Know who you are playing",
+              d: "Rosters are public before you pay. See the names on a court, and book the one with the players you want to rally against.",
+            },
+            {
+              t: "Kit that survives the season",
+              d: "Toray carbon faces and outdoor balls chosen for heat and humidity, not for a catalogue photo. Tested on the same courts you play on.",
+            },
+            {
+              t: "Coaches with a rung each",
+              d: "First paddle, first rally, first competitive match, first rating. Each coach owns a step, so you are never taught by someone aiming at the wrong problem.",
+            },
+            {
+              t: "One wallet, no cash scramble",
+              d: "Load credit once and pay for slots, coaching and gear from it. Split court fees settle automatically between the players in the slot.",
+            },
+            {
+              t: "Draws that actually run",
+              d: "Groups seeded off real ratings, entries capped, and a waitlist that moves. We run our own and back the city's.",
+            },
+          ].map((w, i) => (
+            <Reveal key={w.t} delay={i * 55}>
+              <div className="h-full rounded-card border border-line bg-paper p-6">
+                <span className="block h-1 w-9 rounded-full bg-volt" />
+                <h3 className="mt-4 font-display text-xl text-ink">{w.t}</h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-ink/65">{w.d}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Vision ─────────────────────────────────────────────────────────── */}
+      <section className="section bg-ink">
+        <div className="wrap grid min-w-0 gap-10 lg:grid-cols-[1fr_1fr]">
+          <Reveal>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-volt">The vision</p>
+              <h2 className="mt-4 font-display text-[2rem] leading-[1.1] text-paper sm:text-[2.75rem]">
+                A court within reach of every player in the city.
+              </h2>
+              <p className="mt-6 max-w-md text-[15px] leading-relaxed text-paper/70">
+                SuperPro started because there was nowhere in Kolkata to simply turn up and play. The plan has not
+                changed since: put courts where people already are, keep the standard of play honest, and make the
+                first paddle someone picks up a good one.
+              </p>
+              <Link href="/about" className="btn-volt mt-8">
+                Read the full story <ArrowRight size={15} />
+              </Link>
+            </div>
+          </Reveal>
+
+          <div className="space-y-4">
+            {[
+              {
+                n: "01",
+                t: "Courts, everywhere",
+                d: "Partner venues across every corner of the city, so nobody drives an hour for an hour of play.",
+              },
+              {
+                n: "02",
+                t: "Rated, not guessed",
+                d: "Every regular carries a DUPR rating. Fair games beat friendly chaos, and ratings make draws mean something.",
+              },
+              {
+                n: "03",
+                t: "Made here",
+                d: "Equipment designed for Indian conditions and priced for Indian players, instead of imported at three times the cost.",
+              },
+              {
+                n: "04",
+                t: "A pipeline, not a pastime",
+                d: "Beginners to nationals. The coaching ladder and the tournament calendar are the same ladder.",
+              },
+            ].map((v, i) => (
+              <Reveal key={v.n} delay={i * 70}>
+                <div className="flex gap-5 border-b border-paper/12 pb-4 last:border-0">
+                  <span className="font-mono text-sm text-volt">{v.n}</span>
+                  <div className="min-w-0">
+                    <h3 className="font-display text-xl text-paper">{v.t}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-paper/65">{v.d}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── Next on court ─────────────────────────────────────────────────── */}
       <section className="wrap section">

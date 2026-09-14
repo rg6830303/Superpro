@@ -1,14 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Wallet } from "lucide-react";
+import { Camera, Trash2, Wallet } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 import { formatPaise } from "@/lib/money";
+import { Avatar } from "@/components/player-directory";
 import { WalletTopUp } from "@/components/wallet-topup";
 import type { WalletTransaction } from "@/lib/wallet";
 
 type Profile = {
   email: string;
+  handle: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
   full_name: string;
   phone: string;
   skill_level: string;
@@ -32,6 +38,7 @@ export function ProfileForm({
 }) {
   const [form, setForm] = useState({
     full_name: profile.full_name,
+    bio: profile.bio ?? "",
     phone: profile.phone ?? "",
     city: profile.city ?? "Kolkata",
     dupr: profile.dupr != null ? String(profile.dupr) : "",
@@ -58,6 +65,7 @@ export function ProfileForm({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           full_name: form.full_name,
+          bio: form.bio,
           phone: form.phone,
           city: form.city,
           dupr: hasRating ? rating : null,
@@ -77,6 +85,8 @@ export function ProfileForm({
 
   return (
     <div className="space-y-8">
+      <PhotoCard profile={profile} />
+
       <div className="card p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -136,6 +146,20 @@ export function ProfileForm({
               value={form.city}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label" htmlFor="p-bio">Short bio</label>
+            <textarea
+              id="p-bio"
+              rows={3}
+              className="field resize-none"
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value.slice(0, 280) })}
+              placeholder="Lefty. Lives in the kitchen. Will rally at 6am."
+            />
+            <p className="mt-1.5 text-[11px] text-ink/45">
+              Shown on your public player page. {280 - form.bio.length} characters left.
+            </p>
           </div>
           <div>
             <label className="label" htmlFor="p-duprid">DUPR ID</label>
@@ -218,6 +242,93 @@ export function ProfileForm({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Profile photo. Uploaded on selection rather than behind a save button — the
+ * file is the whole intent, and a second click to confirm it helps nobody.
+ */
+function PhotoCard({ profile }: { profile: Profile }) {
+  const [url, setUrl] = useState(profile.avatar_url);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file: File) {
+    setBusy(true);
+    setError(null);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/player/avatar", { method: "POST", body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not upload that photo.");
+      setUrl(data.avatar_url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not upload that photo.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    await fetch("/api/player/avatar", { method: "DELETE" }).catch(() => {});
+    setUrl(null);
+    setBusy(false);
+  }
+
+  return (
+    <div className="card flex flex-wrap items-center gap-5 p-6">
+      <Avatar name={profile.full_name} src={url} size="lg" />
+
+      <div className="min-w-0 flex-1">
+        <h2 className="text-2xl">Profile photo</h2>
+        <p className="mt-1.5 text-sm text-ink/60">
+          Shows next to your name on court rosters and your player page.
+          {profile.handle && (
+            <>
+              {" "}
+              Yours is{" "}
+              <a href={`/players/${profile.handle}`} className="underline">
+                /players/{profile.handle}
+              </a>
+              .
+            </>
+          )}
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <label className="btn-volt btn-sm cursor-pointer">
+            {busy ? <Spinner /> : <Camera size={14} />}
+            {url ? "Replace photo" : "Upload photo"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) upload(file);
+              }}
+            />
+          </label>
+          {url && (
+            <button type="button" onClick={remove} disabled={busy} className="btn-outline btn-sm">
+              <Trash2 size={14} /> Remove
+            </button>
+          )}
+          <span className="font-mono text-[11px] text-ink/40">JPEG, PNG or WebP · up to 3 MB</span>
+        </div>
+
+        {error && (
+          <div className="mt-4">
+            <Alert>{error}</Alert>
           </div>
         )}
       </div>

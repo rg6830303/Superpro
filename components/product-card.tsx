@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, CreditCard, Plus } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
 import { TiltCard } from "@/components/motion";
 import { formatPaise } from "@/lib/money";
@@ -11,10 +12,11 @@ import type { Product } from "@/lib/types";
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
+  const router = useRouter();
   const [added, setAdded] = useState(false);
   const outOfStock = product.stock <= 0;
 
-  const onAdd = () => {
+  const addToCart = () => {
     add({
       product_id: product.id,
       slug: product.slug,
@@ -22,8 +24,19 @@ export function ProductCard({ product }: { product: Product }) {
       price_paise: product.price_paise,
       image_url: product.image_url,
     });
+  };
+
+  const onAdd = () => {
+    addToCart();
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1600);
+  };
+
+  // Straight to checkout from the grid — someone who already knows the paddle
+  // they want should not have to open the product page to buy it.
+  const onBuyNow = () => {
+    addToCart();
+    router.push("/checkout");
   };
 
   return (
@@ -66,22 +79,34 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-ink/65">{product.tagline}</p>
         )}
 
-        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
-          <div>
-            <p className="font-display text-2xl text-ink">{formatPaise(product.price_paise)}</p>
-            {product.compare_at_paise && product.compare_at_paise > product.price_paise && (
-              <p className="text-xs text-ink/45 line-through">{formatPaise(product.compare_at_paise)}</p>
-            )}
+        <div className="mt-auto pt-5">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="font-display text-2xl text-ink">{formatPaise(product.price_paise)}</p>
+              {product.compare_at_paise && product.compare_at_paise > product.price_paise && (
+                <p className="text-xs text-ink/45 line-through">{formatPaise(product.compare_at_paise)}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onAdd}
+              disabled={outOfStock}
+              className={`btn btn-sm ${added ? "bg-volt text-ink" : "bg-mist text-ink hover:bg-white"} disabled:bg-mist disabled:text-ink/55`}
+              aria-label={`Add ${product.name} to cart`}
+            >
+              {added ? <Check size={14} /> : <Plus size={14} />}
+              {added ? "Added" : outOfStock ? "Sold out" : "Add"}
+            </button>
           </div>
+
           <button
             type="button"
-            onClick={onAdd}
+            onClick={onBuyNow}
             disabled={outOfStock}
-            className={`btn btn-sm ${added ? "bg-volt text-ink" : "bg-mist text-ink hover:bg-white"} disabled:bg-mist disabled:text-ink/55`}
-            aria-label={`Add ${product.name} to cart`}
+            className="btn-volt btn-sm mt-3 w-full disabled:bg-mist disabled:text-ink/55"
+            aria-label={`Buy ${product.name} now`}
           >
-            {added ? <Check size={14} /> : <Plus size={14} />}
-            {added ? "Added" : outOfStock ? "Sold out" : "Add"}
+            <CreditCard size={14} /> {outOfStock ? "Sold out" : "Buy now"}
           </button>
         </div>
       </div>

@@ -4,6 +4,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Alert, Spinner } from "@/components/ui";
+import { GENDERS } from "@/lib/profile";
+
+/**
+ * Tag the destination so the welcome card knows to celebrate rather than ask
+ * what you came for. Cheaper than a cookie, and it clears itself on dismiss.
+ */
+function withWelcome(next: string, kind: "signup" | "login") {
+  return `${next}${next.includes("?") ? "&" : "?"}welcome=${kind}`;
+}
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -26,7 +35,7 @@ export function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not sign you in.");
-      router.push(next);
+      router.push(withWelcome(next, "login"));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -75,6 +84,9 @@ export function LoginForm() {
 
 export function SignupForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  // Send the player back to whatever they were trying to do.
+  const next = params.get("next") ?? "/dashboard";
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -82,6 +94,9 @@ export function SignupForm() {
     password: "",
     dupr_id: "",
     dupr: "",
+    date_of_birth: "",
+    gender: "",
+    city: "Kolkata",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,11 +122,14 @@ export function SignupForm() {
           password: form.password,
           dupr_id: form.dupr_id,
           dupr: hasRating ? rating : null,
+          date_of_birth: form.date_of_birth,
+          gender: form.gender || undefined,
+          city: form.city,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not create your account.");
-      router.push("/dashboard");
+      router.push(withWelcome(next, "signup"));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -144,31 +162,83 @@ export function SignupForm() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="s-duprid">DUPR ID (optional)</label>
-          <input
-            id="s-duprid"
-            className="field"
-            value={form.dupr_id}
-            onChange={(e) => setForm({ ...form, dupr_id: e.target.value })}
-            placeholder="e.g. K9X2LM"
-            autoCapitalize="characters"
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="s-dupr">DUPR rating (optional)</label>
-          <input
-            id="s-dupr"
-            className="field"
-            inputMode="decimal"
-            value={form.dupr}
-            onChange={(e) => setForm({ ...form, dupr: e.target.value })}
-            placeholder="3.75"
-          />
-          {ratingOutOfRange && <p className="field-error">DUPR ratings run from 2.0 to 8.0.</p>}
+      <div className="mt-6 border-t border-line pt-5">
+        <p className="label">About you</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="s-dob">Date of birth</label>
+            <input
+              id="s-dob"
+              type="date"
+              className="field"
+              value={form.date_of_birth}
+              onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
+            />
+            <p className="mt-1.5 text-[11px] text-ink/45">Used for age-category draws.</p>
+          </div>
+          <div>
+            <label className="label" htmlFor="s-gender">Sex</label>
+            <select
+              id="s-gender"
+              className="field"
+              value={form.gender}
+              onChange={(e) => setForm({ ...form, gender: e.target.value })}
+            >
+              <option value="">Choose…</option>
+              {GENDERS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label" htmlFor="s-city">City</label>
+            <input
+              id="s-city"
+              className="field"
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+            />
+          </div>
         </div>
       </div>
+
+      <div className="mt-6 border-t border-line pt-5">
+        <p className="label">Your rating</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="s-duprid">DUPR ID</label>
+            <input
+              id="s-duprid"
+              className="field"
+              value={form.dupr_id}
+              onChange={(e) => setForm({ ...form, dupr_id: e.target.value })}
+              placeholder="e.g. K9X2LM"
+              autoCapitalize="characters"
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="s-dupr">DUPR rating</label>
+            <input
+              id="s-dupr"
+              className="field"
+              inputMode="decimal"
+              value={form.dupr}
+              onChange={(e) => setForm({ ...form, dupr: e.target.value })}
+              placeholder="3.75"
+            />
+            {ratingOutOfRange && <p className="field-error">DUPR ratings run from 2.0 to 8.0.</p>}
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-ink/45">
+          Not rated yet? Leave these blank — you can add them from your profile once you have a rating.
+        </p>
+      </div>
+
+      <p className="mt-5 rounded-lg bg-mist px-3 py-2.5 text-[11px] leading-relaxed text-ink/55">
+        Add a profile photo from your account once you are in — it shows next to your name on court rosters.
+      </p>
 
       {error && (
         <div className="mt-5">
