@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createAuthUser, getUserRowByEmail, syncUserRow } from "@/lib/accounts";
 import { hasSigningSecret, signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
-import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, signupSchema } from "@/lib/validation";
 import { isSupabaseAdminConfigured } from "@/lib/supabase";
 import { normaliseDuprId, skillFromDupr } from "@/lib/dupr";
-import { handleFrom } from "@/lib/profile";
+import { dobFromAge, handleFrom } from "@/lib/profile";
 
 export const runtime = "nodejs";
 
@@ -50,8 +49,6 @@ export async function POST(req: Request) {
       );
     }
 
-    await ensureSchema();
-
     const existing = await getUserRowByEmail(email);
     if (existing) {
       return NextResponse.json(
@@ -65,6 +62,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: created.error }, { status: created.status });
     }
 
+    // Determine date of birth from explicit DOB or age
+    const dob =
+      parsed.data.date_of_birth?.trim() ||
+      (parsed.data.age ? dobFromAge(parsed.data.age) : null);
+
     await syncUserRow({
       id: created.id,
       email,
@@ -73,9 +75,10 @@ export async function POST(req: Request) {
       skill_level,
       dupr_id,
       dupr: dupr ?? null,
-      date_of_birth: parsed.data.date_of_birth || null,
+      date_of_birth: dob,
       gender: parsed.data.gender ?? null,
       city: parsed.data.city ?? null,
+      avatar_url: parsed.data.avatar_url ?? null,
       // A readable public address for the player's profile page.
       handle: handleFrom(full_name, created.id),
       role: "player",

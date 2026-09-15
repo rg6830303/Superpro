@@ -1,68 +1,37 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, GraduationCap, Package, Trophy, UserCog, Wallet } from "lucide-react";
-import { LogoutButton } from "@/components/logout-button";
-import { EmptyState } from "@/components/ui";
 import { getPlayerSession } from "@/lib/auth";
 import { getUserRow } from "@/lib/accounts";
-import { listWalletTransactions } from "@/lib/wallet";
+import { listWalletTransactions, reconcilePendingTopups } from "@/lib/wallet";
+import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
-import { formatDate, formatTime } from "@/lib/dates";
-import { formatPaise } from "@/lib/money";
+import { ageFrom } from "@/lib/profile";
+import {
+  DashboardView,
+  type GameRow,
+  type CoachRow,
+  type EntryRow,
+  type OrderRow,
+} from "@/components/dashboard-view";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "My account", robots: { index: false } };
 
-type GameRow = {
-  id: string;
-  session_date: string;
-  start_time: string;
-  venue_name: string;
-  court_number: number | null;
-  status: string;
-  payment_status: string;
-  amount_paise: number;
-};
-
-type CoachRow = {
-  booking_no: string;
-  coach_name: string;
-  preferred_date: string | null;
-  preferred_time: string | null;
-  sessions_count: number;
-  status: string;
-  amount_paise: number;
-};
-
-type EntryRow = {
-  reference: string;
-  tournament_title: string;
-  tournament_slug: string;
-  starts_on: string;
-  category: string | null;
-  team_name: string;
-  status: string;
-  payment_status: string;
-  amount_paise: number;
-  group_name: string | null;
-};
-
-type OrderRow = {
-  order_no: string;
-  total_paise: number;
-  fulfillment_status: string;
-  payment_status: string;
-  created_at: string;
-};
-
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
   const session = await getPlayerSession();
   if (!session) redirect("/login?next=/dashboard");
 
   await ensureSchema();
+  await reconcilePendingTopups(session.id).catch(() => {});
+
+  const { tab } = (await searchParams) ?? {};
+  const validTab = tab === "profile" || tab === "wallet" ? tab : "overview";
 
   const [games, coaching, entries, orders] = await Promise.all([
     query<GameRow>(
@@ -104,267 +73,37 @@ export default async function DashboardPage() {
 
   const [profile, walletTx] = await Promise.all([
     getUserRow(session.id),
-    listWalletTransactions(session.id, 6),
+    listWalletTransactions(session.id, 25),
   ]);
 
-  const upcoming = games.filter((g) => g.status === "confirmed").length;
-  const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
-
   return (
-    <div className="wrap section">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">My account</p>
-          <h1 className="mt-2 headline-page">{session.name}</h1>
-          <p className="mt-1 text-sm text-ink/55">{session.email}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/profile" className="btn-outline btn-sm">
-            <UserCog size={14} /> Profile
-          </Link>
-          <LogoutButton />
-        </div>
-      </div>
-
-      <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { icon: CalendarDays, k: `${upcoming}`, v: "Game bookings" },
-          { icon: GraduationCap, k: `${coaching.length}`, v: "Coaching bookings" },
-          { icon: Trophy, k: `${entries.length}`, v: "Tournament entries" },
-          { icon: Package, k: `${orders.length}`, v: "Orders" },
-        ].map((s) => (
-          <div key={s.v} className="card p-5">
-            <s.icon size={17} className="text-volt-deep" />
-            <p className="mt-3 font-display text-4xl text-ink">{s.k}</p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{s.v}</p>
-          </div>
-        ))}
-      </div>
-
-      <section className="mt-10 grid min-w-0 gap-5 lg:grid-cols-[1fr_1.4fr]">
-        <div className="card flex flex-col p-6">
-          <Wallet size={18} className="text-volt-deep" />
-          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">SuperPro wallet</p>
-          <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(walletPaise)}</p>
-          <p className="mt-2 text-xs leading-relaxed text-ink/55">
-            Prepaid credit you can spend on court slots and gear. Top it up with any SuperPro rep at the
-            venue — it lands here instantly.
-          </p>
-          <Link href="/dashboard/profile" className="btn-outline btn-sm mt-auto self-start pt-2">
-            Manage account
-          </Link>
-        </div>
-
-        <div className="card p-6">
-          <h2 className="text-2xl">Wallet activity</h2>
-          {walletTx.length === 0 ? (
-            <p className="mt-3 text-sm text-ink/55">
-              No wallet movements yet. Ask a rep to load credit and it shows up here.
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {walletTx.map((t) => (
-                <li key={t.id} className="flex items-start justify-between gap-3 border-b border-line/60 pb-3 last:border-0">
-                  <div className="min-w-0">
-                    <p className="text-sm capitalize text-ink">{t.kind}</p>
-                    <p className="truncate text-xs text-ink/55">{t.reason ?? "—"}</p>
-                    <p className="mt-0.5 text-[11px] text-ink/45">
-                      {new Date(t.created_at).toLocaleDateString("en-IN")}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className={`text-sm font-semibold ${t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}`}>
-                      {t.delta_paise > 0 ? "+" : "−"}
-                      {formatPaise(Math.abs(t.delta_paise))}
-                    </p>
-                    <p className="text-[11px] text-ink/45">{formatPaise(t.balance_after_paise)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="mb-5 text-3xl">Game bookings</h2>
-        {games.length === 0 ? (
-          <EmptyState
-            title="No games booked yet"
-            sub="Pick a slot for this week and your court number lands on WhatsApp."
-            action={
-              <Link href="/games" className="btn-volt btn-sm mt-2">
-                Book a slot
-              </Link>
-            }
-          />
-        ) : (
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Venue</th>
-                  <th>Court</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {games.map((g) => (
-                  <tr key={g.id}>
-                    <td>{formatDate(g.session_date)}</td>
-                    <td>{formatTime(g.start_time)}</td>
-                    <td>{g.venue_name}</td>
-                    <td>{g.court_number ?? "—"}</td>
-                    <td>{formatPaise(g.amount_paise)}</td>
-                    <td>
-                      <span className={g.status === "cancelled" ? "chip" : g.payment_status === "paid" ? "chip-volt" : "chip-warn"}>
-                        {g.status === "cancelled" ? "Cancelled" : g.payment_status === "paid" ? "Paid" : "Pay at venue"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {coaching.length > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-5 text-3xl">Coaching</h2>
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Ref</th>
-                  <th>Coach</th>
-                  <th>First session</th>
-                  <th>Sessions</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {coaching.map((c) => (
-                  <tr key={c.booking_no}>
-                    <td className="font-mono text-xs text-volt-deep">{c.booking_no}</td>
-                    <td>{c.coach_name}</td>
-                    <td>{c.preferred_date ? `${formatDate(c.preferred_date)} · ${c.preferred_time}` : "—"}</td>
-                    <td>{c.sessions_count}</td>
-                    <td>{formatPaise(c.amount_paise)}</td>
-                    <td>
-                      <span className="chip capitalize">{c.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {entries.length > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-5 text-3xl">Tournament entries</h2>
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Ref</th>
-                  <th>Tournament</th>
-                  <th>Starts</th>
-                  <th>Team</th>
-                  <th>Category</th>
-                  <th>Group</th>
-                  <th>Entry fee</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((e) => (
-                  <tr key={e.reference}>
-                    <td className="font-mono text-xs text-volt-deep">{e.reference}</td>
-                    <td>
-                      <Link href={`/tournaments/${e.tournament_slug}`} className="font-semibold hover:underline">
-                        {e.tournament_title}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap">{formatDate(e.starts_on)}</td>
-                    <td>{e.team_name}</td>
-                    <td className="capitalize">{e.category ?? "—"}</td>
-                    <td>{e.group_name ?? "To be drawn"}</td>
-                    <td>{formatPaise(e.amount_paise)}</td>
-                    <td>
-                      <span className={e.status === "withdrawn" ? "chip" : e.payment_status === "paid" ? "chip-volt" : "chip-warn"}>
-                        {e.status === "withdrawn"
-                          ? "Withdrawn"
-                          : e.status === "waitlist"
-                            ? "Waitlisted"
-                            : e.payment_status === "paid"
-                              ? "Confirmed"
-                              : "Fee due"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {orders.length > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-5 text-3xl">Orders</h2>
-          <div className="table-wrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Order</th>
-                  <th>Placed</th>
-                  <th>Total</th>
-                  <th>Payment</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => (
-                  <tr key={o.order_no}>
-                    <td>
-                      <Link href={`/order/${o.order_no}`} className="font-mono text-xs text-volt-deep hover:underline">
-                        {o.order_no}
-                      </Link>
-                    </td>
-                    <td>{new Date(o.created_at).toLocaleDateString("en-IN")}</td>
-                    <td>{formatPaise(o.total_paise)}</td>
-                    <td className="capitalize">{o.payment_status}</td>
-                    <td>
-                      <span className="chip capitalize">{o.fulfillment_status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      <div className="mt-14 flex flex-col gap-5 border-t-2 border-ink pt-7 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-2xl">
-            <Trophy size={20} className="text-volt-deep" /> Ready for a draw?
-          </h2>
-          <p className="mt-2 max-w-md text-sm text-ink/65">
-            Entries are open to every registered player. Grab a partner and enter.
-          </p>
-        </div>
-        <Link href="/tournaments" className="btn-outline btn-sm shrink-0">
-          See tournaments
-        </Link>
-      </div>
-    </div>
+    <DashboardView
+      session={session}
+      profile={{
+        email: profile?.email ?? session.email,
+        handle: profile?.handle ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+        bio: profile?.bio ?? null,
+        date_of_birth: profile?.date_of_birth ?? null,
+        age: profile?.date_of_birth ? ageFrom(profile.date_of_birth) : null,
+        gender: profile?.gender ?? null,
+        full_name: profile?.full_name ?? session.name,
+        phone: profile?.phone ?? "",
+        skill_level: profile?.skill_level ?? "beginner",
+        city: profile?.city ?? "Kolkata",
+        dupr: profile?.dupr ?? null,
+        dupr_id: profile?.dupr_id ?? null,
+        whatsapp_opt_in: profile?.whatsapp_opt_in ?? true,
+        wallet_balance_paise: Number(profile?.wallet_balance_paise ?? 0),
+      }}
+      initialTab={validTab}
+      walletTx={walletTx}
+      games={games}
+      coaching={coaching}
+      entries={entries}
+      orders={orders}
+      razorpayEnabled={isRazorpayEnabled}
+      razorpayKeyId={razorpayKeyId}
+    />
   );
 }

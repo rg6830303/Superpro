@@ -69,6 +69,7 @@ export async function syncUserRow(input: {
   gender?: string | null;
   city?: string | null;
   handle?: string | null;
+  avatar_url?: string | null;
   role?: "player" | "staff" | "admin";
 }): Promise<UserRow | null> {
   const email = input.email.toLowerCase();
@@ -77,9 +78,9 @@ export async function syncUserRow(input: {
   try {
     await query(
       `INSERT INTO users (id, email, full_name, phone, skill_level, dupr, dupr_id, role,
-         date_of_birth, gender, city, handle, auth_provider, password_hash)
+         date_of_birth, gender, city, handle, avatar_url, auth_provider, password_hash)
        VALUES ($1,$2,$3,$4,COALESCE($5,'beginner'),$6,$7,COALESCE($8,'player'),
-               $9,$10,COALESCE($11,'Kolkata'),$12,'supabase',NULL)
+               $9,$10,COALESCE($11,'Kolkata'),$12,$13,'supabase',NULL)
        ON CONFLICT (id) DO UPDATE SET
          email = EXCLUDED.email,
          full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), users.full_name),
@@ -91,6 +92,7 @@ export async function syncUserRow(input: {
          gender = COALESCE(EXCLUDED.gender, users.gender),
          city = COALESCE(EXCLUDED.city, users.city),
          handle = COALESCE(users.handle, EXCLUDED.handle),
+         avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
          role = CASE WHEN EXCLUDED.role = 'admin' THEN 'admin' ELSE users.role END,
          last_login_at = now(),
          updated_at = now()`,
@@ -107,6 +109,7 @@ export async function syncUserRow(input: {
         input.gender ?? null,
         input.city ?? null,
         input.handle ?? null,
+        input.avatar_url ?? null,
       ],
     );
   } catch (err) {

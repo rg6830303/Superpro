@@ -3,16 +3,17 @@ import { z } from "zod";
 import { getUserRow } from "@/lib/accounts";
 import { getPlayerSession } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ensureSchema } from "@/lib/schema";
 import { listWalletTransactions } from "@/lib/wallet";
 import { phoneSchema } from "@/lib/validation";
 import { normaliseDuprId, skillFromDupr } from "@/lib/dupr";
+import { ageFrom, dobFromAge } from "@/lib/profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
   full_name: z.string().trim().min(2, "Enter your full name").max(80).optional(),
+  age: z.coerce.number().int().min(5, "Enter a valid age").max(120, "Enter a valid age").optional().nullable(),
   phone: phoneSchema.optional(),
   city: z.string().trim().max(60).optional(),
   bio: z.string().trim().max(280).optional(),
@@ -29,14 +30,14 @@ const patchSchema = z.object({
  */
 function publicProfile(row: Record<string, unknown>) {
   const { password_hash: _ignored, auth_provider: _provider, ...safe } = row;
-  return safe;
+  const calculatedAge = row.age ?? ageFrom(row.date_of_birth as string | null);
+  return { ...safe, age: calculatedAge };
 }
 
 export async function GET() {
   const session = await getPlayerSession();
   if (!session) return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
 
-  await ensureSchema();
   const profile = await getUserRow(session.id);
   if (!profile) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
 
@@ -58,7 +59,10 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   }
 
-  await ensureSchema();
+  // If age provided without explicit date of birth, sync date_of_birth
+  if (patch.age && !patch.date_of_birth) {
+    patch.date_of_birth = dobFromAge(patch.age);
+  }
 
   // The category is derived from the rating, so it is never accepted from the
   // client. Explicit column list — a player cannot patch their role or wallet.

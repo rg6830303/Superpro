@@ -6,6 +6,7 @@ import { Alert, Spinner } from "@/components/ui";
 import { formatPaise } from "@/lib/money";
 import { Avatar } from "@/components/player-directory";
 import { WalletTopUp } from "@/components/wallet-topup";
+import { GENDERS, ageFrom } from "@/lib/profile";
 import type { WalletTransaction } from "@/lib/wallet";
 
 type Profile = {
@@ -14,6 +15,7 @@ type Profile = {
   avatar_url: string | null;
   bio: string | null;
   date_of_birth: string | null;
+  age?: number | null;
   gender: string | null;
   full_name: string;
   phone: string;
@@ -27,17 +29,28 @@ type Profile = {
 
 export function ProfileForm({
   profile,
-  transactions,
-  razorpayEnabled,
-  razorpayKeyId,
+  transactions = [],
+  razorpayEnabled = false,
+  razorpayKeyId = "",
+  hideWallet = false,
 }: {
   profile: Profile;
-  transactions: WalletTransaction[];
-  razorpayEnabled: boolean;
-  razorpayKeyId: string;
+  transactions?: WalletTransaction[];
+  razorpayEnabled?: boolean;
+  razorpayKeyId?: string;
+  hideWallet?: boolean;
 }) {
+  const initialAge =
+    profile.age != null
+      ? String(profile.age)
+      : profile.date_of_birth
+        ? String(ageFrom(profile.date_of_birth) ?? "")
+        : "";
+
   const [form, setForm] = useState({
     full_name: profile.full_name,
+    age: initialAge,
+    gender: profile.gender ?? "",
     bio: profile.bio ?? "",
     phone: profile.phone ?? "",
     city: profile.city ?? "Kolkata",
@@ -58,18 +71,35 @@ export function ProfileForm({
     e.preventDefault();
     setError(null);
     setSaved(false);
+
+    if (!form.full_name.trim() || form.full_name.trim().length < 2) {
+      setError("Please enter your full name (compulsory).");
+      return;
+    }
+    const numAge = Number(form.age);
+    if (!form.age || !Number.isFinite(numAge) || numAge < 5 || numAge > 120) {
+      setError("Please enter a valid age between 5 and 120 (compulsory).");
+      return;
+    }
+    if (!form.gender) {
+      setError("Please select your sex (compulsory).");
+      return;
+    }
+
     setBusy(true);
     try {
       const res = await fetch("/api/player/profile", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          full_name: form.full_name,
+          full_name: form.full_name.trim(),
+          age: numAge,
+          gender: form.gender,
           bio: form.bio,
           phone: form.phone,
           city: form.city,
           dupr: hasRating ? rating : null,
-          dupr_id: form.dupr_id,
+          dupr_id: form.dupr_id.trim() || null,
           whatsapp_opt_in: form.whatsapp_opt_in,
         }),
       });
@@ -87,26 +117,28 @@ export function ProfileForm({
     <div className="space-y-8">
       <PhotoCard profile={profile} />
 
-      <div className="card p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
-              <Wallet size={13} className="text-volt-deep" /> SuperPro wallet
-            </p>
-            <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(profile.wallet_balance_paise)}</p>
+      {!hideWallet && (
+        <div className="card p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
+                <Wallet size={13} className="text-volt-deep" /> SuperPro wallet
+              </p>
+              <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(profile.wallet_balance_paise)}</p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <WalletTopUp
+              razorpayEnabled={razorpayEnabled}
+              razorpayKeyId={razorpayKeyId}
+              name={profile.full_name}
+              email={profile.email}
+              phone={profile.phone}
+            />
           </div>
         </div>
-
-        <div className="mt-5">
-          <WalletTopUp
-            razorpayEnabled={razorpayEnabled}
-            razorpayKeyId={razorpayKeyId}
-            name={profile.full_name}
-            email={profile.email}
-            phone={profile.phone}
-          />
-        </div>
-      </div>
+      )}
 
       <form onSubmit={submit} className="card p-6">
         <h2 className="text-2xl">Your details</h2>
@@ -117,7 +149,9 @@ export function ProfileForm({
             <input id="p-email" className="field opacity-60" value={profile.email} disabled readOnly />
           </div>
           <div className="sm:col-span-2">
-            <label className="label" htmlFor="p-name">Full name</label>
+            <label className="label" htmlFor="p-name">
+              Full name <span className="text-signal">* (Compulsory)</span>
+            </label>
             <input
               id="p-name"
               className="field"
@@ -127,6 +161,46 @@ export function ProfileForm({
               minLength={2}
             />
           </div>
+
+          <div>
+            <label className="label" htmlFor="p-age">
+              Age <span className="text-signal">* (Compulsory)</span>
+            </label>
+            <input
+              id="p-age"
+              type="number"
+              min="5"
+              max="120"
+              className="field"
+              value={form.age}
+              onChange={(e) => setForm({ ...form, age: e.target.value })}
+              placeholder="e.g. 25"
+              required
+            />
+            <p className="mt-1 text-[11px] text-ink/45">Used for age-category tournament divisions.</p>
+          </div>
+
+          <div>
+            <label className="label" htmlFor="p-gender">
+              Sex <span className="text-signal">* (Compulsory)</span>
+            </label>
+            <select
+              id="p-gender"
+              className="field cursor-pointer"
+              value={form.gender}
+              onChange={(e) => setForm({ ...form, gender: e.target.value })}
+              required
+            >
+              <option value="">Choose sex…</option>
+              {GENDERS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-ink/45">Required for tournament brackets.</p>
+          </div>
+
           <div>
             <label className="label" htmlFor="p-phone">WhatsApp number</label>
             <input
@@ -165,15 +239,17 @@ export function ProfileForm({
             <label className="label" htmlFor="p-duprid">DUPR ID</label>
             <input
               id="p-duprid"
-              className="field"
+              className="field font-mono uppercase tracking-wider"
               value={form.dupr_id}
-              onChange={(e) => setForm({ ...form, dupr_id: e.target.value })}
+              onChange={(e) => setForm({ ...form, dupr_id: e.target.value.toUpperCase() })}
               placeholder="K9X2LM"
               autoCapitalize="characters"
             />
           </div>
           <div>
-            <label className="label" htmlFor="p-dupr">DUPR rating</label>
+            <label className="label" htmlFor="p-dupr">
+              DUPR rating / Level
+            </label>
             <input
               id="p-dupr"
               className="field"
@@ -182,6 +258,11 @@ export function ProfileForm({
               onChange={(e) => setForm({ ...form, dupr: e.target.value })}
               placeholder="3.75"
             />
+            {hasRating && (
+              <p className="mt-1 text-[11px] text-volt-deep font-semibold">
+                Level: {rating < 3.0 ? "Beginner" : rating < 3.75 ? "Intermediate" : rating < 4.5 ? "Advanced" : "Pro"}
+              </p>
+            )}
           </div>
         </div>
 
@@ -211,40 +292,42 @@ export function ProfileForm({
         </button>
       </form>
 
-      <div className="card p-6">
-        <h2 className="text-2xl">Wallet history</h2>
-        {transactions.length === 0 ? (
-          <p className="mt-3 text-sm text-ink/55">Nothing yet. Ask a rep to load credit at the venue.</p>
-        ) : (
-          <div className="table-wrap mt-5">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Note</th>
-                  <th>Amount</th>
-                  <th>Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t) => (
-                  <tr key={t.id}>
-                    <td>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
-                    <td className="capitalize">{t.kind}</td>
-                    <td className="text-ink/70">{t.reason ?? "—"}</td>
-                    <td className={t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}>
-                      {t.delta_paise > 0 ? "+" : "−"}
-                      {formatPaise(Math.abs(t.delta_paise))}
-                    </td>
-                    <td>{formatPaise(t.balance_after_paise)}</td>
+      {!hideWallet && (
+        <div className="card p-6">
+          <h2 className="text-2xl">Wallet history</h2>
+          {transactions.length === 0 ? (
+            <p className="mt-3 text-sm text-ink/55">Nothing yet. Ask a rep to load credit at the venue.</p>
+          ) : (
+            <div className="table-wrap mt-5">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Note</th>
+                    <th>Amount</th>
+                    <th>Balance</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {transactions.map((t) => (
+                    <tr key={t.id}>
+                      <td>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
+                      <td className="capitalize">{t.kind}</td>
+                      <td className="text-ink/70">{t.reason ?? "—"}</td>
+                      <td className={t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}>
+                        {t.delta_paise > 0 ? "+" : "−"}
+                        {formatPaise(Math.abs(t.delta_paise))}
+                      </td>
+                      <td>{formatPaise(t.balance_after_paise)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

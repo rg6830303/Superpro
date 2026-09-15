@@ -33,19 +33,21 @@ export const duprRatingSchema = z
 export const genderSchema = z.enum(["male", "female", "other", "undisclosed"]);
 
 export const signupSchema = z.object({
-  full_name: z.string().trim().min(2, "Enter your full name").max(80),
+  full_name: z.string().trim().min(2, "Enter your full name (compulsory)").max(80),
   email: emailSchema,
   password: z.string().min(8, "Password must be at least 8 characters").max(128),
   phone: phoneSchema,
-  dupr_id: duprIdSchema,
-  dupr: duprRatingSchema,
+  age: z.coerce.number().int().min(5, "Enter a valid age (at least 5)").max(120, "Enter a valid age").optional().nullable(),
   date_of_birth: z
     .string()
     .trim()
     .refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Enter a valid date of birth")
     .optional()
     .or(z.literal("")),
-  gender: genderSchema.optional(),
+  gender: genderSchema.refine((v) => Boolean(v), "Select your sex (compulsory)"),
+  dupr_id: duprIdSchema,
+  dupr: duprRatingSchema,
+  avatar_url: z.string().trim().optional().nullable(),
   city: z.string().trim().max(60).optional(),
 });
 

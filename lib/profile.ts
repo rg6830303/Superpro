@@ -23,6 +23,13 @@ export function ageFrom(dob: string | Date | null | undefined): number | null {
   return age >= 0 && age < 120 ? age : null;
 }
 
+/** Given an age in years, approximate date of birth for age-category draws. */
+export function dobFromAge(age: number): string {
+  const currentYear = new Date().getFullYear();
+  const birthYear = Math.max(1900, currentYear - Math.round(age));
+  return `${birthYear}-06-15`;
+}
+
 /** A stable, readable handle for a player's public page. */
 export function handleFrom(name: string, salt: string): string {
   const base = name
