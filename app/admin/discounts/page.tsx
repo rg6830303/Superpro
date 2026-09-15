@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, TicketPercent } from "lucide-react";
+import { Pencil, TicketPercent, Trash2, Tag, Percent } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
-import { AddButton, ListState, RecordEditor, submitResource, type FieldDef } from "@/components/admin/crud";
+import { AddButton, Drawer, ListState, submitResource } from "@/components/admin/crud";
+import { Alert, Spinner } from "@/components/ui";
 import { formatPaise } from "@/lib/money";
 
 type Code = {
@@ -26,47 +27,35 @@ type Code = {
   last_used_at: string | null;
 };
 
-const SCOPES = [
-  { value: "shop", label: "Shop" },
-  { value: "games", label: "Daily games" },
-  { value: "coaching", label: "Coaching" },
-  { value: "tournaments", label: "Tournaments" },
-];
+const TAB_OPTIONS = [
+  { value: "all", label: "All (Shop, Games, Coaching, Tournaments)" },
+  { value: "shop", label: "Shop (Equipment & Merchandise)" },
+  { value: "games", label: "Daily Games (Court Bookings)" },
+  { value: "coaching", label: "Coaching (Coach Bookings)" },
+  { value: "tournaments", label: "Tournaments (Tournament Entries)" },
+] as const;
 
-const FIELDS: FieldDef[] = [
-  { name: "code", label: "Code", required: true, hint: "Letters, numbers, dashes. Shown uppercase." },
-  {
-    name: "kind",
-    label: "Type",
-    type: "select",
-    options: [
-      { value: "percent", label: "Percentage off" },
-      { value: "amount", label: "Fixed amount off" },
-    ],
-  },
-  { name: "percent_off", label: "Percent off", type: "number", hint: "1-100. Used when type is percentage." },
-  { name: "amount_off_paise", label: "Amount off (paise)", type: "number", hint: "50000 = ₹500. Used when type is fixed." },
-  { name: "max_discount_paise", label: "Cap the discount at (paise)", type: "number", hint: "Optional ceiling for percentage codes." },
-  { name: "min_spend_paise", label: "Minimum spend (paise)", type: "number", hint: "0 for no minimum." },
-  { name: "max_uses", label: "Total uses allowed", type: "number", hint: "Blank for unlimited. The code stops working once these are gone." },
-  { name: "per_user_limit", label: "Uses per person", type: "number", hint: "Blank for unlimited." },
-  { name: "scopes", label: "Works on", type: "list", placeholder: "shop\ngames\ncoaching\ntournaments" },
-  { name: "starts_at", label: "Starts", type: "date" },
-  { name: "expires_at", label: "Expires", type: "date" },
-  { name: "description", label: "Note", full: true, placeholder: "Diwali launch offer" },
-  { name: "active", label: "Live", type: "checkbox" },
-];
-
-/** How many uses are left, phrased the way the person minting the code thinks. */
 function remaining(c: Code): string {
-  if (c.max_uses == null) return "unlimited";
-  return `${Math.max(0, c.max_uses - c.used_count)} of ${c.max_uses} left`;
+  if (c.max_uses == null) return "Unlimited";
+  const left = Math.max(0, c.max_uses - c.used_count);
+  return `${left} of ${c.max_uses} left`;
 }
 
-function value(c: Code): string {
+function valueText(c: Code): string {
   return c.kind === "percent"
     ? `${Number(c.percent_off)}% off`
     : `${formatPaise(Number(c.amount_off_paise ?? 0))} off`;
+}
+
+function formatScopeBadge(scopes: string[] = []): string {
+  if (!scopes || scopes.length === 0 || scopes.length >= 4) return "All Tabs";
+  if (scopes.length === 1) {
+    if (scopes[0] === "shop") return "Shop";
+    if (scopes[0] === "games") return "Games";
+    if (scopes[0] === "coaching") return "Coaching";
+    if (scopes[0] === "tournaments") return "Tournaments";
+  }
+  return scopes.join(", ");
 }
 
 export default function AdminDiscountsPage() {
@@ -75,6 +64,20 @@ export default function AdminDiscountsPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Code | null>(null);
   const [creating, setCreating] = useState(false);
+
+  // Form states
+  const [codeName, setCodeName] = useState("");
+  const [kind, setKind] = useState<"amount" | "percent">("amount");
+  const [flatRupees, setFlatRupees] = useState("");
+  const [percentValue, setPercentValue] = useState("");
+  const [targetTab, setTargetTab] = useState<string>("all");
+  const [maxUses, setMaxUses] = useState("");
+  const [description, setDescription] = useState("");
+  const [active, setActive] = useState(true);
+
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,6 +98,137 @@ export default function AdminDiscountsPage() {
     load();
   }, [load]);
 
+  function startCreate() {
+    setCodeName("");
+    setKind("amount");
+    setFlatRupees("100");
+    setPercentValue("10");
+    setTargetTab("all");
+    setMaxUses("50");
+    setDescription("");
+    setActive(true);
+    setFormError(null);
+    setConfirmDelete(false);
+    setEditing(null);
+    setCreating(true);
+  }
+
+  function startEdit(c: Code) {
+    setCodeName(c.code);
+    setKind(c.kind);
+    setFlatRupees(c.amount_off_paise != null ? String(Math.round(c.amount_off_paise / 100)) : "");
+    setPercentValue(c.percent_off != null ? String(Number(c.percent_off)) : "");
+
+    const s = c.scopes ?? [];
+    if (s.length >= 4 || s.length === 0) {
+      setTargetTab("all");
+    } else if (s.length === 1 && ["shop", "games", "coaching", "tournaments"].includes(s[0])) {
+      setTargetTab(s[0]);
+    } else {
+      setTargetTab("all");
+    }
+
+    setMaxUses(c.max_uses != null ? String(c.max_uses) : "");
+    setDescription(c.description ?? "");
+    setActive(c.active);
+    setFormError(null);
+    setConfirmDelete(false);
+    setCreating(false);
+    setEditing(c);
+  }
+
+  async function handleSave() {
+    setFormError(null);
+
+    const cleanCode = codeName.trim().toUpperCase();
+    if (!editing && !cleanCode) {
+      setFormError("Enter a discount code (e.g. SUPER100).");
+      return;
+    }
+
+    if (kind === "amount") {
+      const rupees = Number(flatRupees);
+      if (!Number.isFinite(rupees) || rupees <= 0) {
+        setFormError("Enter a valid flat discount amount in Rupees (greater than 0).");
+        return;
+      }
+    } else {
+      const pct = Number(percentValue);
+      if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+        setFormError("Enter a valid discount percentage between 1 and 100.");
+        return;
+      }
+    }
+
+    const scopes =
+      targetTab === "all"
+        ? ["shop", "games", "coaching", "tournaments"]
+        : [targetTab];
+
+    const payload: Record<string, unknown> = {
+      kind,
+      scopes,
+      description: description.trim() || null,
+      active,
+      max_uses: maxUses.trim() !== "" ? Number(maxUses) : null,
+    };
+
+    if (kind === "amount") {
+      payload.amount_off_paise = Math.round(Number(flatRupees) * 100);
+      payload.percent_off = null;
+    } else {
+      payload.percent_off = Number(percentValue);
+      payload.amount_off_paise = null;
+    }
+
+    setSaving(true);
+    try {
+      let err: string | null = null;
+      if (editing) {
+        err = await submitResource("/api/admin/discounts", "PATCH", { id: editing.id, ...payload });
+      } else {
+        payload.code = cleanCode;
+        err = await submitResource("/api/admin/discounts", "POST", payload);
+      }
+
+      if (err) {
+        setFormError(err);
+      } else {
+        setCreating(false);
+        setEditing(null);
+        await load();
+      }
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Failed to save discount code.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!editing) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+
+    setSaving(true);
+    setFormError(null);
+    try {
+      const err = await submitResource(`/api/admin/discounts?id=${editing.id}`, "DELETE");
+      if (err) {
+        setFormError(err);
+      } else {
+        setEditing(null);
+        await load();
+      }
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Failed to delete discount code.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const live = codes.filter((c) => c.active).length;
   const redeemed = codes.reduce((sum, c) => sum + c.used_count, 0);
   const givenAway = codes.reduce((sum, c) => sum + Number(c.given_away_paise ?? 0), 0);
@@ -104,7 +238,7 @@ export default function AdminDiscountsPage() {
       <AdminHeader
         title="Discount codes"
         sub="Any value, any number of uses. A code stops working the moment its uses run out."
-        action={<AddButton label="New code" onClick={() => setCreating(true)} />}
+        action={<AddButton label="New code" onClick={startCreate} />}
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -120,8 +254,13 @@ export default function AdminDiscountsPage() {
           <table className="tbl">
             <thead>
               <tr>
-                <th>Code</th><th>Value</th><th>Uses</th><th>Works on</th>
-                <th>Window</th><th>Given away</th><th>Status</th><th />
+                <th>Code</th>
+                <th>Value</th>
+                <th>Uses</th>
+                <th>Works on</th>
+                <th>Given away</th>
+                <th>Status</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -135,33 +274,33 @@ export default function AdminDiscountsPage() {
                       {c.description && <span className="block text-xs text-ink/55">{c.description}</span>}
                     </td>
                     <td className="font-semibold text-volt-deep">
-                      {value(c)}
-                      {c.min_spend_paise > 0 && (
-                        <span className="block text-[11px] font-normal text-ink/45">
-                          over {formatPaise(c.min_spend_paise)}
+                      {valueText(c)}
+                    </td>
+                    <td>
+                      <span className="block text-sm">{remaining(c)}</span>
+                      {c.used_count > 0 && (
+                        <span className="block text-[11px] text-ink/45">
+                          {c.used_count} redeemed
                         </span>
                       )}
                     </td>
                     <td>
-                      <span className="block text-sm">{remaining(c)}</span>
-                      <span className="block text-[11px] text-ink/45">
-                        {c.per_user_limit == null ? "any number each" : `${c.per_user_limit} per person`}
+                      <span className="chip text-[11px]">
+                        {formatScopeBadge(c.scopes)}
                       </span>
                     </td>
-                    <td className="text-xs">{(c.scopes ?? []).join(", ")}</td>
-                    <td className="whitespace-nowrap text-xs text-ink/60">
-                      {c.starts_at ? new Date(c.starts_at).toLocaleDateString("en-IN") : "now"}
-                      {" to "}
-                      {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-IN") : "open"}
-                    </td>
-                    <td>{formatPaise(Number(c.given_away_paise ?? 0))}</td>
+                    <td className="text-xs font-mono">{formatPaise(Number(c.given_away_paise ?? 0))}</td>
                     <td>
                       <span className={!c.active || exhausted || expired ? "chip" : "chip-volt"}>
                         {!c.active ? "Off" : exhausted ? "Used up" : expired ? "Expired" : "Live"}
                       </span>
                     </td>
                     <td>
-                      <button type="button" onClick={() => setEditing(c)} className="btn-outline btn-sm">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(c)}
+                        className="btn-outline btn-sm inline-flex items-center gap-1.5"
+                      >
                         <Pencil size={13} /> Edit
                       </button>
                     </td>
@@ -180,67 +319,243 @@ export default function AdminDiscountsPage() {
         </p>
       )}
 
+      {/* Simplified, Clean Modal for Discount Code Creation & Editing */}
       {(creating || editing) && (
-        <RecordEditor
-          title={editing ? editing.code : "New discount code"}
+        <Drawer
+          title={editing ? `Edit Code: ${editing.code}` : "New Discount Code"}
           sub={
             editing
-              ? `${editing.used_count} redemption${editing.used_count === 1 ? "" : "s"} so far. The code itself cannot be renamed.`
+              ? `${editing.used_count} redemption${editing.used_count === 1 ? "" : "s"} so far.`
               : "Live at checkout as soon as you save."
           }
-          fields={editing ? FIELDS.filter((f) => f.name !== "code") : FIELDS}
-          initial={
-            editing
-              ? {
-                  kind: editing.kind,
-                  percent_off: editing.percent_off != null ? Number(editing.percent_off) : null,
-                  amount_off_paise: editing.amount_off_paise,
-                  max_discount_paise: editing.max_discount_paise,
-                  min_spend_paise: editing.min_spend_paise,
-                  max_uses: editing.max_uses,
-                  per_user_limit: editing.per_user_limit,
-                  scopes: editing.scopes ?? [],
-                  starts_at: editing.starts_at ? editing.starts_at.slice(0, 10) : "",
-                  expires_at: editing.expires_at ? editing.expires_at.slice(0, 10) : "",
-                  description: editing.description ?? "",
-                  active: editing.active,
-                }
-              : {
-                  kind: "percent",
-                  percent_off: 10,
-                  min_spend_paise: 0,
-                  max_uses: 50,
-                  per_user_limit: 1,
-                  scopes: ["shop", "games", "coaching", "tournaments"],
-                  active: true,
-                }
-          }
-          submitLabel={editing ? "Save code" : "Create code"}
-          deleteLabel={editing ? "Delete or switch off" : undefined}
           onClose={() => {
             setCreating(false);
             setEditing(null);
           }}
-          onSubmit={async (values) => {
-            const err = editing
-              ? await submitResource("/api/admin/discounts", "PATCH", { id: editing.id, ...values })
-              : await submitResource("/api/admin/discounts", "POST", values);
-            if (!err) await load();
-            return err;
-          }}
-          onDelete={
-            editing
-              ? async () => {
-                  // A code nobody used is deleted outright; one with redemptions
-                  // behind it is switched off so reporting keeps its history.
-                  const err = await submitResource(`/api/admin/discounts?id=${editing.id}`, "DELETE");
-                  if (err) return err;
-                  await load();
-                  return null;
-                }
-              : undefined
+          footer={
+            <div className="flex items-center justify-between gap-3 w-full">
+              {editing && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={saving}
+                  className={`btn-sm flex items-center gap-1.5 text-xs transition-all ${
+                    confirmDelete
+                      ? "bg-signal text-white hover:bg-signal/90"
+                      : "btn-ghost text-signal hover:bg-signal/10"
+                  }`}
+                >
+                  <Trash2 size={13} />
+                  {confirmDelete ? "Confirm Delete?" : "Delete"}
+                </button>
+              )}
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreating(false);
+                    setEditing(null);
+                  }}
+                  disabled={saving}
+                  className="btn-outline btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="btn-volt btn-sm min-w-[110px]"
+                >
+                  {saving ? <Spinner /> : null}
+                  {saving ? "Saving…" : editing ? "Save Code" : "Create Code"}
+                </button>
+              </div>
+            </div>
           }
-        />
+        >
+          <div className="space-y-5">
+            {formError && <Alert>{formError}</Alert>}
+
+            {/* Code Name */}
+            <div>
+              <label className="label" htmlFor="disc-code">
+                Discount Code <span className="text-signal">*</span>
+              </label>
+              <input
+                id="disc-code"
+                type="text"
+                disabled={Boolean(editing)}
+                value={codeName}
+                onChange={(e) => setCodeName(e.target.value.toUpperCase())}
+                placeholder="e.g. SUPER100"
+                className="field font-mono uppercase tracking-wider"
+                required
+              />
+              <p className="mt-1 text-[11px] text-ink/45">
+                {editing
+                  ? "The code string cannot be renamed once created to preserve redemption history."
+                  : "Letters and numbers. Customers enter this code at checkout."}
+              </p>
+            </div>
+
+            {/* Discount Type: Flat vs Percentage Only */}
+            <div>
+              <label className="label">
+                Discount Type <span className="text-signal">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setKind("amount")}
+                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
+                    kind === "amount"
+                      ? "border-volt-deep bg-volt/20 text-volt-deep font-bold ring-1 ring-volt-deep"
+                      : "border-line bg-paper text-ink/70 hover:border-ink/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-base font-bold">
+                    <Tag size={16} /> Flat (₹)
+                  </div>
+                  <span className="text-[11px] font-normal text-ink/55 mt-0.5">Fixed Rupee amount off</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setKind("percent")}
+                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
+                    kind === "percent"
+                      ? "border-volt-deep bg-volt/20 text-volt-deep font-bold ring-1 ring-volt-deep"
+                      : "border-line bg-paper text-ink/70 hover:border-ink/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-base font-bold">
+                    <Percent size={16} /> Percentage (%)
+                  </div>
+                  <span className="text-[11px] font-normal text-ink/55 mt-0.5">Percentage off total</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Discount Value: Rupee input or Percentage input */}
+            {kind === "amount" ? (
+              <div>
+                <label className="label" htmlFor="disc-flat">
+                  Flat Discount Amount (₹) <span className="text-signal">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/50 font-bold text-sm">₹</span>
+                  <input
+                    id="disc-flat"
+                    type="number"
+                    min="1"
+                    step="1"
+                    className="field pl-8"
+                    value={flatRupees}
+                    onChange={(e) => setFlatRupees(e.target.value)}
+                    placeholder="e.g. 100"
+                    required
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-ink/45">Enter flat amount in Rupees (e.g. 100 for ₹100 off).</p>
+              </div>
+            ) : (
+              <div>
+                <label className="label" htmlFor="disc-percent">
+                  Discount Percentage (%) <span className="text-signal">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="disc-percent"
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    className="field pr-8"
+                    value={percentValue}
+                    onChange={(e) => setPercentValue(e.target.value)}
+                    placeholder="e.g. 15"
+                    required
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/50 font-bold text-sm">%</span>
+                </div>
+                <p className="mt-1 text-[11px] text-ink/45">Enter percentage between 1% and 100%.</p>
+              </div>
+            )}
+
+            {/* Where to apply: Fixed drop-down selection (no text enter for tabs) */}
+            <div>
+              <label className="label" htmlFor="disc-tab">
+                Where to apply this code <span className="text-signal">*</span>
+              </label>
+              <select
+                id="disc-tab"
+                className="field cursor-pointer"
+                value={targetTab}
+                onChange={(e) => setTargetTab(e.target.value)}
+              >
+                {TAB_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-ink/45">
+                Choose the exact tab or service where this discount applies.
+              </p>
+            </div>
+
+            {/* Total Uses Allowed */}
+            <div>
+              <label className="label" htmlFor="disc-uses">
+                Total Uses Allowed
+              </label>
+              <input
+                id="disc-uses"
+                type="number"
+                min="1"
+                step="1"
+                className="field"
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+                placeholder="Blank for unlimited"
+              />
+              <p className="mt-1 text-[11px] text-ink/45">
+                Total redemption cap across all users. Leave blank for unlimited uses.
+              </p>
+            </div>
+
+            {/* Optional Note / Description */}
+            <div>
+              <label className="label" htmlFor="disc-desc">
+                Note / Description
+              </label>
+              <input
+                id="disc-desc"
+                type="text"
+                className="field"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Launch week promotion"
+              />
+            </div>
+
+            {/* Active Toggle */}
+            <div className="pt-1">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={(e) => setActive(e.target.checked)}
+                  className="h-4 w-4 rounded accent-[#06263D]"
+                />
+                <span className="text-sm font-medium text-ink">
+                  Active (code is live and can be redeemed at checkout)
+                </span>
+              </label>
+            </div>
+          </div>
+        </Drawer>
       )}
     </div>
   );

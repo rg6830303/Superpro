@@ -9,7 +9,6 @@ import {
   verifyCredentials,
 } from "@/lib/accounts";
 import { hasSigningSecret, signToken, ADMIN_COOKIE, ADMIN_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
-import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -65,17 +64,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503 });
     }
 
-    await ensureSchema();
-
     const submitted = parsed.data.email.trim().toLowerCase();
     const email = normaliseLoginEmail(submitted);
     const username = submitted.split("@")[0];
     const password = parsed.data.password;
+    const isOwner = username === BOOTSTRAP_USERNAME;
 
     let auth = await verifyCredentials(email, password);
 
     // Bootstrap: the configured owner has not been created in Supabase yet.
-    if (!auth.ok && username === BOOTSTRAP_USERNAME && password === BOOTSTRAP_PASSWORD) {
+    if (!auth.ok && isOwner && password === BOOTSTRAP_PASSWORD) {
       const id = await ensureAdminAccount(email, password);
       if (id) auth = await verifyCredentials(email, password);
     }
@@ -85,17 +83,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
     }
 
-    await syncUserRow({
-      id: auth.id,
-      email: auth.email,
-      full_name: (auth.metadata.full_name as string) ?? "SuperPro Admin",
-      role: username === BOOTSTRAP_USERNAME ? "admin" : undefined,
-    });
-
-    if (!(await isAdminAccount(auth.id, auth.metadata))) {
+    // Check admin privilege (owner is always granted; others checked against role)
+    const isAdmin = isOwner || (await isAdminAccount(auth.id, auth.metadata));
+    if (!isAdmin) {
       console.warn("[admin-login] non-admin account attempted console access:", auth.email);
       return NextResponse.json({ error: "This account cannot access the admin console." }, { status: 403 });
     }
+
+    // Refresh user row in background without blocking response
+    syncUserRow({
+      id: auth.id,
+      email: auth.email,
+      full_name: (auth.metadata.full_name as string) ?? "SuperPro Admin",
+      role: isOwner ? "admin" : undefined,
+    }).catch((err) => console.error("[admin-login] syncUserRow failed:", err));
 
     const token = await signToken({
       id: auth.id,

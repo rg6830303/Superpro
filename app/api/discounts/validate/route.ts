@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlayerSession } from "@/lib/auth";
-import { ensureSchema } from "@/lib/schema";
 import { quote } from "@/lib/discounts";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -31,7 +30,6 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   try {
-    await ensureSchema();
     const session = await getPlayerSession();
     const result = await quote({
       code: parsed.data.code,

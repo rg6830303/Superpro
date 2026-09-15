@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminSession, type AdminPayload } from "@/lib/auth";
 import { query } from "@/lib/db";
-import { ensureSchema } from "@/lib/schema";
 
 /**
  * Gate for every /api/admin route. Returns the session, or a 401 Response the
@@ -13,7 +12,6 @@ import { ensureSchema } from "@/lib/schema";
 export async function adminGate(): Promise<AdminPayload | NextResponse> {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
-  await ensureSchema();
   return session;
 }
 

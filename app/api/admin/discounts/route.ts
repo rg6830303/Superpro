@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminGate, audit, badRequest, buildUpdate, serverError } from "@/lib/admin";
 import { query } from "@/lib/db";
-import { ensureSchema } from "@/lib/schema";
 import { normaliseCode } from "@/lib/discounts";
 
 export const runtime = "nodejs";
@@ -26,7 +25,6 @@ export async function GET() {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
-    await ensureSchema();
     const codes = await query(
       `SELECT c.*,
               c.starts_at::text  AS starts_at,
@@ -70,7 +68,6 @@ export async function POST(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
-    await ensureSchema();
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
 
     const code = normaliseCode(String(body.code ?? ""));
@@ -128,9 +125,16 @@ export async function PATCH(req: Request) {
     delete body.code;
     delete body.used_count;
 
-    if (body.kind || body.percent_off != null || body.amount_off_paise != null) {
+    if (body.kind || body.percent_off !== undefined || body.amount_off_paise !== undefined) {
       const invalid = validateValue({ ...body, kind: body.kind ?? "percent" });
       if (invalid) return badRequest(invalid);
+
+      // Cleanly clear the unused value when switching kinds
+      if (body.kind === "amount") {
+        body.percent_off = null;
+      } else if (body.kind === "percent") {
+        body.amount_off_paise = null;
+      }
     }
 
     const update = buildUpdate("discount_codes", EDITABLE, body);
