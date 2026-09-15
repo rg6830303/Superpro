@@ -8,6 +8,7 @@ import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
 import { MiniPlayerModal } from "@/components/mini-player-modal";
 import { formatDate, formatTime, formatTimeRange, isPast } from "@/lib/dates";
+import { WALLET_FLOOR_PAISE, duesPaise } from "@/lib/postpaid";
 import { formatPaise, perPlayerPaise, splitCaption } from "@/lib/money";
 import { LEVEL_LABEL, approvalReason, needsApproval } from "@/lib/levels";
 import { WHATSAPP_GROUP_URL, waLink } from "@/lib/site";
@@ -569,11 +570,11 @@ export function GamesFlow({
             <div className="mt-6">
               <span className="label">Payment</span>
               <div className="grid gap-3 sm:grid-cols-2">
-                {walletPaise > 0 && (
+                {(walletPaise > 0 || walletPaise > WALLET_FLOOR_PAISE) && (
                   <button
                     type="button"
                     onClick={() => setPay("wallet")}
-                    disabled={walletPaise < totalPaise}
+                    disabled={walletPaise - totalPaise < WALLET_FLOOR_PAISE}
                     className={`tile ${pay === "wallet" ? "tile-selected" : ""} ${
                       walletPaise < totalPaise ? "opacity-40" : ""
                     }`}
@@ -581,9 +582,11 @@ export function GamesFlow({
                     <Wallet size={18} className="text-volt-deep" />
                     <p className="mt-2 font-display text-lg uppercase text-ink">SuperPro wallet</p>
                     <p className="mt-1 text-xs text-ink/55">
-                      {walletPaise < totalPaise
-                        ? `Only ${formatPaise(walletPaise)} left — top up first.`
-                        : `${formatPaise(walletPaise)} available.`}
+                      {walletPaise - totalPaise < WALLET_FLOOR_PAISE
+                        ? `Postpaid limit reached — clear ${formatPaise(duesPaise(walletPaise))} first.`
+                        : walletPaise < totalPaise
+                          ? `${formatPaise(walletPaise)} left — the rest goes on postpaid.`
+                          : `${formatPaise(walletPaise)} available.`}
                     </p>
                   </button>
                 )}

@@ -8,7 +8,7 @@ import { createRazorpayOrder, isRazorpayEnabled } from "@/lib/razorpay";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, playerRegistrationSchema } from "@/lib/validation";
 import { bookingReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
-import { adjustWallet, chargeWallet } from "@/lib/wallet";
+import { adjustWallet, chargeWallet, duesPaise, getWalletBalance, isBlocked } from "@/lib/wallet";
 import { postSlotToGroup } from "@/lib/games";
 import { needsApproval, LEVEL_LABEL } from "@/lib/levels";
 import { notifyFollowersAndFollowing } from "@/lib/notifications";
@@ -58,6 +58,22 @@ export async function POST(req: Request) {
     const input = parsed.data;
 
     await ensureSchema();
+
+    // Postpaid has a floor. Past it the account is settled before another slot
+    // is taken — otherwise the debt compounds one booking at a time, and the
+    // player finds out how much they owe only when someone finally chases them.
+    const balanceNow = await getWalletBalance(session.id);
+    if (isBlocked(balanceNow)) {
+      return NextResponse.json(
+        {
+          error: `Your wallet is at its postpaid limit. Clear ₹${Math.round(duesPaise(balanceNow) / 100).toLocaleString("en-IN")} to book again.`,
+          wallet_balance_paise: balanceNow,
+          dues_paise: duesPaise(balanceNow),
+          blocked: true,
+        },
+        { status: 402 },
+      );
+    }
 
     const sessions = await query<SessionRow>(
       `SELECT s.id, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, s.capacity, s.level,

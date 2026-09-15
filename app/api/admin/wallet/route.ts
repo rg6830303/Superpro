@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminGate, audit, serverError } from "@/lib/admin";
-import { adjustWallet, listWalletTransactions } from "@/lib/wallet";
+import { WALLET_FLOOR_PAISE, adjustWallet, listWalletTransactions } from "@/lib/wallet";
 import { getUserRow } from "@/lib/accounts";
 
 export const runtime = "nodejs";
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     if (!result.ok) {
       const message =
         result.error === "insufficient"
-          ? `That debit would take the wallet below zero (balance ₹${(result.balancePaise / 100).toFixed(0)}).`
+          ? `That debit would take the wallet past the ₹${Math.abs(WALLET_FLOOR_PAISE / 100).toLocaleString("en-IN")} postpaid limit (balance ₹${(result.balancePaise / 100).toFixed(0)}).`
           : result.error === "not_found"
             ? "That player no longer exists."
             : "Could not update the wallet.";

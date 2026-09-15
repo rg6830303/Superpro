@@ -30,17 +30,41 @@ export async function uploadImage(
     return { ok: false, status: 413, error: `Keep the image under ${Math.round(maxBytes / 1024 / 1024)} MB.` };
   }
 
-  const storage = supabaseAdmin().storage.from(BUCKET);
-  const { error } = await storage.upload(`${pathWithoutExt}.${ext}`, await file.arrayBuffer(), {
+  const client = supabaseAdmin();
+  const storage = client.storage.from(BUCKET);
+  const key = `${pathWithoutExt}.${ext}`;
+
+  let { error } = await storage.upload(key, await file.arrayBuffer(), {
     contentType: file.type,
     upsert: true,
   });
-  if (error) {
-    console.error("[storage] upload failed:", error.message);
-    return { ok: false, status: 502, error: "Could not store that image." };
+
+  // A project with no bucket yet fails every upload silently from the user's
+  // point of view — the photo simply never appears. Create it once, on demand,
+  // and retry, so a fresh environment works without a manual dashboard step.
+  if (error && /bucket not found/i.test(error.message)) {
+    console.warn(`[storage] bucket ${BUCKET} missing — creating it`);
+    const created = await client.storage.createBucket(BUCKET, {
+      public: true,
+      fileSizeLimit: 5 * 1024 * 1024,
+      allowedMimeTypes: Object.keys(ALLOWED),
+    });
+    if (created.error && !/already exists/i.test(created.error.message)) {
+      console.error("[storage] could not create bucket:", created.error.message);
+      return { ok: false, status: 502, error: "Image storage is not set up yet." };
+    }
+    ({ error } = await storage.upload(key, await file.arrayBuffer(), {
+      contentType: file.type,
+      upsert: true,
+    }));
   }
 
-  const { data } = storage.getPublicUrl(`${pathWithoutExt}.${ext}`);
+  if (error) {
+    console.error("[storage] upload failed:", error.message);
+    return { ok: false, status: 502, error: `Could not store that image: ${error.message}` };
+  }
+
+  const { data } = storage.getPublicUrl(key);
   // Cache-bust, or the browser keeps showing whatever was at this path before.
   return { ok: true, url: `${data.publicUrl}?v=${Date.now()}` };
 }

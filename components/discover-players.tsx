@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Compass, ExternalLink, Search, Sparkles, UserCheck, UserPlus, Users } from "lucide-react";
 import { Avatar } from "@/components/player-directory";
@@ -8,23 +8,39 @@ import { Spinner } from "@/components/ui";
 import { LEVEL_LABEL } from "@/lib/levels";
 import type { DirectoryPlayer } from "@/app/api/players/route";
 
+type ViewKey = "all" | "following" | "followers" | "mutual";
+
+const VIEW_TABS: Array<{ key: ViewKey; label: string; blurb: string }> = [
+  { key: "all", label: "Discover", blurb: "Everyone playing with SuperPro." },
+  { key: "following", label: "Following", blurb: "Players whose games you follow." },
+  { key: "followers", label: "Followers", blurb: "Players who follow you." },
+  { key: "mutual", label: "Mutuals", blurb: "You follow each other — your regular hitting partners." },
+];
+
 export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "following">("all");
+  const [view, setView] = useState<ViewKey>("all");
   const [players, setPlayers] = useState<DirectoryPlayer[]>([]);
+  const [counts, setCounts] = useState({ following: 0, followers: 0 });
+  // Two states, deliberately: `loading` is the first fill, `refreshing` is every
+  // search after it. Wiping the grid back to a spinner on each keystroke loses
+  // the reader's place and makes typing feel like it broke something.
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
   const [followerCountMap, setFollowerCountMap] = useState<Record<string, number>>({});
   const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
 
-  const fetchPlayers = useCallback(async (searchQuery: string) => {
-    setLoading(true);
+  const fetchPlayers = useCallback(async (searchQuery: string, which: ViewKey, first: boolean) => {
+    if (first) setLoading(true);
+    else setRefreshing(true);
     try {
       const q = encodeURIComponent(searchQuery.trim());
-      const res = await fetch(`/api/players?q=${q}&limit=36`);
+      const res = await fetch(`/api/players?q=${q}&limit=36&view=${which}`);
       const data = await res.json();
       const list: DirectoryPlayer[] = data.players ?? [];
       setPlayers(list);
+      if (data.counts) setCounts(data.counts);
 
       const fMap: Record<string, boolean> = {};
       const cMap: Record<string, number> = {};
@@ -38,15 +54,18 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
       console.error("[discover] fetch players failed:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
+  const firstFill = useRef(true);
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchPlayers(query);
+      fetchPlayers(query, view, firstFill.current);
+      firstFill.current = false;
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, fetchPlayers]);
+  }, [query, view, fetchPlayers]);
 
   async function toggleFollow(player: DirectoryPlayer) {
     const isCurrentlyFollowing = Boolean(followingMap[player.id]);
@@ -83,11 +102,9 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
     }
   }
 
-  const filteredPlayers = players.filter((p) => {
-    if (p.id === currentUserId) return false;
-    if (filter === "following") return Boolean(followingMap[p.id]);
-    return true;
-  });
+  // No client-side filtering: the server owns both the view and excluding the
+  // viewer, so the page size is honest and nobody is lost off the end of it.
+  const filteredPlayers = players;
 
   return (
     <div className="space-y-6">
@@ -118,27 +135,36 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
           />
         </div>
 
-        {/* Filter Pills */}
+        {/* One tab per relationship, each a real query rather than a filter over
+            whatever happened to load. Counts come from the server so they are
+            right even when the person is on page one of forty. */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setFilter("all")}
-            className={`chip cursor-pointer text-xs transition-colors ${
-              filter === "all" ? "border-ink bg-ink text-paper" : "hover:border-ink/40"
-            }`}
-          >
-            <Sparkles size={12} /> All Picklers
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("following")}
-            className={`chip cursor-pointer text-xs transition-colors ${
-              filter === "following" ? "border-ink bg-ink text-paper" : "hover:border-ink/40"
-            }`}
-          >
-            <UserCheck size={12} /> People You Follow
-          </button>
+          {VIEW_TABS.map((tab) => {
+            const count =
+              tab.key === "following" ? counts.following : tab.key === "followers" ? counts.followers : null;
+            const active = view === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setView(tab.key)}
+                aria-pressed={active}
+                title={tab.blurb}
+                className={`chip cursor-pointer text-xs transition-colors ${
+                  active ? "border-ink bg-ink text-paper" : "hover:border-ink/40"
+                }`}
+              >
+                {tab.label}
+                {count !== null && (
+                  <span className={active ? "text-paper/70" : "text-ink/45"}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+          {refreshing && <span className="ml-1 self-center"><Spinner /></span>}
         </div>
+
+        <p className="mt-2 text-[11px] text-ink/50">{VIEW_TABS.find((t) => t.key === view)?.blurb}</p>
       </div>
 
       {/* Players Grid */}
@@ -151,13 +177,28 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
         <div className="card py-16 text-center">
           <Users size={32} className="mx-auto text-ink/30" />
           <p className="mt-3 text-base font-semibold text-ink">
-            {filter === "following" ? "You haven't followed any players yet." : "No picklers found."}
+            {query.trim()
+              ? `Nobody matches “${query.trim()}”.`
+              : view === "following"
+                ? "You are not following anyone yet."
+                : view === "followers"
+                  ? "No one follows you yet."
+                  : view === "mutual"
+                    ? "No mutual follows yet."
+                    : "No picklers found."}
           </p>
           <p className="mt-1 text-xs text-ink/55">
-            {filter === "following"
-              ? "Switch to 'All Picklers' above to discover and follow other players."
-              : "Try searching with a different name, handle, or city."}
+            {query.trim()
+              ? "Try a different name, handle, city or level."
+              : view === "all"
+                ? "Players appear here as they join SuperPro."
+                : "Open Discover and follow a few players — their games and draws then show up in your feed."}
           </p>
+          {!query.trim() && view !== "all" && (
+            <button type="button" onClick={() => setView("all")} className="btn-volt btn-sm mt-4">
+              Browse players
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -182,7 +223,18 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
 
                   <div className="mt-3">
                     <h3 className="truncate font-display text-lg font-bold text-ink">{player.full_name}</h3>
-                    <p className="font-mono text-xs text-ink/50">@{player.handle}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="font-mono text-xs text-ink/50">@{player.handle}</p>
+                      {player.follows_me && (
+                        <span
+                          className={`rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide ${
+                            isFollowing ? "bg-volt/20 text-volt-deep" : "bg-mist text-ink/55"
+                          }`}
+                        >
+                          {isFollowing ? "Mutual" : "Follows you"}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Badges / Metrics */}
@@ -220,6 +272,10 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
                       <>
                         <Check size={13} /> Following
                       </>
+                    ) : player.follows_me ? (
+                      <>
+                        <UserPlus size={13} /> Follow back
+                      </>
                     ) : (
                       <>
                         <UserPlus size={13} /> Follow
@@ -229,9 +285,9 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
 
                   <Link
                     href={`/players/${player.handle}`}
-                    target="_blank"
                     className="btn-outline btn-sm inline-flex items-center gap-1 text-xs px-2.5"
-                    title="View public player page"
+                    aria-label={`View ${player.full_name}'s player page`}
+                    title="View player page"
                   >
                     <ExternalLink size={13} />
                   </Link>

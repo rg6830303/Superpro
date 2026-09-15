@@ -1,4 +1,8 @@
 import { query, queryOne } from "@/lib/db";
+import { WALLET_FLOOR_PAISE } from "@/lib/postpaid";
+
+// Re-exported so server callers can keep importing everything from one place.
+export { WALLET_FLOOR_PAISE, canSpend, duesPaise, isBlocked } from "@/lib/postpaid";
 import { capturedPayment, fetchOrderPayments, isRazorpayEnabled } from "@/lib/razorpay";
 
 /**
@@ -78,9 +82,9 @@ export async function adjustWallet(args: AdjustArgs): Promise<AdjustResult> {
     const rows = await query<{ wallet_balance_paise: number }>(
       `UPDATE users
        SET wallet_balance_paise = wallet_balance_paise + $1, updated_at = now()
-       WHERE id = $2 AND wallet_balance_paise + $1 >= 0
+       WHERE id = $2 AND wallet_balance_paise + $1 >= $3
        RETURNING wallet_balance_paise`,
-      [deltaPaise, userId],
+      [deltaPaise, userId, WALLET_FLOOR_PAISE],
     );
 
     if (rows.length === 0) {

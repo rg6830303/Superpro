@@ -511,8 +511,13 @@ export const SCHEMA_MIGRATIONS: string[] = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS dupr_id TEXT`,
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
   `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('player','staff','admin'))`,
+  // Wallets are postpaid: the balance may go negative, down to a floor. The old
+  // non-negative constraint is dropped rather than relaxed in place, because an
+  // ADD CONSTRAINT on a name that already exists is an error, and this file is
+  // re-run on every cold start.
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_wallet_non_negative`,
-  `ALTER TABLE users ADD CONSTRAINT users_wallet_non_negative CHECK (wallet_balance_paise >= 0)`,
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_wallet_floor`,
+  `ALTER TABLE users ADD CONSTRAINT users_wallet_floor CHECK (wallet_balance_paise >= -100000)`,
 
   // Wallet becomes a payment method everywhere money is taken. The CHECK
   // constraints were created with Postgres' default naming, so they can be

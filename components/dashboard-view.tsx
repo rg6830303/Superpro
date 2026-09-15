@@ -25,6 +25,7 @@ import { DiscoverPlayers } from "@/components/discover-players";
 import { ActivityFeed } from "@/components/activity-feed";
 import { formatDate, formatTime } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
+import { WALLET_FLOOR_PAISE, duesPaise, isBlocked } from "@/lib/postpaid";
 import { ageFrom } from "@/lib/profile";
 import { LEVEL_LABEL } from "@/lib/levels";
 import type { WalletTransaction } from "@/lib/wallet";
@@ -139,6 +140,12 @@ export function DashboardView({
 
   const upcoming = games.filter((g) => g.status === "confirmed").length;
   const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
+  // Postpaid: the balance can legitimately be negative, and when it is, the
+  // number on screen is a debt rather than a balance. Colour and wording follow
+  // that, because a red minus sign alone is easy to misread as credit.
+  const owing = duesPaise(walletPaise);
+  const walletBlocked = isBlocked(walletPaise);
+  const walletTone = owing > 0 ? "text-signal" : "text-volt-deep";
   const calculatedAge = profile.age ?? ageFrom(profile.date_of_birth);
 
   return (
@@ -414,7 +421,12 @@ export function DashboardView({
             <div className="card flex flex-col p-6">
               <Wallet size={18} className="text-volt-deep" />
               <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">SuperPro wallet</p>
-              <p className="mt-1 font-display text-4xl text-volt-deep">{formatPaise(walletPaise)}</p>
+              <p className={`mt-1 font-display text-4xl ${walletTone}`}>{formatPaise(walletPaise)}</p>
+              {owing > 0 && (
+                <p className="mt-1 text-[11px] font-semibold text-signal">
+                  {formatPaise(owing)} owed{walletBlocked ? " — bookings paused" : ""}
+                </p>
+              )}
               <p className="mt-1.5 text-xs leading-relaxed text-ink/55">
                 Prepaid credit for instant slot &amp; tournament checkout.
               </p>
@@ -715,7 +727,22 @@ export function DashboardView({
                 <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
                   <Wallet size={13} className="text-volt-deep" /> Current balance
                 </p>
-                <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(walletPaise)}</p>
+                <p className={`mt-1 font-display text-5xl ${walletTone}`}>{formatPaise(walletPaise)}</p>
+                {owing > 0 ? (
+                  <p className={`mt-2 rounded-lg px-3 py-2 text-xs leading-relaxed ${walletBlocked ? "bg-signal/10 text-signal" : "bg-mist text-ink/70"}`}>
+                    {walletBlocked ? (
+                      <>
+                        You have reached the {formatPaise(Math.abs(WALLET_FLOOR_PAISE))} postpaid limit. Clear{" "}
+                        {formatPaise(owing)} to book daily games again.
+                      </>
+                    ) : (
+                      <>
+                        Running on postpaid credit. You can go up to {formatPaise(Math.abs(WALLET_FLOOR_PAISE))} before
+                        bookings pause.
+                      </>
+                    )}
+                  </p>
+                ) : null}
               </div>
             </div>
 
