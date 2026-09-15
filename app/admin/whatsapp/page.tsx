@@ -106,7 +106,6 @@ export default function AdminWhatsappPage() {
           className="field mt-3 resize-none"
           value={broadcast}
           onChange={(e) => setBroadcast(e.target.value)}
-          placeholder="Courts are wet — tonight's 7 PM slot is moving indoors."
           aria-label="Broadcast message"
         />
         <button type="button" onClick={sendBroadcast} disabled={busy || broadcast.trim().length < 3} className="btn-volt btn-sm mt-3">

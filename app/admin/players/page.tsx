@@ -52,11 +52,11 @@ const ROLE_OPTIONS = [
 
 const CREATE_FIELDS: FieldDef[] = [
   { name: "full_name", label: "Full name", required: true, full: true },
-  { name: "email", label: "Email", required: true, placeholder: "player@example.com" },
-  { name: "phone", label: "WhatsApp number", placeholder: "98xxxxxxxx" },
+  { name: "email", label: "Email", required: true },
+  { name: "phone", label: "WhatsApp number" },
   { name: "password", label: "Password", required: true, hint: "At least 8 characters. Share it with the player." },
   { name: "city", label: "City" },
-  { name: "dupr_id", label: "DUPR ID", placeholder: "K9X2LM" },
+  { name: "dupr_id", label: "DUPR ID" },
   { name: "dupr", label: "DUPR rating", type: "number", hint: "Sets the category automatically." },
   { name: "role", label: "Role", type: "select", options: ROLE_OPTIONS },
   { name: "wallet_rupees", label: "Opening wallet (₹)", type: "number", hint: "Optional. Recorded in the wallet ledger." },
@@ -357,7 +357,7 @@ function WalletDrawer({
       <div className="mt-6 space-y-4">
         <div>
           <label className="label" htmlFor="w-amount">Amount (₹)</label>
-          <input id="w-amount" className="field" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="500" />
+          <input id="w-amount" className="field" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
         </div>
         <div>
           <label className="label" htmlFor="w-kind">Reason type</label>
@@ -370,7 +370,7 @@ function WalletDrawer({
         </div>
         <div>
           <label className="label" htmlFor="w-reason">Note (optional)</label>
-          <input id="w-reason" className="field" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Cash received at TurfXL" />
+          <input id="w-reason" className="field" value={reason} onChange={(e) => setReason(e.target.value)} />
         </div>
 
         {error && <Alert>{error}</Alert>}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Camera, ChevronLeft, ArrowRight, User } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
+import { PasswordField } from "@/components/password-field";
 import { GENDERS } from "@/lib/profile";
 
 /**
@@ -54,10 +55,14 @@ export function LoginForm() {
           <label className="label" htmlFor="l-email">Email</label>
           <input id="l-email" type="email" autoComplete="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
-        <div>
-          <label className="label" htmlFor="l-pass">Password</label>
-          <input id="l-pass" type="password" autoComplete="current-password" className="field" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
+        <PasswordField
+          id="l-pass"
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+          required
+        />
       </div>
 
       {error && (
@@ -255,7 +260,6 @@ export function SignupForm() {
                 className="field"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
                 required
               />
             </div>
@@ -271,45 +275,36 @@ export function SignupForm() {
                 className="field"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="10-digit mobile number"
                 required
               />
               <p className="mt-1 text-[11px] text-ink/45">Booking confirmations and court numbers are sent on WhatsApp.</p>
             </div>
 
-            <div>
-              <label className="label" htmlFor="s-pass">
-                Password <span className="text-signal">*</span>
-              </label>
-              <input
-                id="s-pass"
-                type="password"
-                autoComplete="new-password"
-                className="field"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
-                required
-                minLength={8}
-              />
-            </div>
+            <PasswordField
+              id="s-pass"
+              label="Password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="new-password"
+              required
+              minLength={8}
+              hint="Minimum 8 characters."
+            />
 
-            <div>
-              <label className="label" htmlFor="s-confirm-pass">
-                Confirm Password <span className="text-signal">*</span>
-              </label>
-              <input
-                id="s-confirm-pass"
-                type="password"
-                autoComplete="new-password"
-                className="field"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                required
-                minLength={8}
-              />
-            </div>
+            <PasswordField
+              id="s-confirm-pass"
+              label="Confirm password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              autoComplete="new-password"
+              required
+              minLength={8}
+              error={
+                confirmPassword.length > 0 && confirmPassword !== password
+                  ? "The two passwords do not match."
+                  : null
+              }
+            />
           </div>
 
           {error && (
@@ -373,7 +368,6 @@ export function SignupForm() {
                 className="field"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Rahul Sharma"
                 required
                 minLength={2}
               />
@@ -393,7 +387,6 @@ export function SignupForm() {
                   className="field"
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
-                  placeholder="e.g. 25"
                   required
                 />
                 <p className="mt-1 text-[11px] text-ink/45">Used for age-category draws &amp; games.</p>
@@ -440,7 +433,7 @@ export function SignupForm() {
                     className="field font-mono uppercase tracking-wider"
                     value={duprId}
                     onChange={(e) => setDuprId(e.target.value.toUpperCase())}
-                    placeholder="e.g. K9X2LM"
+                   
                     autoCapitalize="characters"
                   />
                 </div>
@@ -455,7 +448,7 @@ export function SignupForm() {
                     inputMode="decimal"
                     value={dupr}
                     onChange={(e) => setDupr(e.target.value)}
-                    placeholder="e.g. 3.50 (2.0 - 8.0)"
+                   
                   />
                   {ratingOutOfRange && (
                     <p className="mt-1 text-[11px] text-signal font-medium">Ratings must be between 2.0 and 8.0</p>
@@ -487,7 +480,6 @@ export function SignupForm() {
                 className="field"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Kolkata"
               />
             </div>
           </div>

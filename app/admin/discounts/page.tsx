@@ -388,7 +388,6 @@ export default function AdminDiscountsPage() {
                 disabled={Boolean(editing)}
                 value={codeName}
                 onChange={(e) => setCodeName(e.target.value.toUpperCase())}
-                placeholder="e.g. SUPER100"
                 className="field font-mono uppercase tracking-wider"
                 required
               />
@@ -453,7 +452,7 @@ export default function AdminDiscountsPage() {
                     className="field pl-8"
                     value={flatRupees}
                     onChange={(e) => setFlatRupees(e.target.value)}
-                    placeholder="e.g. 100"
+                   
                     required
                   />
                 </div>
@@ -474,7 +473,7 @@ export default function AdminDiscountsPage() {
                     className="field pr-8"
                     value={percentValue}
                     onChange={(e) => setPercentValue(e.target.value)}
-                    placeholder="e.g. 15"
+                   
                     required
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/50 font-bold text-sm">%</span>
@@ -536,7 +535,6 @@ export default function AdminDiscountsPage() {
                 className="field"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Launch week promotion"
               />
             </div>
 

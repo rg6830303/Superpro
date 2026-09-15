@@ -71,14 +71,14 @@ const LEVELS = [
 const TIME_SLOT_FIELDS: FieldDef[] = [
   { name: "start_time", label: "Start", type: "time", required: true },
   { name: "end_time", label: "End", type: "time", required: true },
-  { name: "label", label: "Label", full: true, placeholder: "Prime evening" },
+  { name: "label", label: "Label", full: true },
   { name: "sort_order", label: "Sort order", type: "number" },
   { name: "active", label: "Offer this slot", type: "checkbox" },
 ];
 
 const VENUE_FIELDS: FieldDef[] = [
   { name: "name", label: "Venue name", required: true },
-  { name: "area", label: "Area", placeholder: "New Alipore" },
+  { name: "area", label: "Area" },
   { name: "address", label: "Address", type: "textarea" },
   { name: "courts", label: "Courts", type: "number" },
   { name: "maps_url", label: "Google Maps link", full: true },

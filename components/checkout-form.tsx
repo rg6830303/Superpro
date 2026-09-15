@@ -158,15 +158,15 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="label" htmlFor="co-name">Full name</label>
-              <input id="co-name" className="field" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} placeholder="Ishaan Sanghvi" />
+              <input id="co-name" className="field" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
             </div>
             <div>
               <label className="label" htmlFor="co-phone">WhatsApp number</label>
-              <input id="co-phone" className="field" value={phone} onChange={(e) => setPhone(e.target.value)} required inputMode="numeric" placeholder="98xxxxxxxx" />
+              <input id="co-phone" className="field" value={phone} onChange={(e) => setPhone(e.target.value)} required inputMode="numeric" />
             </div>
             <div>
               <label className="label" htmlFor="co-email">Email (optional)</label>
-              <input id="co-email" type="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              <input id="co-email" type="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </div>
         </section>
@@ -190,7 +190,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="label" htmlFor="ad1">Address line 1</label>
-                <input id="ad1" className="field" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value })} required placeholder="Flat / house, street" />
+                <input id="ad1" className="field" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value })} required />
               </div>
               <div className="sm:col-span-2">
                 <label className="label" htmlFor="ad2">Landmark (optional)</label>
@@ -202,7 +202,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
               </div>
               <div>
                 <label className="label" htmlFor="adpin">PIN code</label>
-                <input id="adpin" className="field" value={address.pincode} onChange={(e) => setAddress({ ...address, pincode: e.target.value })} required inputMode="numeric" placeholder="700053" />
+                <input id="adpin" className="field" value={address.pincode} onChange={(e) => setAddress({ ...address, pincode: e.target.value })} required inputMode="numeric" />
               </div>
             </div>
           )}
@@ -250,7 +250,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
 
           <div className="mt-5">
             <label className="label" htmlFor="co-notes">Anything we should know? (optional)</label>
-            <textarea id="co-notes" rows={2} className="field resize-none" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Grip size, delivery timing…" />
+            <textarea id="co-notes" rows={2} className="field resize-none" value={notes} onChange={(e) => setNotes(e.target.value)}  />
           </div>
         </section>
       </div>
@@ -292,7 +292,6 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
                     applyCode();
                   }
                 }}
-                placeholder="SUPER10"
                 autoCapitalize="characters"
                 autoComplete="off"
               />

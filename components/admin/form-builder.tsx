@@ -28,17 +28,16 @@ const TYPES = [
 ];
 
 const FIELD_DEFS: FieldDef[] = [
-  { name: "label", label: "Question", required: true, full: true, placeholder: "T-shirt size" },
+  { name: "label", label: "Question", required: true, full: true },
   { name: "type", label: "Answer type", type: "select", options: TYPES },
   { name: "sort_order", label: "Position", type: "number" },
   {
     name: "options",
     label: "Choices",
     type: "list",
-    placeholder: "S\nM\nL\nXL",
     hint: "One per line. Only used by “Choose one”.",
   },
-  { name: "help", label: "Helper text", full: true, placeholder: "Shown under the question" },
+  { name: "help", label: "Helper text", full: true, hint: "Shown under the question." },
   { name: "required", label: "Answer is required", type: "checkbox" },
 ];
 

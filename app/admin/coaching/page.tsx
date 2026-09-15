@@ -64,7 +64,7 @@ type Booking = {
 const COACH_FIELDS: FieldDef[] = [
   { name: "name", label: "Name", required: true },
   { name: "slug", label: "URL slug", required: true, hint: "lowercase-with-dashes" },
-  { name: "headline", label: "Headline", full: true, placeholder: "Head coach · DUPR 5.4 · third-shot discipline" },
+  { name: "headline", label: "Headline", full: true },
   { name: "bio", label: "Bio", type: "textarea" },
   {
     name: "image_url",
@@ -74,7 +74,7 @@ const COACH_FIELDS: FieldDef[] = [
     hint: "Shown on the coach card. Portrait or square works best.",
   },
   { name: "specialties", label: "Specialties", type: "list", placeholder: "One per line" },
-  { name: "available_days", label: "Available days", type: "list", placeholder: "Mon\nTue\nWed" },
+  { name: "available_days", label: "Available days", type: "list" },
   { name: "dupr", label: "DUPR rating", type: "number" },
   { name: "experience_years", label: "Years coaching", type: "number" },
   { name: "rate_paise", label: "Rate per session (paise)", type: "number", hint: "150000 = ₹1,500" },

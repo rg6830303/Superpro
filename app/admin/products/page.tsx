@@ -41,7 +41,7 @@ const FIELDS: FieldDef[] = [
   { name: "specs", label: "Specification lines", type: "list" },
   { name: "price_paise", label: "Price (paise)", type: "number", hint: "900000 = ₹9,000", required: true },
   { name: "compare_at_paise", label: "Compare-at price (paise)", type: "number", hint: "Optional — shows a saving" },
-  { name: "image_url", label: "Main image URL", full: true, placeholder: "/products/paddle-champion-t700.png" },
+  { name: "image_url", label: "Main image URL", full: true },
   { name: "gallery", label: "Gallery image URLs", type: "list" },
   { name: "sort_order", label: "Sort order", type: "number" },
   { name: "featured", label: "Feature on the home page", type: "checkbox" },

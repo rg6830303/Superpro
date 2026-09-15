@@ -29,7 +29,7 @@ const FIELDS: FieldDef[] = [
       { value: "urgent", label: "Urgent" },
     ],
   },
-  { name: "link_url", label: "Links to", full: true, placeholder: "/tournaments/legends-challengers-3" },
+  { name: "link_url", label: "Links to", full: true },
   { name: "active", label: "Show on the site", type: "checkbox" },
 ];
 

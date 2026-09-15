@@ -130,7 +130,7 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by player name, handle (@kolkata-pro), city, or skill level…"
+            placeholder="Search players by name, handle, city or level"
             className="field pl-10"
           />
         </div>

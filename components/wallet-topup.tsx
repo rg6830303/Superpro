@@ -178,7 +178,6 @@ export function WalletTopUp({
           inputMode="numeric"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
-          placeholder="1500"
         />
       </div>
 

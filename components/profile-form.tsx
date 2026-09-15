@@ -174,7 +174,6 @@ export function ProfileForm({
               className="field"
               value={form.age}
               onChange={(e) => setForm({ ...form, age: e.target.value })}
-              placeholder="e.g. 25"
               required
             />
             <p className="mt-1 text-[11px] text-ink/45">Used for age-category tournament divisions.</p>
@@ -209,7 +208,6 @@ export function ProfileForm({
               inputMode="numeric"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="98xxxxxxxx"
             />
           </div>
           <div>
@@ -229,7 +227,6 @@ export function ProfileForm({
               className="field resize-none"
               value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value.slice(0, 280) })}
-              placeholder="Lefty. Lives in the kitchen. Will rally at 6am."
             />
             <p className="mt-1.5 text-[11px] text-ink/45">
               Shown on your public player page. {280 - form.bio.length} characters left.
@@ -242,7 +239,6 @@ export function ProfileForm({
               className="field font-mono uppercase tracking-wider"
               value={form.dupr_id}
               onChange={(e) => setForm({ ...form, dupr_id: e.target.value.toUpperCase() })}
-              placeholder="K9X2LM"
               autoCapitalize="characters"
             />
           </div>
@@ -256,7 +252,6 @@ export function ProfileForm({
               inputMode="decimal"
               value={form.dupr}
               onChange={(e) => setForm({ ...form, dupr: e.target.value })}
-              placeholder="3.75"
             />
             {hasRating && (
               <p className="mt-1 text-[11px] text-volt-deep font-semibold">

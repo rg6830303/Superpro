@@ -624,7 +624,7 @@ export function GamesFlow({
                 className="field resize-none"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Running five minutes late, need a spare paddle…"
+                
               />
             </div>
 

@@ -167,7 +167,7 @@ export function TournamentRegistration({
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className={categories.length > 0 ? "" : "sm:col-span-2"}>
           <label className="label" htmlFor="t-team">Team name</label>
-          <input id="t-team" className="field" value={team} onChange={(e) => setTeam(e.target.value)} required minLength={2} placeholder="Kitchen Bandits" />
+          <input id="t-team" className="field" value={team} onChange={(e) => setTeam(e.target.value)} required minLength={2} />
         </div>
         {categories.length > 0 && (
           <div>
@@ -186,18 +186,37 @@ export function TournamentRegistration({
       <fieldset className="mt-6">
         <legend className="label">Player 1</legend>
         <div className="grid gap-4 sm:grid-cols-3">
-          <input className="field" value={p1.name} onChange={(e) => setP1({ ...p1, name: e.target.value })} required placeholder="Full name" aria-label="Player 1 name" />
-          <input className="field" inputMode="numeric" value={p1.phone} onChange={(e) => setP1({ ...p1, phone: e.target.value })} required placeholder="WhatsApp number" aria-label="Player 1 phone" />
-          <input className="field" inputMode="decimal" value={p1.dupr} onChange={(e) => setP1({ ...p1, dupr: e.target.value })} placeholder="DUPR (optional)" aria-label="Player 1 DUPR" />
+          <div>
+            <label className="label" htmlFor="p1-name">Full name</label>
+            <input id="p1-name" className="field" value={p1.name} onChange={(e) => setP1({ ...p1, name: e.target.value })} required />
+          </div>
+          <div>
+            <label className="label" htmlFor="p1-phone">WhatsApp number</label>
+            <input id="p1-phone" className="field" inputMode="numeric" value={p1.phone} onChange={(e) => setP1({ ...p1, phone: e.target.value })} required />
+          </div>
+          <div>
+            <label className="label" htmlFor="p1-dupr">DUPR rating</label>
+            <input id="p1-dupr" className="field" inputMode="decimal" value={p1.dupr} onChange={(e) => setP1({ ...p1, dupr: e.target.value })} />
+            <p className="mt-1.5 text-[11px] text-ink/45">Optional.</p>
+          </div>
         </div>
       </fieldset>
 
       <fieldset className="mt-5">
         <legend className="label">Player 2 (partner)</legend>
         <div className="grid gap-4 sm:grid-cols-3">
-          <input className="field" value={p2.name} onChange={(e) => setP2({ ...p2, name: e.target.value })} placeholder="Full name" aria-label="Player 2 name" />
-          <input className="field" inputMode="numeric" value={p2.phone} onChange={(e) => setP2({ ...p2, phone: e.target.value })} placeholder="WhatsApp number" aria-label="Player 2 phone" />
-          <input className="field" inputMode="decimal" value={p2.dupr} onChange={(e) => setP2({ ...p2, dupr: e.target.value })} placeholder="DUPR (optional)" aria-label="Player 2 DUPR" />
+          <div>
+            <label className="label" htmlFor="p2-name">Full name</label>
+            <input id="p2-name" className="field" value={p2.name} onChange={(e) => setP2({ ...p2, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="label" htmlFor="p2-phone">WhatsApp number</label>
+            <input id="p2-phone" className="field" inputMode="numeric" value={p2.phone} onChange={(e) => setP2({ ...p2, phone: e.target.value })} />
+          </div>
+          <div>
+            <label className="label" htmlFor="p2-dupr">DUPR rating</label>
+            <input id="p2-dupr" className="field" inputMode="decimal" value={p2.dupr} onChange={(e) => setP2({ ...p2, dupr: e.target.value })} />
+          </div>
         </div>
         <p className="mt-1.5 text-[11px] text-ink/45">
           No partner yet? Leave this blank — we&apos;ll pair you from the solo pool.

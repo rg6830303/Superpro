@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Logo } from "@/components/logo";
 import { Alert, Spinner } from "@/components/ui";
+import { PasswordField } from "@/components/password-field";
 
 export default function AdminLoginPage() {
   const [username, setUsername] = useState("");
@@ -55,21 +56,17 @@ export default function AdminLoginPage() {
               className="field"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="ishaanchetani"
               required
             />
           </div>
 
           <div>
-            <label className="label" htmlFor="admin-password">Password</label>
-            <input
+            <PasswordField
               id="admin-password"
-              type="password"
-              autoComplete="current-password"
-              className="field"
+              label="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              onChange={setPassword}
+              autoComplete="current-password"
               required
             />
           </div>

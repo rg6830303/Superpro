@@ -336,7 +336,7 @@ export function CoachingFlow({
                 className="field resize-none"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Third shot drop, serve consistency, match play…"
+                
               />
               <p className="mt-1.5 text-[11px] text-ink/45">Goes straight to the coach before they call you.</p>
             </div>
