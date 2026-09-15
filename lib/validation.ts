@@ -88,6 +88,7 @@ export const orderItemSchema = z.object({
 export const orderSchema = z.object({
   customer_name: z.string().trim().min(2, "Enter your name").max(80),
   customer_phone: phoneSchema,
+  discount_code: z.string().trim().max(32).optional(),
   customer_email: emailSchema.optional().or(z.literal("")),
   items: z.array(orderItemSchema).min(1, "Your cart is empty"),
   delivery_mode: z.enum(["pickup", "delivery"]).default("pickup"),

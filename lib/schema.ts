@@ -346,6 +346,48 @@ export const SCHEMA_TABLES: string[] = [
     UNIQUE (coach_id, weekday, start_time)
   )`,
 
+  // Discount codes.
+  //
+  // `max_uses` is the headline control: a code can be minted for a fixed number
+  // of redemptions and stops working the moment they are gone. Redemptions are
+  // journalled in their own table rather than only counted, so "who used this
+  // and what did it cost us" is answerable after the fact.
+  `CREATE TABLE IF NOT EXISTS discount_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL,
+    description TEXT,
+    kind TEXT NOT NULL DEFAULT 'percent' CHECK (kind IN ('percent','amount')),
+    -- Exactly one of these carries the value, according to kind.
+    percent_off NUMERIC(5,2) CHECK (percent_off IS NULL OR (percent_off > 0 AND percent_off <= 100)),
+    amount_off_paise INTEGER CHECK (amount_off_paise IS NULL OR amount_off_paise > 0),
+    -- Ceiling on what a percentage code can take off a large basket.
+    max_discount_paise INTEGER,
+    min_spend_paise INTEGER NOT NULL DEFAULT 0,
+    -- NULL means unlimited; a number is a hard stop across all users.
+    max_uses INTEGER CHECK (max_uses IS NULL OR max_uses > 0),
+    used_count INTEGER NOT NULL DEFAULT 0,
+    -- NULL means unlimited per person.
+    per_user_limit INTEGER DEFAULT 1 CHECK (per_user_limit IS NULL OR per_user_limit > 0),
+    -- Which checkouts accept it: shop, games, coaching, tournaments.
+    scopes TEXT[] NOT NULL DEFAULT ARRAY['shop','games','coaching','tournaments'],
+    starts_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_by TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS discount_redemptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code_id UUID NOT NULL REFERENCES discount_codes(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    scope TEXT NOT NULL,
+    reference TEXT,
+    discount_paise INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
   `CREATE TABLE IF NOT EXISTS wallet_topups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reference TEXT UNIQUE NOT NULL,
@@ -404,6 +446,17 @@ export const SCHEMA_MIGRATIONS: string[] = [
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS answers JSONB NOT NULL DEFAULT '{}'::jsonb`,
   // Entries run through an account now, so a player can see their own draws.
   `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL`,
+
+  // What a discount actually took off, stored on the record it was applied to,
+  // so reporting can show gross, discount and net without re-deriving anything.
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code TEXT`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS discount_code TEXT`,
+  `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE coaching_bookings ADD COLUMN IF NOT EXISTS discount_code TEXT`,
+  `ALTER TABLE coaching_bookings ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS discount_code TEXT`,
+  `ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
 
   // Playing up a band is allowed, but an admin decides. Playing down never is.
   `ALTER TABLE game_registrations DROP CONSTRAINT IF EXISTS game_registrations_status_check`,
@@ -489,6 +542,10 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_form_fields_tournament ON tournament_form_fields(tournament_id, sort_order)`,
   `CREATE INDEX IF NOT EXISTS idx_time_slots_active ON time_slots(sort_order) WHERE active`,
   `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_discount_code ON discount_codes(upper(code))`,
+  `CREATE INDEX IF NOT EXISTS idx_discount_active ON discount_codes(active, expires_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_redemptions_code ON discount_redemptions(code_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_redemptions_user ON discount_redemptions(user_id, code_id)`,
   `CREATE INDEX IF NOT EXISTS idx_tourn_regs_user ON tournament_registrations(user_id)`,
 ];
 

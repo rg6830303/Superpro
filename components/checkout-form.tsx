@@ -23,6 +23,37 @@ type PayMethod = "razorpay" | "cod" | "wallet";
 
 export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, defaults }: Props) {
   const { lines, subtotalPaise, clear, ready } = useCart();
+  const [codeInput, setCodeInput] = useState("");
+  const [discount, setDiscount] = useState<{ code: string; label: string; discount_paise: number } | null>(null);
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+
+  async function applyCode() {
+    const entered = codeInput.trim();
+    if (!entered) return;
+    setCodeBusy(true);
+    setCodeError(null);
+    try {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          discount_code: discount?.code, code: entered, scope: "shop", subtotal_paise: subtotalPaise }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Could not check that code.");
+      if (!body.ok) {
+        setDiscount(null);
+        setCodeError(body.error);
+        return;
+      }
+      setDiscount({ code: body.code, label: body.label, discount_paise: body.discount_paise });
+    } catch (err) {
+      setCodeError(err instanceof Error ? err.message : "Could not check that code.");
+    } finally {
+      setCodeBusy(false);
+    }
+  }
   const router = useRouter();
 
   const [name, setName] = useState(defaults?.name ?? "");
@@ -52,7 +83,8 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
   }
 
   const shipping = shippingFor(subtotalPaise, mode);
-  const total = subtotalPaise + shipping;
+  // The server re-prices the code at checkout; this is only what to show.
+  const total = Math.max(0, subtotalPaise - (discount?.discount_paise ?? 0)) + shipping;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -241,11 +273,68 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
             ))}
           </ul>
 
+          <div className="mt-5 border-t border-line pt-5">
+            <label className="label" htmlFor="promo">
+              Discount code
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="promo"
+                className="field flex-1 uppercase"
+                value={codeInput}
+                onChange={(e) => {
+                  setCodeInput(e.target.value);
+                  setCodeError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyCode();
+                  }
+                }}
+                placeholder="SUPER10"
+                autoCapitalize="characters"
+                autoComplete="off"
+              />
+              {discount ? (
+                <button
+                  type="button"
+                  className="btn-outline shrink-0"
+                  onClick={() => {
+                    setDiscount(null);
+                    setCodeInput("");
+                    setCodeError(null);
+                  }}
+                >
+                  Remove
+                </button>
+              ) : (
+                <button type="button" className="btn-outline shrink-0" disabled={codeBusy || !codeInput.trim()} onClick={applyCode}>
+                  {codeBusy ? <Spinner /> : null} Apply
+                </button>
+              )}
+            </div>
+            {codeError && <p className="field-error">{codeError}</p>}
+            {discount && (
+              <p className="mt-1.5 text-[11px] text-volt-deep">
+                {discount.label} applied. Checked again when you pay.
+              </p>
+            )}
+          </div>
+
           <dl className="mt-5 space-y-2.5 border-t border-line pt-5 text-sm">
             <div className="flex justify-between">
               <dt className="text-ink/70">Subtotal</dt>
               <dd className="text-ink">{formatPaise(subtotalPaise)}</dd>
             </div>
+            {discount && (
+              <div className="flex justify-between">
+                <dt className="text-volt-deep">
+                  {discount.code} · {discount.label}
+                </dt>
+                <dd className="text-volt-deep">-{formatPaise(discount.discount_paise)}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-ink/70">{mode === "pickup" ? "Pickup" : "Delivery"}</dt>
               <dd className={shipping === 0 ? "text-volt-deep" : "text-ink"}>{shipping === 0 ? "Free" : formatPaise(shipping)}</dd>

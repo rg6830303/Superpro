@@ -3,31 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import {
-  BellRing,
-  CalendarDays,
-  GraduationCap,
-  LayoutDashboard,
-  Menu,
-  MessageSquare,
-  Package,
-  Settings,
-  ShoppingCart,
-  Trophy,
-  Users,
-  X,
-} from "lucide-react";
+import { Banknote, BellRing, CalendarDays, GraduationCap, LayoutDashboard, Menu, MessageSquare, Package, Settings, ShoppingCart, TicketPercent, Trophy, Users, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/games", label: "Daily games", icon: CalendarDays },
+  { href: "/admin/revenue", label: "Revenue", icon: Banknote },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/coaching", label: "Coaching", icon: GraduationCap },
   { href: "/admin/tournaments", label: "Tournaments", icon: Trophy },
   { href: "/admin/players", label: "Players", icon: Users },
+  { href: "/admin/discounts", label: "Discounts", icon: TicketPercent },
   { href: "/admin/announcements", label: "Announcements", icon: BellRing },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageSquare },
   { href: "/admin/settings", label: "Settings", icon: Settings },
