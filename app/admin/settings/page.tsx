@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, CreditCard, RefreshCw } from "lucide-react";
 import { AdminHeader } from "@/components/admin/shell";
 import { Alert, Spinner } from "@/components/ui";
+import { formatPaise } from "@/lib/money";
 
 type Integrations = {
   whatsapp: { hasRelay: boolean; hasCloudApi: boolean; hasGroupJid: boolean };
@@ -198,6 +199,8 @@ export default function AdminSettingsPage() {
               </dl>
             </section>
 
+            <PaymentsPanel />
+
             <section className="card p-6">
               <h2 className="text-2xl">Health</h2>
               <p className="mt-1 text-xs leading-relaxed text-ink/55">
@@ -216,5 +219,113 @@ export default function AdminSettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+type PaymentsCheck = {
+  ok: boolean;
+  credentials: { ok: boolean; status: number | null; mode: "live" | "test" | null; detail: string };
+  key_id_prefix: string | null;
+  topups: { paid: number; pending: number; failed: number; paid_paise: number; last_paid_at: string | null };
+};
+
+/**
+ * Whether the Razorpay keys actually work, asked of Razorpay rather than of
+ * the environment. Kept next to Health because that is where you look when a
+ * payment has not arrived and you need to know whose problem it is.
+ */
+function PaymentsPanel() {
+  const [data, setData] = useState<PaymentsCheck | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/payments-check");
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Could not check payments.");
+      setData(body);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not check payments.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    run();
+  }, [run]);
+
+  const cred = data?.credentials;
+
+  return (
+    <section className="card p-6">
+      <h2 className="flex items-center gap-2 text-2xl">
+        <CreditCard size={18} className="text-volt-deep" /> Payments
+      </h2>
+
+      {error && (
+        <div className="mt-3">
+          <Alert>{error}</Alert>
+        </div>
+      )}
+
+      {!data && !error && (
+        <p className="mt-3 flex items-center gap-2 text-xs text-ink/55">
+          <Spinner /> Asking Razorpay…
+        </p>
+      )}
+
+      {cred && (
+        <>
+          <p
+            className={`mt-3 flex items-start gap-2 rounded-lg px-3 py-2.5 text-xs leading-relaxed ${
+              cred.ok ? "bg-volt-soft text-ink" : "bg-signal/10 text-signal"
+            }`}
+          >
+            {cred.ok ? <Check size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
+            <span>{cred.detail}</span>
+          </p>
+
+          <dl className="mt-4 space-y-2 text-xs">
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink/55">Mode</dt>
+              <dd className={cred.mode === "live" ? "font-semibold text-volt-deep" : "text-ink"}>
+                {cred.mode ?? "unknown"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink/55">Key</dt>
+              <dd className="font-mono text-ink/75">{data.key_id_prefix ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink/55">Top-ups received</dt>
+              <dd className="text-ink">
+                {data.topups.paid} · {formatPaise(data.topups.paid_paise)}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink/55">Awaiting confirmation</dt>
+              <dd className={data.topups.pending > 0 ? "font-semibold text-ink" : "text-ink/55"}>
+                {data.topups.pending}
+              </dd>
+            </div>
+          </dl>
+
+          {data.topups.pending > 0 && (
+            <p className="mt-3 text-[11px] leading-relaxed text-ink/55">
+              Unconfirmed top-ups settle themselves when the player next opens their wallet — Razorpay is asked
+              directly what happened to each one.
+            </p>
+          )}
+        </>
+      )}
+
+      <button type="button" onClick={run} disabled={busy} className="btn-outline btn-sm mt-4">
+        {busy ? <Spinner /> : <RefreshCw size={13} />} Re-check
+      </button>
+    </section>
   );
 }

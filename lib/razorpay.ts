@@ -98,3 +98,47 @@ export async function fetchOrderPayments(orderId: string): Promise<RazorpayPayme
 export function capturedPayment(payments: RazorpayPayment[]): RazorpayPayment | null {
   return payments.find((p) => p.status === "captured") ?? null;
 }
+
+export type CredentialCheck = {
+  ok: boolean;
+  status: number | null;
+  mode: "live" | "test" | null;
+  detail: string;
+};
+
+/**
+ * Ask Razorpay whether these credentials actually work.
+ *
+ * "The variable is set" and "the key authenticates" are different questions,
+ * and only the second one matters the first time real money is involved. This
+ * hits a read-only endpoint with a count of one — it creates nothing, charges
+ * nothing, and distinguishes a bad secret (401) from a blocked account (403)
+ * from a genuine outage.
+ */
+export async function checkCredentials(): Promise<CredentialCheck> {
+  const mode = KEY_ID.startsWith("rzp_live") ? "live" : KEY_ID.startsWith("rzp_test") ? "test" : null;
+  if (!isRazorpayEnabled) {
+    return { ok: false, status: null, mode, detail: "Key id or secret is missing." };
+  }
+  try {
+    const res = await fetch("https://api.razorpay.com/v1/payments?count=1", {
+      headers: { authorization: authHeader() },
+      cache: "no-store",
+    });
+    if (res.ok) return { ok: true, status: res.status, mode, detail: "Credentials accepted by Razorpay." };
+    if (res.status === 401) {
+      return { ok: false, status: 401, mode, detail: "Razorpay rejected the key id or secret." };
+    }
+    if (res.status === 403) {
+      return { ok: false, status: 403, mode, detail: "Key is valid but the account is not permitted to transact." };
+    }
+    return { ok: false, status: res.status, mode, detail: `Razorpay returned ${res.status}.` };
+  } catch (err) {
+    return {
+      ok: false,
+      status: null,
+      mode,
+      detail: `Could not reach Razorpay: ${err instanceof Error ? err.message : "unknown error"}`,
+    };
+  }
+}
