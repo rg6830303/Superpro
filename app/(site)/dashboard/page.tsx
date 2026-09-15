@@ -7,12 +7,14 @@ import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { ageFrom } from "@/lib/profile";
+import { listUserNotifications, getUnreadNotificationCount } from "@/lib/notifications";
 import {
   DashboardView,
   type GameRow,
   type CoachRow,
   type EntryRow,
   type OrderRow,
+  type TabKey,
 } from "@/components/dashboard-view";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +33,8 @@ export default async function DashboardPage({
   await reconcilePendingTopups(session.id).catch(() => {});
 
   const { tab } = (await searchParams) ?? {};
-  const validTab = tab === "profile" || tab === "wallet" ? tab : "overview";
+  const validTabs: TabKey[] = ["overview", "discover", "activity", "profile", "wallet"];
+  const validTab = validTabs.includes(tab as TabKey) ? (tab as TabKey) : "overview";
 
   const [games, coaching, entries, orders] = await Promise.all([
     query<GameRow>(
@@ -71,9 +74,11 @@ export default async function DashboardPage({
     ).catch(() => []),
   ]);
 
-  const [profile, walletTx] = await Promise.all([
+  const [profile, walletTx, notifications, unreadCount] = await Promise.all([
     getUserRow(session.id),
     listWalletTransactions(session.id, 25),
+    listUserNotifications(session.id, 30),
+    getUnreadNotificationCount(session.id),
   ]);
 
   return (
@@ -102,6 +107,8 @@ export default async function DashboardPage({
       coaching={coaching}
       entries={entries}
       orders={orders}
+      notifications={notifications}
+      unreadCount={unreadCount}
       razorpayEnabled={isRazorpayEnabled}
       razorpayKeyId={razorpayKeyId}
     />

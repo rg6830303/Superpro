@@ -335,6 +335,19 @@ export const SCHEMA_TABLES: string[] = [
     CHECK (follower_id <> following_id)
   )`,
 
+  `CREATE TABLE IF NOT EXISTS user_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('game_booking','tournament_entry','follow','system')),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    link_url TEXT,
+    read BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, created_at DESC)`,
+
   `CREATE TABLE IF NOT EXISTS coach_availability (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,

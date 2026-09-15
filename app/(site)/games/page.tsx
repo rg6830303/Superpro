@@ -82,6 +82,8 @@ export default async function GamesPage() {
               phone: profile.phone ?? "",
               email: profile.email,
               skill: profile.skill_level,
+              dupr: profile.dupr,
+              dupr_id: profile.dupr_id,
             }}
           />
         ) : (

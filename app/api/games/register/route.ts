@@ -11,6 +11,7 @@ import { bookingReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
 import { adjustWallet, chargeWallet } from "@/lib/wallet";
 import { postSlotToGroup } from "@/lib/games";
 import { needsApproval, LEVEL_LABEL } from "@/lib/levels";
+import { notifyFollowersAndFollowing } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -192,6 +193,19 @@ export async function POST(req: Request) {
       await confirmComms({ reference, input, sessions: confirmedSessions, total, method }).catch((err) =>
         console.error("[games] confirmation comms failed:", err),
       );
+
+      // Notify followers and following in the community feed
+      if (confirmedSessions.length > 0) {
+        const firstSession = confirmedSessions[0];
+        notifyFollowersAndFollowing({
+          actorId: session.id,
+          actorName: session.name || input.player_name,
+          kind: "game_booking",
+          title: `${session.name || input.player_name} booked a Game Slot!`,
+          message: `${session.name || input.player_name} is playing at ${firstSession.venue_name} on ${formatDate(firstSession.session_date)} (${firstSession.start_time})! Join them on the court.`,
+          linkUrl: "/games",
+        }).catch((err) => console.error("[notifications] game notify failed:", err));
+      }
     }
 
     refundOnFailure = null;

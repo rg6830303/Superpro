@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getPlayerSession } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,16 @@ export async function POST(req: Request) {
     `INSERT INTO follows (follower_id, following_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
     [session.id, rows[0].id],
   );
+
+  createNotification({
+    userId: rows[0].id,
+    actorId: session.id,
+    kind: "follow",
+    title: "New Follower!",
+    message: `${session.name} started following you on SuperPro.`,
+    linkUrl: `/players`,
+  }).catch(() => {});
+
   const [count] = await query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM follows WHERE following_id = $1`,
     [rows[0].id],

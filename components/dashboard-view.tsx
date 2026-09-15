@@ -3,13 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  Bell,
   CalendarDays,
+  Compass,
   ExternalLink,
   GraduationCap,
   LayoutDashboard,
   Package,
   Trophy,
   UserCog,
+  Users,
   Wallet,
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
@@ -17,10 +20,13 @@ import { EmptyState } from "@/components/ui";
 import { ProfileForm } from "@/components/profile-form";
 import { WalletTopUp } from "@/components/wallet-topup";
 import { Avatar } from "@/components/player-directory";
+import { DiscoverPlayers } from "@/components/discover-players";
+import { ActivityFeed } from "@/components/activity-feed";
 import { formatDate, formatTime } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 import { ageFrom } from "@/lib/profile";
 import type { WalletTransaction } from "@/lib/wallet";
+import type { UserNotification } from "@/lib/notifications";
 
 export type GameRow = {
   id: string;
@@ -82,7 +88,7 @@ export type PlayerProfileData = {
   wallet_balance_paise: number;
 };
 
-type TabKey = "overview" | "profile" | "wallet";
+export type TabKey = "overview" | "discover" | "activity" | "profile" | "wallet";
 
 export function DashboardView({
   session,
@@ -93,6 +99,8 @@ export function DashboardView({
   coaching,
   entries,
   orders,
+  notifications = [],
+  unreadCount = 0,
   razorpayEnabled,
   razorpayKeyId,
 }: {
@@ -104,11 +112,14 @@ export function DashboardView({
   coaching: CoachRow[];
   entries: EntryRow[];
   orders: OrderRow[];
+  notifications?: UserNotification[];
+  unreadCount?: number;
   razorpayEnabled: boolean;
   razorpayKeyId: string;
 }) {
+  const validTabs: TabKey[] = ["overview", "discover", "activity", "profile", "wallet"];
   const [activeTab, setActiveTab] = useState<TabKey>(
-    initialTab === "profile" || initialTab === "wallet" ? initialTab : "overview"
+    validTabs.includes(initialTab) ? initialTab : "overview"
   );
 
   function switchTab(tab: TabKey) {
@@ -137,7 +148,23 @@ export function DashboardView({
           <h1 className="mt-2 headline-page">{profile.full_name || session.name}</h1>
           <p className="mt-1 text-sm text-ink/55">{session.email}</p>
         </div>
+
         <div className="flex items-center gap-2">
+          {/* Notification Button */}
+          <button
+            type="button"
+            onClick={() => switchTab("activity")}
+            className="relative rounded-full border border-line p-2 text-ink/70 transition-colors hover:bg-mist hover:text-ink"
+            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+          >
+            <Bell size={18} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-volt px-1 font-mono text-[9px] font-bold text-ink">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
           {profile.handle && (
             <Link
               href={`/players/${profile.handle}`}
@@ -152,43 +179,74 @@ export function DashboardView({
 
       {/* Account Tab Switcher */}
       <div className="mt-8 border-b border-line">
-        <div className="flex gap-1 sm:gap-2">
+        <div className="flex flex-wrap gap-1 sm:gap-2">
           <button
             type="button"
             onClick={() => switchTab("overview")}
-            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
               activeTab === "overview"
                 ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
                 : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
             }`}
           >
-            <LayoutDashboard size={16} className={activeTab === "overview" ? "text-volt-deep" : "text-ink/50"} />
+            <LayoutDashboard size={15} className={activeTab === "overview" ? "text-volt-deep" : "text-ink/50"} />
             <span>Overview</span>
           </button>
 
           <button
             type="button"
+            onClick={() => switchTab("discover")}
+            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
+              activeTab === "discover"
+                ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
+                : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
+            }`}
+          >
+            <Compass size={15} className={activeTab === "discover" ? "text-volt-deep" : "text-ink/50"} />
+            <span>Discover</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchTab("activity")}
+            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
+              activeTab === "activity"
+                ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
+                : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
+            }`}
+          >
+            <Bell size={15} className={activeTab === "activity" ? "text-volt-deep" : "text-ink/50"} />
+            <span>Activity</span>
+            {unreadCount > 0 && (
+              <span className="ml-1 rounded-full bg-volt px-1.5 py-0.2 font-mono text-[10px] font-bold text-ink">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => switchTab("profile")}
-            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
               activeTab === "profile"
                 ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
                 : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
             }`}
           >
-            <UserCog size={16} className={activeTab === "profile" ? "text-volt-deep" : "text-ink/50"} />
+            <UserCog size={15} className={activeTab === "profile" ? "text-volt-deep" : "text-ink/50"} />
             <span>Profile</span>
           </button>
 
           <button
             type="button"
             onClick={() => switchTab("wallet")}
-            className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
               activeTab === "wallet"
                 ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
                 : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
             }`}
           >
-            <Wallet size={16} className={activeTab === "wallet" ? "text-volt-deep" : "text-ink/50"} />
+            <Wallet size={15} className={activeTab === "wallet" ? "text-volt-deep" : "text-ink/50"} />
             <span>Wallet</span>
           </button>
         </div>
@@ -213,46 +271,60 @@ export function DashboardView({
             ))}
           </div>
 
-          {/* Snapshot Summary Cards: Profile & Wallet */}
-          <div className="grid min-w-0 gap-5 lg:grid-cols-2">
+          {/* Snapshot Summary Cards: Profile, Discover, & Wallet */}
+          <div className="grid min-w-0 gap-5 lg:grid-cols-3">
             {/* Profile Snapshot */}
             <div className="card flex flex-col p-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Avatar name={profile.full_name || session.name} src={profile.avatar_url} size="md" />
                 <div className="min-w-0 flex-1">
                   <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Your Profile</p>
-                  <p className="truncate text-lg font-bold text-ink">{profile.full_name || session.name}</p>
+                  <p className="truncate text-base font-bold text-ink">{profile.full_name || session.name}</p>
                   <p className="text-xs text-ink/60">
                     {calculatedAge ? `${calculatedAge} yrs` : "Age not set"}
                     {profile.gender ? ` · ${profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)}` : ""}
-                    {profile.city ? ` · ${profile.city}` : ""}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-lg border border-line bg-mist/30 p-3 text-xs flex flex-wrap items-center justify-between gap-2">
+              <div className="mt-4 rounded-lg border border-line bg-mist/30 p-2.5 text-xs flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="text-ink/60">DUPR Rating: </span>
+                  <span className="text-ink/60">DUPR: </span>
                   <span className="font-mono font-bold text-ink">
                     {profile.dupr ? Number(profile.dupr).toFixed(2) : "Unrated"}
                   </span>
-                  {profile.dupr_id && (
-                    <span className="ml-2 font-mono text-[11px] text-ink/45">ID: {profile.dupr_id}</span>
-                  )}
                 </div>
-                <span className="chip-volt capitalize">
+                <span className="chip-volt capitalize text-[10px]">
                   {profile.skill_level || "Beginner"}
                 </span>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-line/60 flex items-center justify-between">
-                <p className="text-xs text-ink/55">Update your details, photo &amp; DUPR</p>
+              <div className="mt-auto pt-4 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => switchTab("profile")}
-                  className="btn-outline btn-sm inline-flex items-center gap-1 text-xs"
+                  className="btn-outline btn-sm inline-flex items-center gap-1 text-xs w-full justify-center"
                 >
                   <UserCog size={13} /> View &amp; Edit Profile
+                </button>
+              </div>
+            </div>
+
+            {/* Discover Snapshot */}
+            <div className="card flex flex-col p-6">
+              <Compass size={18} className="text-volt-deep" />
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Pickleball Community</p>
+              <h3 className="mt-1 text-lg font-bold text-ink">Discover Players</h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink/55">
+                Follow fellow players, challenge opponents, and get notified whenever friends book daily games or register for tournaments.
+              </p>
+              <div className="mt-auto pt-4">
+                <button
+                  type="button"
+                  onClick={() => switchTab("discover")}
+                  className="btn-volt btn-sm inline-flex items-center gap-1.5 text-xs w-full justify-center"
+                >
+                  <Users size={13} /> Search &amp; Follow Players
                 </button>
               </div>
             </div>
@@ -261,16 +333,15 @@ export function DashboardView({
             <div className="card flex flex-col p-6">
               <Wallet size={18} className="text-volt-deep" />
               <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">SuperPro wallet</p>
-              <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(walletPaise)}</p>
-              <p className="mt-2 text-xs leading-relaxed text-ink/55">
-                Prepaid credit you can spend on court slots and gear. Top up online with Razorpay or at the venue.
+              <p className="mt-1 font-display text-4xl text-volt-deep">{formatPaise(walletPaise)}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-ink/55">
+                Prepaid credit for instant slot &amp; tournament checkout.
               </p>
-              <div className="mt-auto pt-4 flex items-center justify-between">
-                <span className="text-xs text-ink/50">{walletTx.length} recent movements</span>
+              <div className="mt-auto pt-4">
                 <button
                   type="button"
                   onClick={() => switchTab("wallet")}
-                  className="btn-outline btn-sm inline-flex items-center gap-1 text-xs"
+                  className="btn-outline btn-sm inline-flex items-center gap-1 text-xs w-full justify-center"
                 >
                   <Wallet size={13} /> Manage Wallet
                 </button>
@@ -299,7 +370,6 @@ export function DashboardView({
                       <th>Date</th>
                       <th>Time</th>
                       <th>Venue</th>
-                      <th>Court</th>
                       <th>Amount</th>
                       <th>Status</th>
                     </tr>
@@ -310,7 +380,6 @@ export function DashboardView({
                         <td>{formatDate(g.session_date)}</td>
                         <td>{formatTime(g.start_time)}</td>
                         <td>{g.venue_name}</td>
-                        <td>{g.court_number ?? "—"}</td>
                         <td>{formatPaise(g.amount_paise)}</td>
                         <td>
                           <span
@@ -493,7 +562,21 @@ export function DashboardView({
         </div>
       )}
 
-      {/* TAB 2: PROFILE (View & Edit Profile) */}
+      {/* TAB 2: DISCOVER (Search & Follow Players) */}
+      {activeTab === "discover" && (
+        <div className="mt-8">
+          <DiscoverPlayers currentUserId={session.id} />
+        </div>
+      )}
+
+      {/* TAB 3: ACTIVITY (Follower & Following Circle Alerts) */}
+      {activeTab === "activity" && (
+        <div className="mt-8 max-w-3xl">
+          <ActivityFeed initialNotifications={notifications} initialUnreadCount={unreadCount} />
+        </div>
+      )}
+
+      {/* TAB 4: PROFILE (View & Edit Profile) */}
       {activeTab === "profile" && (
         <div className="mt-8 max-w-3xl space-y-8">
           <div>
@@ -533,7 +616,7 @@ export function DashboardView({
         </div>
       )}
 
-      {/* TAB 3: WALLET */}
+      {/* TAB 5: WALLET */}
       {activeTab === "wallet" && (
         <div className="mt-8 max-w-3xl space-y-8">
           <div>

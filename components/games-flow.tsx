@@ -34,6 +34,8 @@ export type BookingPlayer = {
   phone: string;
   email: string;
   skill: string;
+  dupr?: number | null;
+  dupr_id?: string | null;
 };
 
 /**
@@ -423,8 +425,11 @@ export function GamesFlow({
                 <dd className="tabular-nums text-ink">+91 {player.phone}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink/60">Playing as</dt>
-                <dd className="capitalize text-ink">{player.skill}</dd>
+                <dt className="text-ink/60">DUPR Profile</dt>
+                <dd className="font-mono text-ink">
+                  {player.dupr != null ? `DUPR ${Number(player.dupr).toFixed(2)}` : "Unrated"}
+                  {player.dupr_id ? ` · ${player.dupr_id}` : ""}
+                </dd>
               </div>
             </dl>
 
