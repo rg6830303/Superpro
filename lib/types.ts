@@ -30,6 +30,21 @@ export type Venue = {
   active: boolean;
 };
 
+export type RosterPlayer = {
+  name: string;
+  level?: string | null;
+  guests?: number;
+  user_id?: string | null;
+  handle?: string | null;
+  avatar_url?: string | null;
+  dupr?: number | null;
+  gender?: string | null;
+  city?: string | null;
+  bio?: string | null;
+  date_of_birth?: string | null;
+  age?: number | null;
+};
+
 export type GameSession = {
   id: string;
   venue_id: string;
@@ -49,7 +64,7 @@ export type GameSession = {
   whatsapp_posted_at: string | null;
   booked?: number;
   /** Confirmed players on this slot, shown publicly so others can pick a game. */
-  roster?: Array<{ name: string; level: string; guests: number }>;
+  roster?: RosterPlayer[];
 };
 
 export type GameRegistration = {

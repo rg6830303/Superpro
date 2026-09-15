@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Banknote, Check, CreditCard, MapPin, MessageCircle, Users, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, CalendarDays, CalendarX, Check, CreditCard, MapPin, MessageCircle, Users, Wallet } from "lucide-react";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
+import { MiniPlayerModal } from "@/components/mini-player-modal";
 import { formatDate, formatTime, formatTimeRange, isPast } from "@/lib/dates";
 import { formatPaise, perPlayerPaise, splitCaption } from "@/lib/money";
 import { LEVEL_LABEL, approvalReason, needsApproval } from "@/lib/levels";
 import { WHATSAPP_GROUP_URL, waLink } from "@/lib/site";
-import type { GameSession } from "@/lib/types";
+import type { GameSession, RosterPlayer } from "@/lib/types";
 
 const STEPS = ["Pick slots", "Checkout", "Confirmed"];
 
@@ -67,6 +68,7 @@ export function GamesFlow({
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [activeDate, setActiveDate] = useState<string | null>(null);
   const [activeVenue, setActiveVenue] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<RosterPlayer | null>(null);
 
   // Venue first: a player decides where before when.
   const venues = useMemo(() => {
@@ -85,6 +87,7 @@ export function GamesFlow({
   }, [sessions]);
 
   const shownVenue = activeVenue && venues.some((v) => v.id === activeVenue) ? activeVenue : venues[0]?.id;
+  const currentVenue = useMemo(() => venues.find((v) => v.id === shownVenue), [venues, shownVenue]);
   const venueSessions = useMemo(() => sessions.filter((s) => s.venue_id === shownVenue), [sessions, shownVenue]);
 
   const byDate = useMemo(() => {
@@ -96,9 +99,44 @@ export function GamesFlow({
     return map;
   }, [venueSessions]);
 
-  const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
-  const shownDate = activeDate && byDate.has(activeDate) ? activeDate : dates[0];
+  // Calendar dates: generate upcoming 21 days from today + any session dates
+  const calendarDates = useMemo(() => {
+    const list: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < 21; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      list.push(`${y}-${m}-${day}`);
+    }
+    for (const s of venueSessions) {
+      if (s.session_date && !list.includes(s.session_date)) {
+        list.push(s.session_date);
+      }
+    }
+    return list.sort();
+  }, [venueSessions]);
+
+  // Pick default date: first date with available slots, or today (calendarDates[0])
+  const firstDateWithSlots = useMemo(
+    () => calendarDates.find((d) => (byDate.get(d) ?? []).length > 0),
+    [calendarDates, byDate]
+  );
+  const shownDate = activeDate && calendarDates.includes(activeDate)
+    ? activeDate
+    : (firstDateWithSlots || calendarDates[0] || "");
   const daySessions = shownDate ? (byDate.get(shownDate) ?? []) : [];
+
+  // Next available date with slots for quick jump when looking ahead at empty dates
+  const nextDateWithSlots = useMemo(() => {
+    if (!shownDate) return null;
+    return (
+      calendarDates.find((d) => d > shownDate && (byDate.get(d) ?? []).length > 0) ||
+      calendarDates.find((d) => d !== shownDate && (byDate.get(d) ?? []).length > 0) ||
+      null
+    );
+  }, [calendarDates, shownDate, byDate]);
 
   const pickedSessions = useMemo(() => sessions.filter((s) => picked.includes(s.id)), [sessions, picked]);
   const totalPaise = pickedSessions.reduce((sum, s) => sum + perPlayerPaise(s), 0);
@@ -239,130 +277,201 @@ export function GamesFlow({
                 </div>
               )}
 
-              {dates.length === 0 ? (
-                <div className="mt-8 rounded-xl border border-dashed border-line-strong p-8 text-center">
-                  <p className="font-display text-xl text-ink/75">No slots published yet</p>
-                  <p className="mt-2 text-sm text-ink/55">The week&apos;s schedule goes up every Sunday evening.</p>
-                  <a
-                    href={waLink("Hi SuperPro! When do this week's slots open?")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-outline btn-sm mt-5"
-                  >
-                    <MessageCircle size={14} /> Ask a rep
-                  </a>
-                </div>
-              ) : (
-                <>
-                  <div className="scroll-x mt-6 flex gap-2 pb-2 no-scrollbar">
-                    {dates.map((d) => {
-                      const open = (byDate.get(d) ?? []).filter(
-                        (s) => spotsLeft(s) > 0 && !isPast(s.session_date, s.start_time),
-                      ).length;
-                      const isActive = d === shownDate;
-                      return (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => setActiveDate(d)}
-                          className={`shrink-0 rounded-xl border px-4 py-2.5 text-left transition-colors ${
-                            isActive ? "border-ink bg-volt-soft" : "border-line hover:border-line-strong"
+              {/* Calendar Date Adjustment Bar */}
+              <div className="scroll-x mt-6 flex gap-2 pb-2 no-scrollbar">
+                {calendarDates.map((d) => {
+                  const sessionList = byDate.get(d) ?? [];
+                  const open = sessionList.filter(
+                    (s) => spotsLeft(s) > 0 && !isPast(s.session_date, s.start_time),
+                  ).length;
+                  const hasSlots = sessionList.length > 0;
+                  const isActive = d === shownDate;
+                  const dateParts = formatDate(d).split(", ");
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setActiveDate(d)}
+                      className={`shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition-all ${
+                        isActive
+                          ? "border-ink bg-volt-soft shadow-xs"
+                          : "border-line hover:border-line-strong bg-paper"
+                      }`}
+                    >
+                      <span
+                        className={`block font-mono text-[10px] uppercase tracking-[0.14em] ${
+                          isActive ? "text-volt-deep font-bold" : "text-ink/55"
+                        }`}
+                      >
+                        {dateParts[0]}
+                      </span>
+                      <span className={`block font-display text-base ${isActive ? "text-ink font-bold" : "text-ink/75"}`}>
+                        {dateParts[1] ?? d}
+                      </span>
+                      {hasSlots ? (
+                        <span
+                          className={`mt-0.5 block text-[10px] ${
+                            open > 0 ? "font-semibold text-volt-deep" : "text-amber"
                           }`}
                         >
-                          <span
-                            className={`block font-mono text-[11px] uppercase tracking-[0.14em] ${
-                              isActive ? "text-volt-deep" : "text-ink/55"
-                            }`}
-                          >
-                            {formatDate(d).split(",")[0]}
-                          </span>
-                          <span className={`block font-display text-lg ${isActive ? "text-ink" : "text-ink/75"}`}>
-                            {formatDate(d).split(", ")[1]}
-                          </span>
-                          <span className="mt-0.5 block text-[10px] text-ink/45">{open} open</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                          {open > 0 ? `${open} open` : "Full"}
+                        </span>
+                      ) : (
+                        <span className="mt-0.5 block text-[10px] text-ink/35">No slots</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <div key={shownDate} className="stagger mt-5 grid gap-3 sm:grid-cols-2">
-                    {daySessions.map((s) => {
-                      const left = spotsLeft(s);
-                      const past = isPast(s.session_date, s.start_time);
-                      const disabled = past || left < 1;
-                      const selected = picked.includes(s.id);
-                      const gated = needsApproval(s.level, player.skill);
-                      const roster = s.roster ?? [];
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => !disabled && toggle(s)}
-                          disabled={disabled}
-                          className={`tile ${selected ? "tile-selected" : ""} ${disabled ? "tile-disabled" : ""}`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <span className="font-display text-2xl text-ink">{formatTime(s.start_time)}</span>
-                            {selected ? (
-                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-volt text-ink">
-                                <Check size={12} />
-                              </span>
-                            ) : (
-                              <span
-                                className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
-                                  left <= 2 ? "text-amber" : "text-volt-deep"
-                                }`}
-                              >
-                                {past ? "Started" : left <= 0 ? "Full" : `${left} left`}
-                              </span>
+              {/* Slot Cards or Empty Date State */}
+              {daySessions.length === 0 ? (
+                <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-mist/20 p-8 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-volt/20 text-volt-deep">
+                    <CalendarX size={24} />
+                  </div>
+                  <h3 className="mt-4 font-display text-xl font-bold text-ink">
+                    No slots posted for {shownDate ? formatDate(shownDate) : "this date"}
+                  </h3>
+                  <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-ink/65">
+                    Admin has not published any slot schedules for this date at {currentVenue?.name ?? "this venue"} yet.
+                    Daily game slots are released in rolling schedules throughout the week.
+                  </p>
+
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <a
+                      href={waLink(
+                        `Hi SuperPro! Are there any daily game slots opening up for ${shownDate ? formatDate(shownDate) : "upcoming dates"} at ${currentVenue?.name ?? "the venue"}?`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-volt btn-sm inline-flex items-center gap-1.5 shadow-xs"
+                    >
+                      <MessageCircle size={14} /> Request Slot on WhatsApp
+                    </a>
+
+                    {nextDateWithSlots && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveDate(nextDateWithSlots)}
+                        className="btn-outline btn-sm inline-flex items-center gap-1.5 text-xs"
+                      >
+                        <CalendarDays size={14} /> Jump to next open slots ({formatDate(nextDateWithSlots).split(",")[0]})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div key={shownDate} className="stagger mt-5 grid gap-3 sm:grid-cols-2">
+                  {daySessions.map((s) => {
+                    const left = spotsLeft(s);
+                    const past = isPast(s.session_date, s.start_time);
+                    const disabled = past || left < 1;
+                    const selected = picked.includes(s.id);
+                    const gated = needsApproval(s.level, player.skill);
+                    const roster = s.roster ?? [];
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => !disabled && toggle(s)}
+                        disabled={disabled}
+                        className={`tile text-left ${selected ? "tile-selected" : ""} ${disabled ? "tile-disabled" : ""}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-display text-2xl text-ink">{formatTime(s.start_time)}</span>
+                          {selected ? (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-volt text-ink">
+                              <Check size={12} />
+                            </span>
+                          ) : (
+                            <span
+                              className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
+                                left <= 2 ? "text-amber font-semibold" : "text-volt-deep font-semibold"
+                              }`}
+                            >
+                              {past ? "Started" : left <= 0 ? "Full" : `${left} left`}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-ink/65">{formatTimeRange(s.start_time, s.end_time)}</p>
+                        <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
+                          <MapPin size={11} /> {s.venue_name}
+                        </p>
+
+                        <div className="mt-2.5 flex items-center justify-between">
+                          <span className={gated ? "chip-warn py-0.5 text-[10px]" : "chip py-0.5 text-[10px]"}>
+                            {LEVEL_LABEL[s.level] ?? s.level}
+                          </span>
+                          <span className="text-right">
+                            <span className="block text-sm font-semibold text-volt-deep">
+                              {formatPaise(perPlayerPaise(s))}
+                            </span>
+                            {splitCaption(s) && (
+                              <span className="block text-[10px] text-ink/45">{splitCaption(s)}</span>
                             )}
-                          </div>
-                          <p className="mt-1 text-xs text-ink/65">{formatTimeRange(s.start_time, s.end_time)}</p>
-                          {/* Courts are assigned on the day, so only the venue
-                              is advertised here. */}
-                          <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
-                            <MapPin size={11} /> {s.venue_name}
-                          </p>
+                          </span>
+                        </div>
 
-                          <div className="mt-2.5 flex items-center justify-between">
-                            <span className={gated ? "chip-warn py-0.5 text-[10px]" : "chip py-0.5 text-[10px]"}>
-                              {LEVEL_LABEL[s.level] ?? s.level}
-                            </span>
-                            <span className="text-right">
-                              <span className="block text-sm font-semibold text-volt-deep">
-                                {formatPaise(perPlayerPaise(s))}
-                              </span>
-                              {splitCaption(s) && (
-                                <span className="block text-[10px] text-ink/45">{splitCaption(s)}</span>
-                              )}
-                            </span>
-                          </div>
-
-                          {roster.length > 0 && (
-                            <div className="mt-3 border-t border-line pt-2.5">
-                              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink/45">
-                                Already coming
-                              </p>
-                              <p className="mt-1 text-[11px] leading-relaxed text-ink/70">
-                                {roster
-                                  .slice(0, 4)
-                                  .map((r) => (r.guests > 0 ? `${r.name} +${r.guests}` : r.name))
-                                  .join(", ")}
-                                {roster.length > 4 ? ` +${roster.length - 4} more` : ""}
-                              </p>
-                            </div>
-                          )}
-
-                          {gated && (
-                            <p className="mt-2 text-[10px] leading-snug text-amber">
-                              {approvalReason(s.level, player.skill)}
+                        {roster.length > 0 && (
+                          <div className="mt-3 border-t border-line/80 pt-2.5 text-left">
+                            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink/50">
+                              Already coming ({roster.reduce((acc, r) => acc + 1 + (r.guests || 0), 0)}) · Tap name to view profile
                             </p>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {roster.map((r, i) => (
+                                <span
+                                  key={r.user_id || `${r.name}-${i}`}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPlayer(r);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.stopPropagation();
+                                      setSelectedPlayer(r);
+                                    }
+                                  }}
+                                  className="group/player inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink transition-all hover:border-volt hover:bg-volt-soft cursor-pointer"
+                                  title={`View ${r.name}'s profile`}
+                                >
+                                  {r.avatar_url ? (
+                                    <img
+                                      src={r.avatar_url}
+                                      alt=""
+                                      className="h-3.5 w-3.5 rounded-full object-cover shrink-0"
+                                    />
+                                  ) : (
+                                    <span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-ink/10 text-[8px] font-bold text-ink shrink-0">
+                                      {r.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  )}
+                                  <span className="truncate max-w-[95px]">{r.name}</span>
+                                  {(r.guests ?? 0) > 0 && (
+                                    <span className="text-ink/40 text-[10px]">+{r.guests}</span>
+                                  )}
+                                  {r.dupr != null && (
+                                    <span className="font-mono text-[9px] font-semibold text-volt-deep bg-mist px-1 rounded">
+                                      {Number(r.dupr).toFixed(1)}
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {gated && (
+                          <p className="mt-2 text-[10px] leading-snug text-amber">
+                            {approvalReason(s.level, player.skill)}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
@@ -613,6 +722,13 @@ export function GamesFlow({
           </div>
         )}
       </div>
+
+      {selectedPlayer && (
+        <MiniPlayerModal
+          player={selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </div>
   );
 }

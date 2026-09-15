@@ -9,6 +9,7 @@ import {
   ExternalLink,
   GraduationCap,
   LayoutDashboard,
+  MapPin,
   Package,
   Trophy,
   UserCog,
@@ -25,6 +26,7 @@ import { ActivityFeed } from "@/components/activity-feed";
 import { formatDate, formatTime } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 import { ageFrom } from "@/lib/profile";
+import { LEVEL_LABEL } from "@/lib/levels";
 import type { WalletTransaction } from "@/lib/wallet";
 import type { UserNotification } from "@/lib/notifications";
 
@@ -141,39 +143,118 @@ export function DashboardView({
 
   return (
     <div className="wrap section">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">My account</p>
-          <h1 className="mt-2 headline-page">{profile.full_name || session.name}</h1>
-          <p className="mt-1 text-sm text-ink/55">{session.email}</p>
-        </div>
+      {/* Modern Player Passport Hero Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-paper via-paper to-mist/40 p-6 sm:p-8 shadow-card">
+        {/* Subtle decorative volt glow accent */}
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-volt/15 blur-3xl" />
 
-        <div className="flex items-center gap-2">
-          {/* Notification Button */}
-          <button
-            type="button"
-            onClick={() => switchTab("activity")}
-            className="relative rounded-full border border-line p-2 text-ink/70 transition-colors hover:bg-mist hover:text-ink"
-            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-          >
-            <Bell size={18} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-volt px-1 font-mono text-[9px] font-bold text-ink">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </button>
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          {/* Left: Avatar + Player Identity */}
+          <div className="flex flex-wrap items-center gap-5">
+            <div className="relative">
+              <Avatar name={profile.full_name || session.name} src={profile.avatar_url} size="lg" />
+              <button
+                type="button"
+                onClick={() => switchTab("profile")}
+                className="absolute -bottom-1 -right-1 rounded-full border border-paper bg-volt p-1 text-ink shadow-xs hover:scale-105 transition-transform"
+                title="Update profile photo"
+                aria-label="Update profile photo"
+              >
+                <UserCog size={12} />
+              </button>
+            </div>
 
-          {profile.handle && (
-            <Link
-              href={`/players/${profile.handle}`}
-              className="btn-outline btn-sm inline-flex items-center gap-1.5"
-            >
-              <ExternalLink size={13} /> Public profile
-            </Link>
-          )}
-          <LogoutButton />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-volt-deep bg-volt/15 px-2 py-0.5 rounded-full">
+                  SuperPro Player
+                </span>
+                {profile.handle && (
+                  <span className="font-mono text-xs text-ink/50">@{profile.handle}</span>
+                )}
+              </div>
+              <h1 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-ink">
+                {profile.full_name || session.name}
+              </h1>
+
+              {/* Demographics & Location pill */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink/65">
+                <span>{session.email}</span>
+                {calculatedAge && (
+                  <>
+                    <span>·</span>
+                    <span>{calculatedAge} yrs</span>
+                  </>
+                )}
+                {profile.gender && (
+                  <>
+                    <span>·</span>
+                    <span className="capitalize">{profile.gender}</span>
+                  </>
+                )}
+                {profile.city && (
+                  <>
+                    <span>·</span>
+                    <span className="inline-flex items-center gap-1 font-medium text-ink/75">
+                      <MapPin size={11} className="text-volt-deep" /> {profile.city}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: DUPR Rating Showcase & Quick Action Controls */}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* DUPR Card */}
+            <div className="flex items-center gap-3 rounded-xl border border-line bg-paper/90 px-4 py-3 shadow-xs">
+              <div className="text-left">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-ink/45">DUPR Rating</p>
+                <p className="font-mono text-xl sm:text-2xl font-bold text-ink">
+                  {profile.dupr != null ? Number(profile.dupr).toFixed(2) : "Unrated"}
+                </p>
+                {profile.dupr_id && (
+                  <p className="font-mono text-[10px] text-ink/40">ID: {profile.dupr_id}</p>
+                )}
+              </div>
+              <div className="h-8 w-px bg-line/80 mx-1" />
+              <div className="text-left">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-ink/45">Tier</p>
+                <span className="chip-volt inline-block text-[11px] font-semibold capitalize py-0.5">
+                  {LEVEL_LABEL[profile.skill_level] ?? profile.skill_level ?? "Player"}
+                </span>
+              </div>
+            </div>
+
+            {/* Notification, Public Profile, & Logout Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => switchTab("activity")}
+                className="relative rounded-xl border border-line bg-paper p-2.5 text-ink/70 shadow-xs transition-colors hover:bg-mist hover:text-ink"
+                aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-volt px-1 font-mono text-[9px] font-bold text-ink shadow-xs">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {profile.handle && (
+                <Link
+                  href={`/players/${profile.handle}`}
+                  target="_blank"
+                  className="btn-outline btn-sm inline-flex items-center gap-1.5 shadow-xs text-xs font-semibold"
+                >
+                  <ExternalLink size={13} /> Public Profile
+                </Link>
+              )}
+
+              <LogoutButton />
+            </div>
+          </div>
         </div>
       </div>
 

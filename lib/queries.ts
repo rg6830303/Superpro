@@ -233,7 +233,7 @@ export async function getVenues(): Promise<Venue[]> {
   );
 }
 
-export async function getWeekSessions(days = 7): Promise<GameSession[]> {
+export async function getWeekSessions(days = 21): Promise<GameSession[]> {
   const from = istToday();
   const to = addDays(from, days - 1);
   return safe(
@@ -249,15 +249,28 @@ export async function getWeekSessions(days = 7): Promise<GameSession[]> {
          FROM game_sessions s
          JOIN venues v ON v.id = s.venue_id
          LEFT JOIN (
-           SELECT session_id,
-                  SUM(players_count) AS booked,
+           SELECT gr.session_id,
+                  SUM(gr.players_count) AS booked,
                   json_agg(
-                    json_build_object('name', player_name, 'level', skill_level, 'guests', players_count - 1)
-                    ORDER BY created_at
+                    json_build_object(
+                      'name', COALESCE(u.full_name, gr.player_name),
+                      'level', COALESCE(u.skill_level, gr.skill_level),
+                      'guests', gr.players_count - 1,
+                      'user_id', u.id,
+                      'handle', u.handle,
+                      'avatar_url', u.avatar_url,
+                      'dupr', u.dupr,
+                      'gender', u.gender,
+                      'city', u.city,
+                      'bio', u.bio,
+                      'date_of_birth', u.date_of_birth::text
+                    )
+                    ORDER BY gr.created_at
                   ) AS roster
-           FROM game_registrations
-           WHERE status = 'confirmed'
-           GROUP BY session_id
+           FROM game_registrations gr
+           LEFT JOIN users u ON u.id = gr.user_id
+           WHERE gr.status = 'confirmed'
+           GROUP BY gr.session_id
          ) r ON r.session_id = s.id
          WHERE s.session_date BETWEEN $1 AND $2 AND s.status = 'open' AND v.active
          ORDER BY s.session_date, s.start_time, v.sort_order, s.court_number`,
