@@ -43,6 +43,10 @@ export type RosterPlayer = {
   bio?: string | null;
   date_of_birth?: string | null;
   age?: number | null;
+  /** Relationship to the person looking at the roster. */
+  is_you?: boolean;
+  you_follow?: boolean;
+  follows_you?: boolean;
 };
 
 export type GameSession = {
@@ -65,6 +69,8 @@ export type GameSession = {
   booked?: number;
   /** Confirmed players on this slot, shown publicly so others can pick a game. */
   roster?: RosterPlayer[];
+  /** How many people the viewer follows are already confirmed in this slot. */
+  following_count?: number;
 };
 
 export type GameRegistration = {

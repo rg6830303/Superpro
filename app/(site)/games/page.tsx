@@ -18,10 +18,12 @@ export const metadata: Metadata = {
 };
 
 export default async function GamesPage() {
-  const [sessions, venues, session, settings] = await Promise.all([
-    getWeekSessions(7),
+  // The viewer is resolved first: the slot query needs it to work out which
+  // names on each roster are people this player follows.
+  const session = await getPlayerSession();
+  const [sessions, venues, settings] = await Promise.all([
+    getWeekSessions(7, session?.id ?? null),
     getVenues(),
-    getPlayerSession(),
     getSettings(),
   ]);
 

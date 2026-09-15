@@ -233,7 +233,16 @@ export async function getVenues(): Promise<Venue[]> {
   );
 }
 
-export async function getWeekSessions(days = 21): Promise<GameSession[]> {
+/**
+ * Slots for the next few weeks, with the roster on each.
+ *
+ * When a viewer is given, every name on a roster is marked with how it relates
+ * to them — someone they follow, someone who follows them, or both — and each
+ * slot carries a count of how many people they follow are already in it. That
+ * count is what the games page sorts and labels by: being told a friend booked
+ * a court is only useful if the court is then easy to find.
+ */
+export async function getWeekSessions(days = 21, viewerId: string | null = null): Promise<GameSession[]> {
   const from = istToday();
   const to = addDays(from, days - 1);
   return safe(
@@ -245,12 +254,17 @@ export async function getWeekSessions(days = 21): Promise<GameSession[]> {
         // not a booking, and showing it would misrepresent who is on court.
         `SELECT s.*, s.session_date::text AS session_date, v.name AS venue_name, v.area AS venue_area,
                 COALESCE(r.booked, 0)::int AS booked,
-                COALESCE(r.roster, '[]'::json) AS roster
+                COALESCE(r.roster, '[]'::json) AS roster,
+                COALESCE(r.following_count, 0)::int AS following_count
          FROM game_sessions s
          JOIN venues v ON v.id = s.venue_id
          LEFT JOIN (
            SELECT gr.session_id,
                   SUM(gr.players_count) AS booked,
+                  COUNT(*) FILTER (
+                    WHERE EXISTS (SELECT 1 FROM follows f
+                                  WHERE f.follower_id = $3::uuid AND f.following_id = u.id)
+                  )::int AS following_count,
                   json_agg(
                     json_build_object(
                       'name', COALESCE(u.full_name, gr.player_name),
@@ -263,9 +277,18 @@ export async function getWeekSessions(days = 21): Promise<GameSession[]> {
                       'gender', u.gender,
                       'city', u.city,
                       'bio', u.bio,
-                      'date_of_birth', u.date_of_birth::text
+                      'date_of_birth', u.date_of_birth::text,
+                      'is_you', u.id = $3::uuid,
+                      'you_follow', EXISTS (SELECT 1 FROM follows f
+                                            WHERE f.follower_id = $3::uuid AND f.following_id = u.id),
+                      'follows_you', EXISTS (SELECT 1 FROM follows f
+                                             WHERE f.following_id = $3::uuid AND f.follower_id = u.id)
                     )
-                    ORDER BY gr.created_at
+                    -- People the viewer follows come first in the roster, so a
+                    -- familiar face is the first thing read on a busy court.
+                    ORDER BY EXISTS (SELECT 1 FROM follows f
+                                     WHERE f.follower_id = $3::uuid AND f.following_id = u.id) DESC,
+                             gr.created_at
                   ) AS roster
            FROM game_registrations gr
            LEFT JOIN users u ON u.id = gr.user_id
@@ -274,7 +297,7 @@ export async function getWeekSessions(days = 21): Promise<GameSession[]> {
          ) r ON r.session_id = s.id
          WHERE s.session_date BETWEEN $1 AND $2 AND s.status = 'open' AND v.active
          ORDER BY s.session_date, s.start_time, v.sort_order, s.court_number`,
-        [from, to],
+        [from, to, viewerId],
       ),
     [],
   );

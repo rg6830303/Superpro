@@ -363,14 +363,54 @@ export function GamesFlow({
                   </div>
                 </div>
               ) : (
+                <>
+                {(() => {
+                  // One line above the grid, because the useful question on
+                  // arrival is "where are my people playing today", not "which
+                  // courts exist". Silent when nobody you follow is booked.
+                  const withFriends = daySessions.filter((d) => (d.following_count ?? 0) > 0);
+                  if (withFriends.length === 0) return null;
+                  const people = new Map<string, string>();
+                  for (const d of withFriends)
+                    for (const r of d.roster ?? [])
+                      if (r.you_follow && !r.is_you) people.set(r.user_id ?? r.name, r.name.split(" ")[0]);
+                  const names = [...people.values()];
+                  return (
+                    <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-volt/40 bg-volt-soft px-4 py-3">
+                      <Users size={15} className="mt-0.5 shrink-0 text-volt-deep" />
+                      <p className="text-[13px] leading-relaxed text-ink">
+                        <strong className="font-semibold">
+                          {names.length === 1
+                            ? `${names[0]} is`
+                            : names.length === 2
+                              ? `${names[0]} and ${names[1]} are`
+                              : `${names.slice(0, 2).join(", ")} and ${names.length - 2} others you follow are`}
+                        </strong>{" "}
+                        playing {withFriends.length === 1 ? "a slot" : `${withFriends.length} slots`} on this date.{" "}
+                        <span className="text-ink/65">Their courts are listed first.</span>
+                      </p>
+                    </div>
+                  );
+                })()}
                 <div key={shownDate} className="stagger mt-5 grid gap-3 sm:grid-cols-2">
-                  {daySessions.map((s) => {
+                  {[...daySessions]
+                    .sort((a, b) => {
+                      // A notification saying a friend booked a court is only
+                      // useful if that court is then easy to find. Slots with
+                      // people you follow lead the day; everything else keeps
+                      // its normal chronological order.
+                      const diff = (b.following_count ?? 0) - (a.following_count ?? 0);
+                      return diff !== 0 ? diff : 0;
+                    })
+                    .map((s) => {
                     const left = spotsLeft(s);
                     const past = isPast(s.session_date, s.start_time);
                     const disabled = past || left < 1;
                     const selected = picked.includes(s.id);
                     const gated = needsApproval(s.level, player.skill);
                     const roster = s.roster ?? [];
+                    // Roster already arrives with followed players first.
+                    const friends = roster.filter((r) => r.you_follow && !r.is_you);
                     return (
                       <button
                         key={s.id}
@@ -379,6 +419,19 @@ export function GamesFlow({
                         disabled={disabled}
                         className={`tile text-left ${selected ? "tile-selected" : ""} ${disabled ? "tile-disabled" : ""}`}
                       >
+                        {friends.length > 0 && (
+                          <p className="mb-2 flex items-center gap-1.5 rounded-md bg-volt-soft px-2 py-1 text-[11px] font-semibold leading-snug text-volt-deep">
+                            <Users size={12} className="shrink-0" />
+                            <span className="min-w-0">
+                              {friends.length === 1
+                                ? `${friends[0].name.split(" ")[0]} is playing this slot`
+                                : friends.length === 2
+                                  ? `${friends[0].name.split(" ")[0]} and ${friends[1].name.split(" ")[0]} are playing this slot`
+                                  : `${friends[0].name.split(" ")[0]} and ${friends.length - 1} others you follow are playing`}
+                            </span>
+                          </p>
+                        )}
+
                         <div className="flex items-start justify-between gap-2">
                           <span className="font-display text-2xl text-ink">{formatTime(s.start_time)}</span>
                           {selected ? (
@@ -435,8 +488,26 @@ export function GamesFlow({
                                       setSelectedPlayer(r);
                                     }
                                   }}
-                                  className="group/player inline-flex items-center gap-1.5 rounded-full border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink transition-all hover:border-volt hover:bg-volt-soft cursor-pointer"
-                                  title={`View ${r.name}'s profile`}
+                                  className={`group/player inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-all cursor-pointer ${
+                                    r.is_you
+                                      ? "border-ink bg-ink text-paper"
+                                      : r.you_follow
+                                        ? "border-volt bg-volt-soft text-ink ring-1 ring-volt/40"
+                                        : r.follows_you
+                                          ? "border-volt-deep/40 bg-paper text-ink"
+                                          : "border-line bg-paper text-ink hover:border-volt hover:bg-volt-soft"
+                                  }`}
+                                  title={
+                                    r.is_you
+                                      ? "This is your booking"
+                                      : r.you_follow && r.follows_you
+                                        ? `${r.name} — you follow each other`
+                                        : r.you_follow
+                                          ? `${r.name} — you follow them`
+                                          : r.follows_you
+                                            ? `${r.name} follows you`
+                                            : `View ${r.name}'s profile`
+                                  }
                                 >
                                   {r.avatar_url ? (
                                     <img
@@ -473,6 +544,7 @@ export function GamesFlow({
                     );
                   })}
                 </div>
+                </>
               )}
             </div>
 
