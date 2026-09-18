@@ -9,6 +9,7 @@ import { useCart } from "@/components/cart-provider";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, EmptyState, Spinner } from "@/components/ui";
 import { formatPaise, shippingFor } from "@/lib/money";
+import { CONVENIENCE_FEE_RATE, priceBasket } from "@/lib/fees";
 
 type Props = {
   razorpayEnabled: boolean;
@@ -22,7 +23,7 @@ type DeliveryMode = "pickup" | "delivery";
 type PayMethod = "razorpay" | "cod" | "wallet";
 
 export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, defaults }: Props) {
-  const { lines, subtotalPaise, clear, ready } = useCart();
+  const { lines, subtotalPaise, productSubtotalPaise, slotSubtotalPaise, hasProducts, hasSlots, clear, ready } = useCart();
   const [codeInput, setCodeInput] = useState("");
   const [discount, setDiscount] = useState<{ code: string; label: string; discount_paise: number } | null>(null);
   const [codeBusy, setCodeBusy] = useState(false);
@@ -38,7 +39,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          discount_code: discount?.code, code: entered, scope: "shop", subtotal_paise: subtotalPaise }),
+          code: entered, scope: hasProducts ? "shop" : "games", subtotal_paise: subtotalPaise }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Could not check that code.");
@@ -82,23 +83,35 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
     );
   }
 
-  const shipping = shippingFor(subtotalPaise, mode);
-  // The server re-prices the code at checkout; this is only what to show.
-  const total = Math.max(0, subtotalPaise - (discount?.discount_paise ?? 0)) + shipping;
+  // Shipping only applies to goods, and only goods carry the convenience fee;
+  // court time is a service the club already prices per head.
+  const shipping = hasProducts ? shippingFor(productSubtotalPaise, mode) : 0;
+  const totals = priceBasket({
+    lines,
+    shippingPaise: shipping,
+    discountPaise: discount?.discount_paise ?? 0,
+  });
+  // The server re-prices everything at checkout; this is only what to show.
+  const total = totals.totalPaise;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      const res = await fetch("/api/orders", {
+      const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           customer_name: name,
           customer_phone: phone,
           customer_email: email,
-          items: lines.map((l) => ({ product_id: l.product_id, qty: l.qty })),
+          lines: lines.map((l) => ({
+            product_id: l.product_id,
+            kind: l.kind ?? "product",
+            qty: l.qty,
+            session_id: l.session_id,
+          })),
           delivery_mode: mode,
           address: mode === "delivery" ? address : undefined,
           payment_method: pay,
@@ -111,7 +124,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
       // Cash / pickup — order is already recorded, go straight to confirmation.
       if (!data.razorpay_order_id) {
         clear();
-        router.push(`/order/${data.order_no}`);
+        router.push(`/order/${data.reference}`);
         return;
       }
 
@@ -120,18 +133,18 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
         orderId: data.razorpay_order_id,
         amountPaise: data.total_paise,
         name: "SuperPro",
-        description: `Order ${data.order_no}`,
+        description: `SuperPro ${data.reference}`,
         prefill: { name, email, contact: phone },
-        notes: { order_no: data.order_no },
+        notes: { reference: data.reference },
         onSuccess: async (payload) => {
           const verify = await fetch("/api/payments/verify", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ kind: "order", id: data.order_id, ...payload }),
+            body: JSON.stringify({ kind: "checkout", reference: data.reference, ...payload }),
           });
           if (verify.ok) {
             clear();
-            router.push(`/order/${data.order_no}`);
+            router.push(`/order/${data.reference}`);
           } else {
             setError("Payment could not be verified. Nothing was charged twice — message a rep with your order number.");
             setBusy(false);
@@ -322,10 +335,18 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
           </div>
 
           <dl className="mt-5 space-y-2.5 border-t border-line pt-5 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-ink/70">Subtotal</dt>
-              <dd className="text-ink">{formatPaise(subtotalPaise)}</dd>
-            </div>
+            {hasProducts && (
+              <div className="flex justify-between">
+                <dt className="text-ink/70">Gear</dt>
+                <dd className="text-ink">{formatPaise(productSubtotalPaise)}</dd>
+              </div>
+            )}
+            {hasSlots && (
+              <div className="flex justify-between">
+                <dt className="text-ink/70">Court time</dt>
+                <dd className="text-ink">{formatPaise(slotSubtotalPaise)}</dd>
+              </div>
+            )}
             {discount && (
               <div className="flex justify-between">
                 <dt className="text-volt-deep">
@@ -334,10 +355,23 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
                 <dd className="text-volt-deep">-{formatPaise(discount.discount_paise)}</dd>
               </div>
             )}
+            {totals.convenienceFeePaise > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-ink/70">
+                  Convenience fee
+                  <span className="block text-[11px] text-ink/45">
+                    {(CONVENIENCE_FEE_RATE * 100).toFixed(1)}% on gear · court time is exempt
+                  </span>
+                </dt>
+                <dd className="text-ink">{formatPaise(totals.convenienceFeePaise)}</dd>
+              </div>
+            )}
+            {hasProducts && (
             <div className="flex justify-between">
               <dt className="text-ink/70">{mode === "pickup" ? "Pickup" : "Delivery"}</dt>
               <dd className={shipping === 0 ? "text-volt-deep" : "text-ink"}>{shipping === 0 ? "Free" : formatPaise(shipping)}</dd>
             </div>
+            )}
             <div className="flex justify-between border-t border-line pt-3">
               <dt className="font-display text-xl uppercase text-ink">Total</dt>
               <dd className="font-display text-xl text-volt-deep">{formatPaise(total)}</dd>

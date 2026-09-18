@@ -65,12 +65,27 @@ export type EntryRow = {
   group_name: string | null;
 };
 
+/** The same words the admin console and the order page use, so nobody has to translate. */
+const ORDER_STATUS: Record<string, string> = {
+  new: "Placed",
+  confirmed: "Confirmed",
+  packed: "Confirmed",
+  dispatched: "Out for delivery",
+  shipped: "Out for delivery",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
+
 export type OrderRow = {
   order_no: string;
   total_paise: number;
   fulfillment_status: string;
   payment_status: string;
   created_at: string;
+  courier: string | null;
+  tracking_ref: string | null;
+  last_note: string | null;
+  last_update: string | null;
 };
 
 export type PlayerProfileData = {
@@ -611,6 +626,7 @@ export function DashboardView({
                       <th>Total</th>
                       <th>Payment</th>
                       <th>Status</th>
+                      <th>Latest update</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -628,7 +644,29 @@ export function DashboardView({
                         <td>{formatPaise(o.total_paise)}</td>
                         <td className="capitalize">{o.payment_status}</td>
                         <td>
-                          <span className="chip capitalize">{o.fulfillment_status}</span>
+                          <span className={o.fulfillment_status === "delivered" ? "chip-volt" : "chip"}>
+                            {ORDER_STATUS[o.fulfillment_status] ?? o.fulfillment_status}
+                          </span>
+                        </td>
+                        <td className="text-xs text-ink/60">
+                          {o.last_note || o.courier || o.last_update ? (
+                            <>
+                              {o.last_note && <span className="block text-ink/75">{o.last_note}</span>}
+                              {o.courier && (
+                                <span className="block">
+                                  {o.courier}
+                                  {o.tracking_ref ? ` · ${o.tracking_ref}` : ""}
+                                </span>
+                              )}
+                              {o.last_update && (
+                                <span className="block text-ink/40">
+                                  {new Date(o.last_update).toLocaleDateString("en-IN")}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-ink/30">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}

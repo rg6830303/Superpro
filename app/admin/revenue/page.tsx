@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Banknote, Clock, TicketPercent, Wallet } from "lucide-react";
+import { Banknote, Clock, Receipt, TicketPercent, Wallet } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import { ListState } from "@/components/admin/crud";
 import { formatPaise } from "@/lib/money";
@@ -21,7 +21,8 @@ type Report = {
   by_source: SourceRow[];
   by_method: Array<{ payment_method: string; paise: string; n: number }>;
   wallet: { topped_up_paise: string; topup_count: number; float_paise: string; pending_count: number } | null;
-  series: Array<{ day: string; paise: string }>;
+  fees: { fee_paise: string; aov_paise: string; paid_orders: number };
+  series: Array<{ day: string; paise: string; shop_paise: string; games_paise: string; other_paise: string; orders: number }>;
   recent: Array<{
     source: string; reference: string; who: string; amount_paise: number;
     payment_status: string; payment_method: string; discount_code: string | null; created_at: string;
@@ -71,7 +72,6 @@ export default function AdminRevenuePage() {
     load();
   }, [load]);
 
-  const peak = Math.max(1, ...(data?.series ?? []).map((d) => Number(d.paise)));
 
   return (
     <div>
@@ -202,25 +202,7 @@ export default function AdminRevenuePage() {
             </section>
           </div>
 
-          <section className="card mb-8 p-6">
-            <h2 className="text-2xl">Last 30 days</h2>
-            <div className="mt-5 flex h-32 items-end gap-[3px]">
-              {data.series.map((d) => {
-                const paise = Number(d.paise);
-                return (
-                  <span
-                    key={d.day}
-                    title={`${d.day} - ${formatPaise(paise)}`}
-                    style={{ height: `${Math.max(2, (paise / peak) * 100)}%` }}
-                    className={`min-w-0 flex-1 rounded-t-sm ${paise > 0 ? "bg-volt" : "bg-mist"}`}
-                  />
-                );
-              })}
-            </div>
-            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/45">
-              Peak day {formatPaise(peak)}
-            </p>
-          </section>
+          <RevenueChart series={data.series} fees={data.fees} />
 
           <section>
             <h2 className="mb-4 text-2xl">Everything sold</h2>
@@ -272,5 +254,119 @@ export default function AdminRevenuePage() {
         </>
       )}
     </div>
+  );
+}
+
+const BANDS = [
+  { key: "shop_paise", label: "Gear", cls: "bg-volt" },
+  { key: "games_paise", label: "Daily games", cls: "bg-[#06263D]" },
+  { key: "other_paise", label: "Coaching & tournaments", cls: "bg-[#7FA6BD]" },
+] as const;
+
+/**
+ * Thirty days of takings, stacked by where the money came from. Stacked rather
+ * than three separate charts because the question an operator actually asks is
+ * "was today good, and which side of the business made it good" — and that is
+ * one glance at one column, not a comparison across three pictures.
+ */
+function RevenueChart({ series, fees }: { series: Report["series"]; fees: Report["fees"] }) {
+  const [hover, setHover] = useState<number | null>(null);
+
+  const peak = Math.max(1, ...series.map((d) => Number(d.paise)));
+  const total = series.reduce((n, d) => n + Number(d.paise), 0);
+  const orders = series.reduce((n, d) => n + Number(d.orders ?? 0), 0);
+  const shown = hover != null ? series[hover] : null;
+
+  const fmtDay = (day: string) =>
+    new Date(day).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+
+  return (
+    <section className="card mb-8 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl">Last 30 days</h2>
+          <p className="mt-1 text-sm text-ink/60">
+            {formatPaise(total)} across {orders} paid transaction{orders === 1 ? "" : "s"}
+          </p>
+        </div>
+        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+          {BANDS.map((b) => (
+            <li key={b.key} className="flex items-center gap-1.5 text-[11px] text-ink/60">
+              <span className={`h-2.5 w-2.5 rounded-sm ${b.cls}`} /> {b.label}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* A fixed-height readout above the chart, so hovering never reflows it. */}
+      <div className="mt-4 h-11 rounded-lg bg-mist/50 px-3 py-2">
+        {shown ? (
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5">
+            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink/55">{fmtDay(shown.day)}</span>
+            <span className="font-display text-lg text-ink">{formatPaise(Number(shown.paise))}</span>
+            {BANDS.map((b) =>
+              Number(shown[b.key]) > 0 ? (
+                <span key={b.key} className="text-[11px] text-ink/60">
+                  {b.label} {formatPaise(Number(shown[b.key]))}
+                </span>
+              ) : null,
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] leading-[1.9] text-ink/45">Hover a day for the split. Peak day {formatPaise(peak)}.</p>
+        )}
+      </div>
+
+      <div className="mt-3 flex h-40 items-end gap-[3px]">
+        {series.map((d, i) => {
+          const day = Number(d.paise);
+          return (
+            <button
+              key={d.day}
+              type="button"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover((h) => (h === i ? null : h))}
+              onFocus={() => setHover(i)}
+              onBlur={() => setHover((h) => (h === i ? null : h))}
+              aria-label={`${fmtDay(d.day)}: ${formatPaise(day)}`}
+              className={`flex min-w-0 flex-1 flex-col-reverse justify-start rounded-t-sm transition-opacity ${
+                hover != null && hover !== i ? "opacity-45" : ""
+              }`}
+              style={{ height: `${Math.max(1.5, (day / peak) * 100)}%` }}
+            >
+              {day === 0 ? (
+                <span className="h-full w-full rounded-t-sm bg-mist" />
+              ) : (
+                BANDS.map((b) => {
+                  const part = Number(d[b.key]);
+                  if (part <= 0) return null;
+                  return <span key={b.key} className={b.cls} style={{ height: `${(part / day) * 100}%` }} />;
+                })
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 grid gap-4 border-t border-line pt-5 sm:grid-cols-3">
+        <div>
+          <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
+            <Receipt size={12} className="text-volt-deep" /> Convenience fee collected
+          </p>
+          <p className="mt-1 font-display text-2xl text-ink">{formatPaise(Number(fees.fee_paise))}</p>
+          <p className="text-[11px] text-ink/45">2.5% on gear only — never on court time</p>
+        </div>
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Average gear order</p>
+          <p className="mt-1 font-display text-2xl text-ink">{formatPaise(Number(fees.aov_paise))}</p>
+          <p className="text-[11px] text-ink/45">Across paid shop orders this period</p>
+        </div>
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Paid gear orders</p>
+          <p className="mt-1 font-display text-2xl text-ink">{fees.paid_orders}</p>
+          <p className="text-[11px] text-ink/45">Shop orders settled in this window</p>
+        </div>
+      </div>
+    </section>
   );
 }

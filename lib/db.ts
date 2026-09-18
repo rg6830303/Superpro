@@ -88,6 +88,23 @@ function encodeParam(value: unknown): unknown {
 }
 
 /**
+ * `$1::jsonb` does not do what it looks like it does.
+ *
+ * Call sites hand us a JSON *string* (`JSON.stringify(items)`), and with that
+ * cast the driver stores it as a jsonb **string scalar** rather than parsing it
+ * — so the array comes back out as a string, and code that iterates it walks
+ * the characters of the JSON instead of the rows. Going via text first makes
+ * Postgres parse the literal, which is what every call site meant. Measured,
+ * not assumed: `$1::jsonb` returns jsonb_typeof 'string', `$1::text::jsonb`
+ * returns 'array'.
+ */
+function jsonbSafe(text: string): string {
+  return text
+    .replace(/(\$\d+)::jsonb/g, "$1::text::jsonb")
+    .replace(/COALESCE\((\$\d+)\s*,([^()]*)\)::jsonb/gi, "COALESCE($1::text,$2)::jsonb");
+}
+
+/**
  * Run a parameterised statement with `$1, $2, …` placeholders.
  * Returns plain rows so callers never depend on the driver's result shape.
  */
@@ -96,7 +113,7 @@ export async function query<T = Record<string, unknown>>(
   params: unknown[] = [],
 ): Promise<T[]> {
   const sql = getSql();
-  const rows = await sql.unsafe(text, params.map(encodeParam) as never[]);
+  const rows = await sql.unsafe(jsonbSafe(text), params.map(encodeParam) as never[]);
   return rows as unknown as T[];
 }
 

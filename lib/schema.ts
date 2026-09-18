@@ -365,6 +365,33 @@ export const SCHEMA_TABLES: string[] = [
   // of redemptions and stops working the moment they are gone. Redemptions are
   // journalled in their own table rather than only counted, so "who used this
   // and what did it cost us" is answerable after the fact.
+  // One cart per account, for everything.
+  //
+  // The cart used to live only in localStorage, which meant a device-local
+  // basket for gear and an entirely separate flow for court slots — two carts
+  // wearing one name. This is the single basket: it holds product lines and
+  // slot lines side by side, it follows the player between devices, and it is
+  // what checkout reads.
+  `CREATE TABLE IF NOT EXISTS carts (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    lines JSONB NOT NULL DEFAULT '[]'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
+  // Every admin touch on an order, kept as a trail rather than overwriting a
+  // single status field. "Who marked this delivered, and when" has to survive
+  // the next status change.
+  `CREATE TABLE IF NOT EXISTS order_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    note TEXT,
+    courier TEXT,
+    tracking_ref TEXT,
+    created_by TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
   `CREATE TABLE IF NOT EXISTS discount_codes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL,
@@ -463,6 +490,24 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // What a discount actually took off, stored on the record it was applied to,
   // so reporting can show gross, discount and net without re-deriving anything.
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_code TEXT`,
+  // A 2.5% convenience fee applies to goods only — never to court time, which
+  // is a service the club already prices per head.
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS convenience_fee_paise INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS courier TEXT`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_ref TEXT`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_note TEXT`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS dispatched_at TIMESTAMPTZ`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ`,
+  // The lifecycle the console actually drives: placed -> confirmed ->
+  // dispatched -> delivered. The older values stay legal so existing rows and
+  // any in-flight order keep validating.
+  `ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_fulfillment_status_check`,
+  `ALTER TABLE orders ADD CONSTRAINT orders_fulfillment_status_check
+     CHECK (fulfillment_status IN ('new','confirmed','packed','dispatched','shipped','delivered','cancelled'))`,
+  // A slot booked through the unified checkout carries that checkout's
+  // reference, so one basket resolves to one confirmation for the player.
+  `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS order_ref TEXT`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
   `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS discount_code TEXT`,
   `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
@@ -560,6 +605,8 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_form_fields_tournament ON tournament_form_fields(tournament_id, sort_order)`,
   `CREATE INDEX IF NOT EXISTS idx_time_slots_active ON time_slots(sort_order) WHERE active`,
   `CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`,
+  `CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events(order_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_regs_order_ref ON game_registrations(order_ref)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_discount_code ON discount_codes(upper(code))`,
   `CREATE INDEX IF NOT EXISTS idx_discount_active ON discount_codes(active, expires_at)`,
   `CREATE INDEX IF NOT EXISTS idx_redemptions_code ON discount_redemptions(code_id, created_at DESC)`,

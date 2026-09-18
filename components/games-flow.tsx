@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Banknote, CalendarDays, CalendarX, Check, CreditCard, MapPin, MessageCircle, Users, Wallet } from "lucide-react";
+import { useCart } from "@/components/cart-provider";
 import { openRazorpay } from "@/components/razorpay-client";
 import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
@@ -14,7 +16,7 @@ import { LEVEL_LABEL, approvalReason, needsApproval } from "@/lib/levels";
 import { WHATSAPP_GROUP_URL, waLink } from "@/lib/site";
 import type { GameSession, RosterPlayer } from "@/lib/types";
 
-const STEPS = ["Pick slots", "Checkout", "Confirmed"];
+const STEPS = ["Pick slots", "Checkout"];
 
 type Confirmation = {
   reference: string;
@@ -60,6 +62,8 @@ export function GamesFlow({
   walletPaise?: number;
   player: BookingPlayer;
 }) {
+  const router = useRouter();
+  const { addSlots } = useCart();
   const [step, setStep] = useState(1);
   const [picked, setPicked] = useState<string[]>([]);
   const [pay, setPay] = useState<"razorpay" | "venue" | "wallet">(razorpayEnabled ? "razorpay" : "venue");
@@ -140,6 +144,32 @@ export function GamesFlow({
   }, [calendarDates, shownDate, byDate]);
 
   const pickedSessions = useMemo(() => sessions.filter((s) => picked.includes(s.id)), [sessions, picked]);
+
+  /**
+   * Hand the picked slots to the single basket.
+   *
+   * Each slot is one seat, keyed by its session id, so re-adding a slot the
+   * player already has is a no-op rather than a second ticket.
+   */
+  function addPicksToCart() {
+    addSlots(
+      pickedSessions.map((s) => ({
+        product_id: s.id,
+        slug: "",
+        name: `${s.venue_name} · ${formatDate(s.session_date)} ${formatTime(s.start_time)}`,
+        price_paise: perPlayerPaise(s),
+        image_url: null,
+        kind: "slot" as const,
+        session_id: s.id,
+        session_date: s.session_date,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        venue_name: s.venue_name,
+        level: s.level,
+      })),
+    );
+    router.push("/cart");
+  }
   const totalPaise = pickedSessions.reduce((sum, s) => sum + perPlayerPaise(s), 0);
   const gatedPicks = pickedSessions.filter((s) => needsApproval(s.level, player.skill));
 
@@ -584,218 +614,22 @@ export function GamesFlow({
                   <span className="font-display text-2xl text-volt-deep">{formatPaise(totalPaise)}</span>
                 </div>
 
-                <button type="button" onClick={next} disabled={picked.length === 0} className="btn-volt mt-5 w-full">
-                  Continue to checkout <ArrowRight size={16} />
+                <button
+                  type="button"
+                  onClick={addPicksToCart}
+                  disabled={picked.length === 0}
+                  className="btn-volt mt-5 w-full"
+                >
+                  Add to cart <ArrowRight size={16} />
                 </button>
+                <p className="mt-2 text-center text-[11px] text-ink/45">
+                  Court time and gear share one cart and one checkout.
+                </p>
               </div>
             </aside>
           </div>
         )}
 
-        {/* ── Step 2 — checkout ─────────────────────────────────────────── */}
-        {step === 2 && (
-          <div className="card max-w-2xl p-7">
-            <h2 className="text-2xl">Checkout</h2>
-
-            <dl className="mt-5 space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-ink/60">Player</dt>
-                <dd className="text-ink">{player.name}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ink/60">WhatsApp</dt>
-                <dd className="tabular-nums text-ink">+91 {player.phone}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ink/60">DUPR Profile</dt>
-                <dd className="font-mono text-ink">
-                  {player.dupr != null ? `DUPR ${Number(player.dupr).toFixed(2)}` : "Unrated"}
-                  {player.dupr_id ? ` · ${player.dupr_id}` : ""}
-                </dd>
-              </div>
-            </dl>
-
-            <ul className="mt-5 space-y-2 border-t border-line pt-5 text-sm">
-              {pickedSessions.map((s) => (
-                <li key={s.id} className="flex justify-between gap-4">
-                  <span className="text-ink/70">
-                    {formatDate(s.session_date)} · {formatTime(s.start_time)} · {s.venue_name}
-                  </span>
-                  <span className="tabular-nums text-ink/80">{formatPaise(perPlayerPaise(s))}</span>
-                </li>
-              ))}
-              <li className="flex justify-between gap-4 border-t border-line pt-3">
-                <span className="font-display text-xl text-ink">Total</span>
-                <span className="font-display text-xl tabular-nums text-volt-deep">{formatPaise(totalPaise)}</span>
-              </li>
-            </ul>
-
-            {gatedPicks.length > 0 && (
-              <div className="mt-5">
-                <Alert tone="info">
-                  {gatedPicks.length === 1 ? "One of these courts is" : `${gatedPicks.length} of these courts are`}{" "}
-                  above your band, so an admin approves before you appear on the roster.
-                </Alert>
-              </div>
-            )}
-
-            <div className="mt-6">
-              <span className="label">Payment</span>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(walletPaise > 0 || walletPaise > WALLET_FLOOR_PAISE) && (
-                  <button
-                    type="button"
-                    onClick={() => setPay("wallet")}
-                    disabled={walletPaise - totalPaise < WALLET_FLOOR_PAISE}
-                    className={`tile ${pay === "wallet" ? "tile-selected" : ""} ${
-                      walletPaise < totalPaise ? "opacity-40" : ""
-                    }`}
-                  >
-                    <Wallet size={18} className="text-volt-deep" />
-                    <p className="mt-2 font-display text-lg uppercase text-ink">SuperPro wallet</p>
-                    <p className="mt-1 text-xs text-ink/55">
-                      {walletPaise - totalPaise < WALLET_FLOOR_PAISE
-                        ? `Postpaid limit reached — clear ${formatPaise(duesPaise(walletPaise))} first.`
-                        : walletPaise < totalPaise
-                          ? `${formatPaise(walletPaise)} left — the rest goes on postpaid.`
-                          : `${formatPaise(walletPaise)} available.`}
-                    </p>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => razorpayEnabled && setPay("razorpay")}
-                  disabled={!razorpayEnabled}
-                  className={`tile ${pay === "razorpay" ? "tile-selected" : ""} ${!razorpayEnabled ? "opacity-40" : ""}`}
-                >
-                  <CreditCard size={18} className="text-volt-deep" />
-                  <p className="mt-2 font-display text-lg uppercase text-ink">Pay online</p>
-                  <p className="mt-1 text-xs text-ink/55">
-                    {razorpayEnabled ? "UPI or card. Confirms instantly." : "Temporarily unavailable."}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPay("venue")}
-                  className={`tile ${pay === "venue" ? "tile-selected" : ""}`}
-                >
-                  <Banknote size={18} className="text-volt-deep" />
-                  <p className="mt-2 font-display text-lg uppercase text-ink">Pay at venue</p>
-                  <p className="mt-1 text-xs text-ink/55">Held for 20 minutes from slot start.</p>
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <label className="label" htmlFor="g-notes">
-                Notes for the organiser (optional)
-              </label>
-              <textarea
-                id="g-notes"
-                rows={2}
-                className="field resize-none"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                
-              />
-            </div>
-
-            <div className="mt-7 flex items-center justify-between gap-3">
-              <button type="button" onClick={() => setStep(1)} className="btn-outline">
-                <ArrowLeft size={16} /> Back
-              </button>
-              <button type="button" onClick={confirmBooking} disabled={busy} className="btn-volt">
-                {busy ? <Spinner /> : null}
-                {busy
-                  ? "Confirming…"
-                  : pay === "razorpay"
-                    ? `Pay ${formatPaise(totalPaise)}`
-                    : pay === "wallet"
-                      ? `Pay ${formatPaise(totalPaise)} from wallet`
-                      : "Confirm booking"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 3 — confirmed ────────────────────────────────────────── */}
-        {step === 3 && confirmation && (
-          <div className="card relative max-w-2xl overflow-hidden p-8 text-center">
-            <Confetti trigger={1} />
-            <div className="mx-auto flex h-16 w-16 animate-score-pop items-center justify-center rounded-full bg-volt text-ink">
-              <Check size={30} strokeWidth={3} />
-            </div>
-            <h2 className="headline-section mt-5">
-              {confirmation.payment_method === "razorpay" || confirmation.payment_method === "wallet"
-                ? "Paid & confirmed"
-                : "Slot confirmed"}
-            </h2>
-            <p className="mt-3 text-sm text-ink/60">
-              Reference <span className="font-semibold text-volt-deep">{confirmation.reference}</span>.
-              {confirmation.payment_method === "venue"
-                ? " Pay at the venue — your spot is held for 20 minutes from the start time."
-                : " See you on court."}
-            </p>
-
-            <ul className="mt-7 space-y-3 border-t border-line pt-6 text-left">
-              {confirmation.bookings.map((b, i) => {
-                const waiting = b.status === "pending_approval";
-                return (
-                  <li
-                    key={i}
-                    className={`flex items-center justify-between gap-4 rounded-xl px-4 py-3 ${
-                      waiting ? "border border-amber/30 bg-amber/5" : "bg-mist"
-                    }`}
-                  >
-                    <span>
-                      <span className="block font-display text-xl text-ink">
-                        {formatDate(b.session_date)} · {formatTime(b.start_time)}
-                      </span>
-                      <span className="block text-xs text-ink/65">{b.venue_name}</span>
-                      {waiting && (
-                        <span className="mt-1 block text-[11px] text-amber">
-                          Awaiting admin approval — this court is above your band.
-                        </span>
-                      )}
-                    </span>
-                    <span className={waiting ? "chip-warn shrink-0" : "chip-volt shrink-0"}>
-                      {waiting ? "Pending" : "Confirmed"}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="mt-7 rounded-xl border border-line bg-mist p-4 text-left">
-              <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-                <Users size={15} className="text-volt-deep" /> Posted to the games group
-              </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-ink/65">
-                Your name goes into the SuperPro daily-games WhatsApp group and onto the slot on this site, so
-                everyone knows who they&apos;re playing with. Courts are assigned on the day.
-              </p>
-              {WHATSAPP_GROUP_URL && (
-                <a
-                  href={WHATSAPP_GROUP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary btn-sm mt-3"
-                >
-                  <MessageCircle size={14} /> Open the group
-                </a>
-              )}
-            </div>
-
-            <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={reset} className="btn-volt">
-                Book another slot
-              </button>
-              <Link href="/dashboard" className="btn-outline">
-                My bookings
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
 
       {selectedPlayer && (

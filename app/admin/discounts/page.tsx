@@ -35,6 +35,24 @@ const TAB_OPTIONS = [
   { value: "tournaments", label: "Tournaments (Tournament Entries)" },
 ] as const;
 
+/** An ISO timestamp as the local value a datetime-local input wants. */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Plain English for the code's window, which is the thing admins misread most. */
+function windowText(c: Code): string {
+  const fmt = (v: string) => new Date(v).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" });
+  if (!c.starts_at && !c.expires_at) return "No time limit";
+  if (c.starts_at && c.expires_at) return `${fmt(c.starts_at)} → ${fmt(c.expires_at)}`;
+  if (c.expires_at) return `Until ${fmt(c.expires_at)}`;
+  return `From ${fmt(c.starts_at as string)}`;
+}
+
 function remaining(c: Code): string {
   if (c.max_uses == null) return "Unlimited";
   const left = Math.max(0, c.max_uses - c.used_count);
@@ -72,6 +90,9 @@ export default function AdminDiscountsPage() {
   const [percentValue, setPercentValue] = useState("");
   const [targetTab, setTargetTab] = useState<string>("all");
   const [maxUses, setMaxUses] = useState("");
+  const [timed, setTimed] = useState(false);
+  const [startsAt, setStartsAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
   const [description, setDescription] = useState("");
   const [active, setActive] = useState(true);
 
@@ -105,6 +126,9 @@ export default function AdminDiscountsPage() {
     setPercentValue("10");
     setTargetTab("all");
     setMaxUses("50");
+    setTimed(false);
+    setStartsAt("");
+    setExpiresAt("");
     setDescription("");
     setActive(true);
     setFormError(null);
@@ -129,6 +153,9 @@ export default function AdminDiscountsPage() {
     }
 
     setMaxUses(c.max_uses != null ? String(c.max_uses) : "");
+    setTimed(Boolean(c.starts_at || c.expires_at));
+    setStartsAt(toLocalInput(c.starts_at));
+    setExpiresAt(toLocalInput(c.expires_at));
     setDescription(c.description ?? "");
     setActive(c.active);
     setFormError(null);
@@ -160,6 +187,15 @@ export default function AdminDiscountsPage() {
       }
     }
 
+    if (timed && !startsAt && !expiresAt) {
+      setFormError("Pick a start, an end, or switch the code back to no time limit.");
+      return;
+    }
+    if (timed && startsAt && expiresAt && new Date(expiresAt) <= new Date(startsAt)) {
+      setFormError("The end has to be after the start.");
+      return;
+    }
+
     const scopes =
       targetTab === "all"
         ? ["shop", "games", "coaching", "tournaments"]
@@ -171,6 +207,10 @@ export default function AdminDiscountsPage() {
       description: description.trim() || null,
       active,
       max_uses: maxUses.trim() !== "" ? Number(maxUses) : null,
+      // Sent on every save, including as nulls, so that turning a timed code
+      // back into an open-ended one actually clears the window.
+      starts_at: timed && startsAt ? new Date(startsAt).toISOString() : null,
+      expires_at: timed && expiresAt ? new Date(expiresAt).toISOString() : null,
     };
 
     if (kind === "amount") {
@@ -258,6 +298,7 @@ export default function AdminDiscountsPage() {
                 <th>Value</th>
                 <th>Uses</th>
                 <th>Works on</th>
+                <th>Window</th>
                 <th>Given away</th>
                 <th>Status</th>
                 <th />
@@ -267,6 +308,7 @@ export default function AdminDiscountsPage() {
               {codes.map((c) => {
                 const exhausted = c.max_uses != null && c.used_count >= c.max_uses;
                 const expired = Boolean(c.expires_at && new Date(c.expires_at).getTime() < Date.now());
+                const pending = Boolean(c.starts_at && new Date(c.starts_at).getTime() > Date.now());
                 return (
                   <tr key={c.id}>
                     <td>
@@ -289,10 +331,11 @@ export default function AdminDiscountsPage() {
                         {formatScopeBadge(c.scopes)}
                       </span>
                     </td>
+                    <td className="text-xs text-ink/65">{windowText(c)}</td>
                     <td className="text-xs font-mono">{formatPaise(Number(c.given_away_paise ?? 0))}</td>
                     <td>
-                      <span className={!c.active || exhausted || expired ? "chip" : "chip-volt"}>
-                        {!c.active ? "Off" : exhausted ? "Used up" : expired ? "Expired" : "Live"}
+                      <span className={!c.active || exhausted || expired || pending ? "chip" : "chip-volt"}>
+                        {!c.active ? "Off" : exhausted ? "Used up" : expired ? "Expired" : pending ? "Scheduled" : "Live"}
                       </span>
                     </td>
                     <td>
@@ -398,42 +441,24 @@ export default function AdminDiscountsPage() {
               </p>
             </div>
 
-            {/* Discount Type: Flat vs Percentage Only */}
+            {/* Discount type — a select, so there is exactly one way to say it */}
             <div>
-              <label className="label">
+              <label className="label" htmlFor="disc-kind">
                 Discount Type <span className="text-signal">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setKind("amount")}
-                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                    kind === "amount"
-                      ? "border-volt-deep bg-volt/20 text-volt-deep font-bold ring-1 ring-volt-deep"
-                      : "border-line bg-paper text-ink/70 hover:border-ink/30"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 text-base font-bold">
-                    <Tag size={16} /> Flat (₹)
-                  </div>
-                  <span className="text-[11px] font-normal text-ink/55 mt-0.5">Fixed Rupee amount off</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setKind("percent")}
-                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                    kind === "percent"
-                      ? "border-volt-deep bg-volt/20 text-volt-deep font-bold ring-1 ring-volt-deep"
-                      : "border-line bg-paper text-ink/70 hover:border-ink/30"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 text-base font-bold">
-                    <Percent size={16} /> Percentage (%)
-                  </div>
-                  <span className="text-[11px] font-normal text-ink/55 mt-0.5">Percentage off total</span>
-                </button>
-              </div>
+              <select
+                id="disc-kind"
+                className="field cursor-pointer"
+                value={kind}
+                onChange={(e) => setKind(e.target.value as "amount" | "percent")}
+              >
+                <option value="amount">Flat — a fixed ₹ amount off</option>
+                <option value="percent">Percentage — a % off the total</option>
+              </select>
+              <p className="mt-1 flex items-center gap-1.5 text-[11px] text-ink/45">
+                {kind === "amount" ? <Tag size={12} /> : <Percent size={12} />}
+                {kind === "amount" ? "Takes the same rupees off every order." : "Scales with the order value."}
+              </p>
             </div>
 
             {/* Discount Value: Rupee input or Percentage input */}
@@ -502,6 +527,53 @@ export default function AdminDiscountsPage() {
               <p className="mt-1 text-[11px] text-ink/45">
                 Choose the exact tab or service where this discount applies.
               </p>
+            </div>
+
+            {/* Time limit — off by default, because most codes run open-ended */}
+            <div>
+              <label className="label" htmlFor="disc-timed">
+                Time limit
+              </label>
+              <select
+                id="disc-timed"
+                className="field cursor-pointer"
+                value={timed ? "window" : "none"}
+                onChange={(e) => setTimed(e.target.value === "window")}
+              >
+                <option value="none">No time limit — runs until switched off or used up</option>
+                <option value="window">Set a window</option>
+              </select>
+
+              {timed && (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="label" htmlFor="disc-start">
+                      Starts
+                    </label>
+                    <input
+                      id="disc-start"
+                      type="datetime-local"
+                      className="field"
+                      value={startsAt}
+                      onChange={(e) => setStartsAt(e.target.value)}
+                    />
+                    <p className="mt-1 text-[11px] text-ink/45">Blank means live right away.</p>
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="disc-end">
+                      Ends
+                    </label>
+                    <input
+                      id="disc-end"
+                      type="datetime-local"
+                      className="field"
+                      value={expiresAt}
+                      onChange={(e) => setExpiresAt(e.target.value)}
+                    />
+                    <p className="mt-1 text-[11px] text-ink/45">Blank means it never expires.</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Total Uses Allowed */}

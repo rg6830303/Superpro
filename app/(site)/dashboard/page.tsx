@@ -68,8 +68,15 @@ export default async function DashboardPage({
       [session.id],
     ).catch(() => []),
     query<OrderRow>(
-      `SELECT order_no, total_paise, fulfillment_status, payment_status, created_at
-       FROM orders WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
+      // The last event is what the account shows: the admin moving an order on
+      // is the only thing that changes here after checkout, so surface it.
+      `SELECT o.order_no, o.total_paise, o.fulfillment_status, o.payment_status, o.created_at,
+              o.courier, o.tracking_ref,
+              (SELECT e.note FROM order_events e WHERE e.order_id = o.id ORDER BY e.created_at DESC LIMIT 1)
+                AS last_note,
+              (SELECT e.created_at::text FROM order_events e WHERE e.order_id = o.id ORDER BY e.created_at DESC LIMIT 1)
+                AS last_update
+       FROM orders o WHERE o.user_id = $1 ORDER BY o.created_at DESC LIMIT 10`,
       [session.id],
     ).catch(() => []),
   ]);

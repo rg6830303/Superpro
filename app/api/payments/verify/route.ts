@@ -4,7 +4,7 @@ import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { formatDate, formatTimeRange } from "@/lib/dates";
 import { postSlotToGroup } from "@/lib/games";
-import { fulfilOnlineOrder } from "@/lib/orders";
+import { fulfilOnlineOrder, asLines } from "@/lib/orders";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
 import { adjustWallet } from "@/lib/wallet";
 import { bookingReceiptMessage, orderReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
@@ -12,7 +12,7 @@ import { bookingReceiptMessage, orderReceiptMessage, sendWhatsApp } from "@/lib/
 export const runtime = "nodejs";
 
 const schema = z.object({
-  kind: z.enum(["order", "game", "coaching", "tournament", "wallet_topup"]),
+  kind: z.enum(["order", "checkout", "game", "coaching", "tournament", "wallet_topup"]),
   id: z.string().uuid().optional(),
   reference: z.string().min(3).max(40).optional(),
   razorpay_order_id: z.string().min(3),
@@ -51,6 +51,8 @@ export async function POST(req: Request) {
     switch (p.kind) {
       case "order":
         return await settleOrder(p);
+      case "checkout":
+        return await settleCheckout(p);
       case "game":
         return await settleGame(p);
       case "coaching":
@@ -102,7 +104,7 @@ async function settleOrder(p: Payload) {
     message: orderReceiptMessage({
       name: order.customer_name,
       orderNo: order.order_no,
-      items: order.items ?? [],
+      items: asLines(order.items),
       totalPaise: order.total_paise,
       mode: order.delivery_mode,
     }),
@@ -249,6 +251,61 @@ async function settleTournament(p: Payload) {
     refTable: "tournament_registrations",
     refId: reg.id,
   });
+
+  return NextResponse.json({ ok: true, reference: p.reference });
+}
+
+/**
+ * Settle a unified basket.
+ *
+ * One reference can cover an order row, a set of slot bookings, or both, so
+ * everything carrying it is marked paid together — a basket half-settled is
+ * worse than one that failed outright.
+ */
+async function settleCheckout(p: Payload) {
+  if (!p.reference) return NextResponse.json({ error: "Missing reference." }, { status: 400 });
+
+  const order = await queryOne<{ id: string; razorpay_order_id: string | null; payment_status: string }>(
+    `SELECT id, razorpay_order_id, payment_status FROM orders WHERE order_no = $1 LIMIT 1`,
+    [p.reference],
+  );
+  const slots = await query<{ id: string; razorpay_order_id: string | null }>(
+    `SELECT id, razorpay_order_id FROM game_registrations WHERE reference = $1`,
+    [p.reference],
+  );
+
+  if (!order && slots.length === 0) {
+    return NextResponse.json({ error: "That payment does not match any basket." }, { status: 409 });
+  }
+
+  // The signature alone is not enough: it must belong to the gateway order we
+  // created for THIS basket, or a valid signature from an unrelated payment
+  // could be replayed to settle it.
+  const expected = order?.razorpay_order_id ?? slots[0]?.razorpay_order_id ?? null;
+  if (expected !== p.razorpay_order_id) {
+    return NextResponse.json({ error: "That payment does not match this basket." }, { status: 409 });
+  }
+
+  if (order) {
+    await query(
+      `UPDATE orders SET payment_status = 'paid', razorpay_payment_id = $1, razorpay_signature = $2,
+         updated_at = now() WHERE id = $3 AND payment_status <> 'paid'`,
+      [p.razorpay_payment_id, p.razorpay_signature, order.id],
+    );
+    await query(
+      `INSERT INTO order_events (order_id, status, note, created_by) VALUES ($1,'new',$2,'system')`,
+      [order.id, "Payment received"],
+    ).catch(() => {});
+    await fulfilOnlineOrder(order.id).catch(() => {});
+  }
+
+  if (slots.length > 0) {
+    await query(
+      `UPDATE game_registrations SET payment_status = 'paid', razorpay_payment_id = $1
+       WHERE reference = $2`,
+      [p.razorpay_payment_id, p.reference],
+    );
+  }
 
   return NextResponse.json({ ok: true, reference: p.reference });
 }

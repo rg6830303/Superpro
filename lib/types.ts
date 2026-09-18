@@ -152,4 +152,26 @@ export type TournamentRegistration = {
   created_at: string;
 };
 
-export type CartLine = { product_id: string; slug: string; name: string; price_paise: number; qty: number; image_url: string | null };
+/**
+ * One line in the single basket.
+ *
+ * `kind` is what lets gear and court time share a cart: a product line is
+ * priced per unit and can have its quantity changed, a slot line is one seat
+ * at one session and is only ever added or removed.
+ */
+export type CartLine = {
+  product_id: string;
+  slug: string;
+  name: string;
+  price_paise: number;
+  qty: number;
+  image_url: string | null;
+  kind?: "product" | "slot";
+  /** Slot lines only — enough to show the line and to book it at checkout. */
+  session_id?: string;
+  session_date?: string;
+  start_time?: string;
+  end_time?: string;
+  venue_name?: string;
+  level?: string;
+};

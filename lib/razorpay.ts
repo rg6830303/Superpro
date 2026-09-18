@@ -15,6 +15,13 @@ const KEY_ID = (process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_
 const KEY_SECRET = (process.env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET_KEY || "").trim();
 
 export const isRazorpayEnabled = Boolean(KEY_ID && KEY_SECRET);
+
+/**
+ * The API host, overridable so a staging box (or an end-to-end test) can point
+ * at a mock instead of moving real money. Unset — which is every production
+ * deploy — it is Razorpay itself.
+ */
+const API_BASE = (process.env.RAZORPAY_API_BASE || "https://api.razorpay.com").replace(/\/+$/, "");
 export const razorpayKeyId = KEY_ID;
 
 export type RazorpayOrder = { id: string; amount: number; currency: string; receipt?: string };
@@ -26,7 +33,7 @@ export async function createRazorpayOrder(args: {
 }): Promise<RazorpayOrder> {
   if (!isRazorpayEnabled) throw new Error("Razorpay is not configured");
   const auth = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
-  const res = await fetch("https://api.razorpay.com/v1/orders", {
+  const res = await fetch(`${API_BASE}/v1/orders`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Basic ${auth}` },
     body: JSON.stringify({
@@ -83,7 +90,7 @@ export type RazorpayPayment = {
  */
 export async function fetchOrderPayments(orderId: string): Promise<RazorpayPayment[]> {
   if (!isRazorpayEnabled) return [];
-  const res = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(orderId)}/payments`, {
+  const res = await fetch(`${API_BASE}/v1/orders/${encodeURIComponent(orderId)}/payments`, {
     headers: { authorization: authHeader() },
     cache: "no-store",
   });
@@ -121,7 +128,7 @@ export async function checkCredentials(): Promise<CredentialCheck> {
     return { ok: false, status: null, mode, detail: "Key id or secret is missing." };
   }
   try {
-    const res = await fetch("https://api.razorpay.com/v1/payments?count=1", {
+    const res = await fetch(`${API_BASE}/v1/payments?count=1`, {
       headers: { authorization: authHeader() },
       cache: "no-store",
     });

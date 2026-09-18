@@ -11,7 +11,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/games", label: "Daily games", icon: CalendarDays },
   { href: "/admin/revenue", label: "Revenue", icon: Banknote },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/orders", label: "Gear orders", icon: ShoppingCart },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/coaching", label: "Coaching", icon: GraduationCap },
   { href: "/admin/tournaments", label: "Tournaments", icon: Trophy },

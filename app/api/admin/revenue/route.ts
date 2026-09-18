@@ -75,16 +75,22 @@ export async function GET(req: Request) {
          (SELECT COUNT(*) FROM wallet_topups WHERE status = 'pending')::int AS pending_count`,
     ).catch(() => []);
 
-    // Daily earned total for the trend line, zero-filled so gaps read as zero
-    // rather than closing up and flattering the shape.
+    // Daily totals split by source, zero-filled so a quiet day reads as zero
+    // rather than closing the gap and flattering the shape. Split, because a
+    // single line cannot answer whether the shop or the court earned it.
     const series = await query(
-      `SELECT d::date::text AS day, COALESCE(SUM(t.amount_paise), 0)::bigint AS paise
+      `SELECT d::date::text AS day,
+              COALESCE(SUM(t.amount_paise) FILTER (WHERE t.src = 'shop'), 0)::bigint     AS shop_paise,
+              COALESCE(SUM(t.amount_paise) FILTER (WHERE t.src = 'games'), 0)::bigint    AS games_paise,
+              COALESCE(SUM(t.amount_paise) FILTER (WHERE t.src = 'other'), 0)::bigint    AS other_paise,
+              COALESCE(SUM(t.amount_paise), 0)::bigint                                   AS paise,
+              COUNT(t.amount_paise)::int                                                 AS orders
        FROM generate_series(now() - interval '29 days', now(), interval '1 day') d
        LEFT JOIN (
-         SELECT total_paise AS amount_paise, created_at FROM orders WHERE payment_status = 'paid'
-         UNION ALL SELECT amount_paise, created_at FROM game_registrations WHERE payment_status = 'paid'
-         UNION ALL SELECT amount_paise, created_at FROM coaching_bookings WHERE payment_status = 'paid'
-         UNION ALL SELECT amount_paise, created_at FROM tournament_registrations WHERE payment_status = 'paid'
+         SELECT 'shop'  AS src, total_paise  AS amount_paise, created_at FROM orders                 WHERE payment_status = 'paid'
+         UNION ALL SELECT 'games', amount_paise, created_at FROM game_registrations                  WHERE payment_status = 'paid'
+         UNION ALL SELECT 'other', amount_paise, created_at FROM coaching_bookings                   WHERE payment_status = 'paid'
+         UNION ALL SELECT 'other', amount_paise, created_at FROM tournament_registrations            WHERE payment_status = 'paid'
        ) t ON t.created_at::date = d::date
        GROUP BY d ORDER BY d`,
     ).catch(() => []);
@@ -122,6 +128,16 @@ export async function GET(req: Request) {
          (SELECT COUNT(*) FROM orders WHERE fulfillment_status <> 'delivered')::int       AS orders_open`,
     ).catch(() => []);
 
+    // Convenience fee, reported on its own: it is money the club collected but
+    // it is a handling charge, not the price of anything, and mixing it into
+    // product revenue would overstate what the shop earns.
+    const [fees] = await query<{ fee_paise: string; aov_paise: string; paid_orders: number }>(
+      `SELECT COALESCE(SUM(convenience_fee_paise) FILTER (WHERE payment_status = 'paid'), 0)::bigint AS fee_paise,
+              COALESCE(AVG(total_paise) FILTER (WHERE payment_status = 'paid'), 0)::bigint           AS aov_paise,
+              COUNT(*) FILTER (WHERE payment_status = 'paid')::int                                    AS paid_orders
+       FROM orders WHERE ${where}`,
+    ).catch(() => [{ fee_paise: "0", aov_paise: "0", paid_orders: 0 }]);
+
     const rows = bySource as Array<{ earned_paise: string; owed_paise: string; discount_paise: string }>;
     const sum = (key: "earned_paise" | "owed_paise" | "discount_paise") =>
       rows.reduce((total, r) => total + Number(r[key] ?? 0), 0);
@@ -130,6 +146,7 @@ export async function GET(req: Request) {
       window: windowKey,
       totals: { earned_paise: sum("earned_paise"), owed_paise: sum("owed_paise"), discount_paise: sum("discount_paise") },
       by_source: bySource,
+      fees: fees ?? { fee_paise: "0", aov_paise: "0", paid_orders: 0 },
       by_method: methods,
       wallet: wallet[0] ?? null,
       series,
