@@ -7,7 +7,6 @@ import { useCart } from "@/components/cart-provider";
 import { EmptyState } from "@/components/ui";
 import { formatPaise, FREE_SHIPPING_THRESHOLD_PAISE } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
-import { CONVENIENCE_FEE_RATE } from "@/lib/fees";
 
 export default function CartPage() {
   const {
@@ -151,12 +150,7 @@ export default function CartPage() {
               )}
               {convenienceFeePaise > 0 && (
                 <div className="flex justify-between">
-                  <dt className="text-ink/70">
-                    Convenience fee
-                    <span className="block text-[11px] text-ink/45">
-                      {(CONVENIENCE_FEE_RATE * 100).toFixed(1)}% on gear only
-                    </span>
-                  </dt>
+                  <dt className="text-ink/70">Convenience fee</dt>
                   <dd className="text-ink">{formatPaise(convenienceFeePaise)}</dd>
                 </div>
               )}

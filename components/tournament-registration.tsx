@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Banknote, Check, CreditCard, MessageCircle } from "lucide-react";
-import { openRazorpay } from "@/components/razorpay-client";
+import { openRazorpay, useRazorpayPreload } from "@/components/razorpay-client";
 import { Alert, Spinner } from "@/components/ui";
 import { Confetti } from "@/components/motion";
 import { formatPaise } from "@/lib/money";
@@ -48,6 +48,10 @@ export function TournamentRegistration({
   const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
   const [notes, setNotes] = useState("");
   const [pay, setPay] = useState<"razorpay" | "venue">(razorpayEnabled ? "razorpay" : "venue");
+
+  // Fetch the payment script while the form is being filled in, so pressing
+  // Pay opens the window straight away instead of waiting on a download.
+  useRazorpayPreload(razorpayEnabled);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);

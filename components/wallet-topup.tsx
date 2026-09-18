@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Plus, Wallet } from "lucide-react";
-import { openRazorpay } from "@/components/razorpay-client";
+import { openRazorpay, useRazorpayPreload } from "@/components/razorpay-client";
 import { Alert, Spinner } from "@/components/ui";
 import { formatPaise } from "@/lib/money";
 
@@ -37,6 +37,10 @@ export function WalletTopUp({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+
+  // Fetch the payment script while the form is being filled in, so pressing
+  // Pay opens the window straight away instead of waiting on a download.
+  useRazorpayPreload(razorpayEnabled);
 
   /**
    * The escape hatch for a payment that went through while the callback did

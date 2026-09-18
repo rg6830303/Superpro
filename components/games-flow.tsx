@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Banknote, CalendarDays, CalendarX, Check, CreditCard, MapPin, MessageCircle, Users, Wallet } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
-import { openRazorpay } from "@/components/razorpay-client";
+import { openRazorpay, useRazorpayPreload } from "@/components/razorpay-client";
 import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
 import { MiniPlayerModal } from "@/components/mini-player-modal";
@@ -67,6 +67,10 @@ export function GamesFlow({
   const [step, setStep] = useState(1);
   const [picked, setPicked] = useState<string[]>([]);
   const [pay, setPay] = useState<"razorpay" | "venue" | "wallet">(razorpayEnabled ? "razorpay" : "venue");
+
+  // Fetch the payment script while the form is being filled in, so pressing
+  // Pay opens the window straight away instead of waiting on a download.
+  useRazorpayPreload(razorpayEnabled);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -26,12 +26,27 @@ export const razorpayKeyId = KEY_ID;
 
 export type RazorpayOrder = { id: string; amount: number; currency: string; receipt?: string };
 
+/**
+ * How long to wait on Razorpay before giving up.
+ *
+ * Checkout blocks on this call, so an unbounded fetch means a customer staring
+ * at a spinner for as long as the platform's request timeout allows. Ten
+ * seconds is far beyond a healthy response and still short enough to fail over
+ * to "pay on pickup" while the customer is still interested.
+ */
+const ORDER_TIMEOUT_MS = 10_000;
+
 export async function createRazorpayOrder(args: {
   amountPaise: number;
   receipt: string;
   notes?: Record<string, string>;
 }): Promise<RazorpayOrder> {
   if (!isRazorpayEnabled) throw new Error("Razorpay is not configured");
+  if (!Number.isInteger(args.amountPaise) || args.amountPaise < 100) {
+    // Razorpay rejects anything under ₹1, and a fractional paise amount is a
+    // rounding bug upstream that must not reach the gateway.
+    throw new Error(`Razorpay order amount is invalid: ${args.amountPaise} paise`);
+  }
   const auth = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
   const res = await fetch(`${API_BASE}/v1/orders`, {
     method: "POST",
@@ -42,6 +57,8 @@ export async function createRazorpayOrder(args: {
       receipt: args.receipt,
       notes: args.notes ?? {},
     }),
+    signal: AbortSignal.timeout(ORDER_TIMEOUT_MS),
+    cache: "no-store",
   });
   if (!res.ok) {
     throw new Error(`Razorpay order failed (${res.status}): ${(await res.text()).slice(0, 300)}`);

@@ -84,6 +84,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+      <head>
+        {/* Razorpay's checkout script is fetched from these two hosts the moment
+            a payment page mounts. Opening the DNS/TLS connections up front takes
+            a noticeable slice off how long the payment window takes to appear on
+            a phone, and costs nothing when nobody checks out. */}
+        <link rel="preconnect" href="https://checkout.razorpay.com" crossOrigin="" />
+        <link rel="preconnect" href="https://api.razorpay.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
+      </head>
       <body>
         {/* First in the body so it is painted before anything it covers. */}
         <BootCover />

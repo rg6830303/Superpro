@@ -3,13 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Banknote, CreditCard, ShoppingBag, Store, Truck, Wallet } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
-import { openRazorpay } from "@/components/razorpay-client";
+import { openRazorpay, useRazorpayPreload } from "@/components/razorpay-client";
 import { Alert, EmptyState, Spinner } from "@/components/ui";
 import { formatPaise, shippingFor } from "@/lib/money";
-import { CONVENIENCE_FEE_RATE, priceBasket } from "@/lib/fees";
+import { priceBasket } from "@/lib/fees";
 
 type Props = {
   razorpayEnabled: boolean;
@@ -29,31 +29,43 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
   const [codeBusy, setCodeBusy] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
 
-  async function applyCode() {
-    const entered = codeInput.trim();
-    if (!entered) return;
-    setCodeBusy(true);
-    setCodeError(null);
-    try {
-      const res = await fetch("/api/discounts/validate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          code: entered, scope: hasProducts ? "shop" : "games", subtotal_paise: subtotalPaise }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Could not check that code.");
-      if (!body.ok) {
-        setDiscount(null);
-        setCodeError(body.error);
-        return;
+  /**
+   * Quote a code against the basket as it stands. The server decides what the
+   * code is worth — this only asks, and the same question is asked again when
+   * the order is placed.
+   */
+  const quoteCode = useCallback(
+    async (entered: string, opts: { silent?: boolean } = {}) => {
+      const code = entered.trim();
+      if (!code) return;
+      if (!opts.silent) setCodeBusy(true);
+      setCodeError(null);
+      try {
+        const res = await fetch("/api/discounts/validate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            code, scope: hasProducts ? "shop" : "games", subtotal_paise: subtotalPaise }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error ?? "Could not check that code.");
+        if (!body.ok) {
+          setDiscount(null);
+          setCodeError(body.error);
+          return;
+        }
+        setDiscount({ code: body.code, label: body.label, discount_paise: body.discount_paise });
+      } catch (err) {
+        setCodeError(err instanceof Error ? err.message : "Could not check that code.");
+      } finally {
+        if (!opts.silent) setCodeBusy(false);
       }
-      setDiscount({ code: body.code, label: body.label, discount_paise: body.discount_paise });
-    } catch (err) {
-      setCodeError(err instanceof Error ? err.message : "Could not check that code.");
-    } finally {
-      setCodeBusy(false);
-    }
+    },
+    [hasProducts, subtotalPaise],
+  );
+
+  function applyCode() {
+    return quoteCode(codeInput);
   }
   const router = useRouter();
 
@@ -66,6 +78,20 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // A percentage code is worth a different amount once the basket changes, and
+  // a minimum spend can stop being met. Re-quote rather than show a stale
+  // figure that the server will not honour.
+  const appliedCode = discount?.code ?? null;
+  useEffect(() => {
+    if (!appliedCode) return;
+    void quoteCode(appliedCode, { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedCode, subtotalPaise, hasProducts]);
+
+  // Warm the payment script while the form is being filled in, so pressing Pay
+  // does not wait on a third-party download.
+  useRazorpayPreload(razorpayEnabled);
 
   if (!ready) return <p className="py-16 text-sm text-ink/55">Loading…</p>;
 
@@ -115,11 +141,23 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
           delivery_mode: mode,
           address: mode === "delivery" ? address : undefined,
           payment_method: pay,
+          // Without this the server prices the basket at full price and the
+          // amount at the payment window does not match the summary above.
+          discount_code: discount?.code,
           notes,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not place the order.");
+      if (!res.ok) {
+        // A code that ran out between quoting it and pressing Pay comes back
+        // as a conflict. Drop it so the summary stops promising money off and
+        // the order can be placed again at the price actually charged.
+        if (res.status === 409 && discount) {
+          setDiscount(null);
+          setCodeError(data.error ?? "That code is no longer valid.");
+        }
+        throw new Error(data.error ?? "Could not place the order.");
+      }
 
       // Cash / pickup — order is already recorded, go straight to confirmation.
       if (!data.razorpay_order_id) {
@@ -357,12 +395,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
             )}
             {totals.convenienceFeePaise > 0 && (
               <div className="flex justify-between">
-                <dt className="text-ink/70">
-                  Convenience fee
-                  <span className="block text-[11px] text-ink/45">
-                    {(CONVENIENCE_FEE_RATE * 100).toFixed(1)}% on gear · court time is exempt
-                  </span>
-                </dt>
+                <dt className="text-ink/70">Convenience fee</dt>
                 <dd className="text-ink">{formatPaise(totals.convenienceFeePaise)}</dd>
               </div>
             )}

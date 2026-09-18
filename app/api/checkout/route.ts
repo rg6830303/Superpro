@@ -159,13 +159,60 @@ export async function POST(req: Request) {
         reason: `SuperPro basket ${reference}`, refTable: "orders",
       });
       if (!charge.ok) {
+        // The code was claimed a moment ago; give the use back rather than
+        // burning one of a limited run on a basket nobody paid for.
+        if (releaseOnFailure) {
+          await releaseRedemption(releaseOnFailure.codeId, releaseOnFailure.reference).catch(() => {});
+          releaseOnFailure = null;
+        }
         return NextResponse.json({ error: charge.error, wallet_balance_paise: charge.balancePaise }, { status: 409 });
       }
       refundOnFailure = { userId: session.id, amountPaise: totals.totalPaise, reference };
     }
 
-    const wantsOnline = !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled;
-    const method = wantsWallet ? "wallet" : wantsOnline ? "razorpay" : items.length > 0 ? "cod" : "venue";
+    // Razorpay will not take an order under ₹1, so a basket a code has wiped
+    // out is settled on collection rather than at a payment window that would
+    // only error.
+    const wantsOnline =
+      !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled && totals.totalPaise >= 100;
+
+    // The gateway order is opened BEFORE anything is written down. If Razorpay
+    // is unreachable or the keys are wrong, the customer gets a plain failure
+    // and an untouched basket — rather than an order recorded as "pay online"
+    // that no payment window ever opened for, which is how money goes missing.
+    //
+    // It also carries the amount the browser will be charged, so it is created
+    // from `totals` — discount included — and never from the basket's gross.
+    let razorpayOrderId: string | null = null;
+    if (wantsOnline) {
+      try {
+        const rzp = await createRazorpayOrder({
+          amountPaise: totals.totalPaise,
+          receipt: reference,
+          notes: {
+            reference,
+            items: String(items.length),
+            slots: String(sessions.length),
+            discount_code: discountCode ?? "",
+            discount_paise: String(discountPaise),
+          },
+        });
+        razorpayOrderId = rzp.id;
+      } catch (err) {
+        console.error("[checkout] razorpay order failed:", err);
+        if (releaseOnFailure) {
+          await releaseRedemption(releaseOnFailure.codeId, releaseOnFailure.reference).catch(() => {});
+          releaseOnFailure = null;
+        }
+        return NextResponse.json(
+          { error: "Online payment is not responding right now. Try again, or choose pay on pickup." },
+          { status: 502 },
+        );
+      }
+    }
+
+    const payingOnline = wantsOnline && Boolean(razorpayOrderId);
+    const method = wantsWallet ? "wallet" : payingOnline ? "razorpay" : items.length > 0 ? "cod" : "venue";
     const paymentStatus = wantsWallet ? "paid" : "pending";
 
     let orderId: string | null = null;
@@ -173,15 +220,15 @@ export async function POST(req: Request) {
       const rows = await query<{ id: string }>(
         `INSERT INTO orders (order_no, user_id, customer_name, customer_phone, customer_email, items,
            subtotal_paise, shipping_paise, convenience_fee_paise, discount_paise, discount_code, total_paise,
-           delivery_mode, address, payment_method, payment_status, fulfillment_status, notes)
-         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16,'new',$17)
+           delivery_mode, address, payment_method, payment_status, fulfillment_status, notes, razorpay_order_id)
+         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16,'new',$17,$18)
          RETURNING id`,
         [
           reference, session?.id ?? null, input.customer_name, input.customer_phone,
           input.customer_email || null, JSON.stringify(items),
           goods, shipping, totals.convenienceFeePaise, discountPaise, discountCode, totals.totalPaise,
           input.delivery_mode, input.address ? JSON.stringify(input.address) : null,
-          method, paymentStatus, input.notes ?? null,
+          method, paymentStatus, input.notes ?? null, razorpayOrderId,
         ],
       );
       orderId = rows[0].id;
@@ -208,21 +255,11 @@ export async function POST(req: Request) {
       gatedCount = res.gatedCount;
     }
 
-    let razorpayOrderId: string | null = null;
-    if (wantsOnline) {
-      try {
-        const rzp = await createRazorpayOrder({
-          amountPaise: totals.totalPaise, receipt: reference,
-          notes: { reference, items: String(items.length), slots: String(sessions.length) },
-        });
-        razorpayOrderId = rzp.id;
-        if (orderId) await query(`UPDATE orders SET razorpay_order_id = $1 WHERE id = $2`, [rzp.id, orderId]);
-        if (sessions.length > 0) {
-          await query(`UPDATE game_registrations SET razorpay_order_id = $1 WHERE reference = $2`, [rzp.id, reference]);
-        }
-      } catch (err) {
-        console.error("[checkout] razorpay order failed, falling back:", err);
-      }
+    if (razorpayOrderId && sessions.length > 0) {
+      await query(`UPDATE game_registrations SET razorpay_order_id = $1 WHERE reference = $2`, [
+        razorpayOrderId,
+        reference,
+      ]);
     }
 
     refundOnFailure = null;
