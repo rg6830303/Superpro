@@ -164,7 +164,7 @@ export default function AdminOrdersPage() {
                 <select
                   id={`pay-${o.id}`}
                   defaultValue={o.payment_status}
-                  className="field w-auto px-3 py-1.5 text-sm capitalize"
+                  className="field-inline capitalize"
                   onChange={async (e) => {
                     await submitResource("/api/admin/orders", "PATCH", {
                       id: o.id,

@@ -128,7 +128,12 @@
 
   /* ── Buttons ──────────────────────────────────────────────────────────── */
   .btn {
-    @apply relative inline-flex min-h-[44px] select-none items-center justify-center gap-2 rounded-pill px-6 py-3
+    /* `whitespace-nowrap` and `shrink-0` are not cosmetic: a button is a
+       shrinkable flex item by default, so in a tight toolbar the label breaks
+       mid-word ("Ge / ner / ate") instead of the row wrapping. Any row holding
+       buttons should carry `flex-wrap` so they drop to the next line instead. */
+    @apply relative inline-flex min-h-[44px] shrink-0 select-none items-center justify-center gap-2
+           whitespace-nowrap rounded-pill px-6 py-3
            text-sm font-semibold transition-[transform,background-color,color,box-shadow,border-color]
            duration-200 ease-out active:translate-y-px disabled:pointer-events-none disabled:opacity-45;
   }
@@ -211,6 +216,12 @@
   }
   .field-error {
     @apply mt-1.5 text-xs font-medium text-signal;
+  }
+  /* Inline variant for the dense controls that live in table cells and
+     toolbars. `.field` is full-width for stacked forms; dropped into a flex row
+     that width makes the control overlap whatever it sits next to. */
+  .field-inline {
+    @apply field w-auto max-w-full shrink-0 px-3 py-1.5 text-sm;
   }
 
   /* Selectable tiles: slots, venues, coaches, payment methods. */

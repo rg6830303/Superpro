@@ -36,18 +36,18 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-60 shrink-0 border-r border-line bg-paper transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-line bg-paper transition-transform lg:static lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center justify-between border-b border-line px-5">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-5">
           <Logo height={24} href="/admin" />
           <span className="rounded-pill bg-ink px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-paper">
             Admin
           </span>
         </div>
 
-        <nav className="flex flex-col gap-1 p-3">
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -59,13 +59,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   : "text-ink/65 hover:bg-mist/70 hover:text-ink"
               }`}
             >
-              <item.icon size={16} />
-              {item.label}
+              <item.icon size={16} className="shrink-0" />
+              <span className="truncate">{item.label}</span>
             </Link>
           ))}
         </nav>
 
-        <div className="absolute inset-x-0 bottom-0 border-t border-line p-3">
+        <div className="shrink-0 border-t border-line p-3">
           <LogoutButton admin />
         </div>
       </aside>
@@ -98,8 +98,8 @@ export function AdminHeader({
 }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
-      <div>
-        <h1 className="text-[2.5rem] leading-none">{title}</h1>
+      <div className="min-w-0 flex-1">
+        <h1 className="text-[2rem] leading-none sm:text-[2.5rem]">{title}</h1>
         {sub && <p className="mt-2.5 text-sm text-ink/60">{sub}</p>}
       </div>
       {action}

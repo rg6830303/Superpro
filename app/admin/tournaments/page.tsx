@@ -347,8 +347,8 @@ function DrawDrawer({
           Rebuilds the draw, snake-seeding confirmed teams by combined DUPR so every group is comparable in
           strength. Existing groups are replaced.
         </p>
-        <div className="mt-4 flex items-end gap-3">
-          <div>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="shrink-0">
             <label className="label" htmlFor="grp-size">Teams per group</label>
             <input
               id="grp-size"
@@ -391,8 +391,8 @@ function DrawDrawer({
           <ul className="mt-4 space-y-3">
             {entries.map((e) => (
               <li key={e.id} className="rounded-xl border border-line bg-mist p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
                     <p className="font-semibold text-ink">{e.team_name}</p>
                     <p className="text-xs text-ink/65">
                       {e.player1_name}
@@ -408,7 +408,7 @@ function DrawDrawer({
                   <select
                     defaultValue={e.status}
                     aria-label={`Status for ${e.team_name}`}
-                    className="field shrink-0 px-2 py-1 text-xs"
+                    className="field-inline sm:self-start"
                     onChange={async (ev) => {
                       await submitResource("/api/admin/tournament-registrations", "PATCH", {
                         id: e.id,

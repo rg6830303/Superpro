@@ -143,7 +143,7 @@ export default function AdminCoachingPage() {
         <StatTile label="Total bookings" value={bookings.length} />
       </div>
 
-      <div className="mb-5 flex gap-2">
+      <div className="mb-5 flex flex-wrap gap-2">
         {(["coaches", "availability", "bookings"] as const).map((t) => (
           <button
             key={t}
@@ -322,7 +322,7 @@ export default function AdminCoachingPage() {
                     <select
                       defaultValue={b.status}
                       aria-label={`Status for ${b.booking_no}`}
-                      className="field px-2 py-1 text-sm"
+                      className="field-inline"
                       onChange={async (e) => {
                         await submitResource("/api/admin/coaching", "PATCH", { id: b.id, status: e.target.value });
                         load();
