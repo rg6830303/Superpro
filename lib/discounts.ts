@@ -40,13 +40,46 @@ export function normaliseCode(input: string): string {
 }
 
 export async function findCode(code: string): Promise<DiscountCode | null> {
-  return queryOne<DiscountCode>(
+  const row = await queryOne<Record<string, unknown>>(
     `SELECT id, code, description, kind, percent_off, amount_off_paise, max_discount_paise,
             min_spend_paise, max_uses, used_count, per_user_limit, scopes,
             starts_at::text AS starts_at, expires_at::text AS expires_at, active
      FROM discount_codes WHERE upper(code) = $1 LIMIT 1`,
     [normaliseCode(code)],
   ).catch(() => null);
+
+  if (!row) return null;
+
+  let scopes: DiscountScope[] = [];
+  if (Array.isArray(row.scopes)) {
+    scopes = row.scopes as DiscountScope[];
+  } else if (typeof row.scopes === "string") {
+    scopes = (row.scopes as string)
+      .replace(/[{}"']/g, "")
+      .split(",")
+      .map((s) => s.trim() as DiscountScope)
+      .filter(Boolean);
+  } else {
+    scopes = ["shop", "games", "coaching", "tournaments"];
+  }
+
+  return {
+    id: String(row.id),
+    code: String(row.code),
+    description: row.description ? String(row.description) : null,
+    kind: row.kind === "amount" ? "amount" : "percent",
+    percent_off: row.percent_off != null ? Number(row.percent_off) : null,
+    amount_off_paise: row.amount_off_paise != null ? Math.round(Number(row.amount_off_paise)) : null,
+    max_discount_paise: row.max_discount_paise != null ? Math.round(Number(row.max_discount_paise)) : null,
+    min_spend_paise: Math.round(Number(row.min_spend_paise ?? 0)),
+    max_uses: row.max_uses != null ? Math.round(Number(row.max_uses)) : null,
+    used_count: Math.round(Number(row.used_count ?? 0)),
+    per_user_limit: row.per_user_limit != null ? Math.round(Number(row.per_user_limit)) : null,
+    scopes,
+    starts_at: row.starts_at ? String(row.starts_at) : null,
+    expires_at: row.expires_at ? String(row.expires_at) : null,
+    active: Boolean(row.active),
+  };
 }
 
 /** What this code is worth on this basket. Never trusts a client-sent amount. */
@@ -64,7 +97,7 @@ export function valueOf(code: DiscountCode, subtotalPaise: number): number {
 export function describe(code: DiscountCode): string {
   return code.kind === "percent"
     ? `${Number(code.percent_off)}% off`
-    : `₹${Math.round(Number(code.amount_off_paise) / 100).toLocaleString("en-IN")} off`;
+    : `₹${Math.round(Number(code.amount_off_paise ?? 0) / 100).toLocaleString("en-IN")} off`;
 }
 
 /**
@@ -74,8 +107,10 @@ export function describe(code: DiscountCode): string {
  */
 export async function quote(args: {
   code: string;
-  scope: DiscountScope;
+  scope?: DiscountScope | DiscountScope[];
   subtotalPaise: number;
+  productSubtotalPaise?: number;
+  slotSubtotalPaise?: number;
   userId?: string | null;
 }): Promise<DiscountQuote> {
   const entered = normaliseCode(args.code);
@@ -92,13 +127,40 @@ export async function quote(args: {
   if (code.expires_at && new Date(code.expires_at).getTime() < now) {
     return { ok: false, error: "That code has expired." };
   }
-  if (!code.scopes.includes(args.scope)) {
+
+  const codeScopes = code.scopes && code.scopes.length > 0 ? code.scopes : ["shop", "games", "coaching", "tournaments"];
+  const isAll = (codeScopes as string[]).includes("all") || codeScopes.length >= 4;
+
+  const requestedScopes: DiscountScope[] = Array.isArray(args.scope)
+    ? args.scope
+    : args.scope
+      ? [args.scope]
+      : ["shop", "games", "coaching", "tournaments"];
+
+  const matchesScope = isAll || requestedScopes.some((s) => codeScopes.includes(s));
+  if (!matchesScope) {
     return { ok: false, error: "That code cannot be used on this purchase." };
   }
+
   if (code.max_uses != null && code.used_count >= code.max_uses) {
     return { ok: false, error: "That code has been fully claimed." };
   }
-  if (args.subtotalPaise < code.min_spend_paise) {
+
+  // Determine eligible amount for applying the discount:
+  // If code is specifically for shop, only goods qualify.
+  // If code is specifically for daily games, only court slots qualify.
+  let eligiblePaise = args.subtotalPaise;
+  if (!isAll) {
+    const isShopOnly = codeScopes.includes("shop") && !codeScopes.includes("games");
+    const isGamesOnly = codeScopes.includes("games") && !codeScopes.includes("shop");
+    if (isShopOnly && args.productSubtotalPaise != null && args.productSubtotalPaise > 0) {
+      eligiblePaise = args.productSubtotalPaise;
+    } else if (isGamesOnly && args.slotSubtotalPaise != null && args.slotSubtotalPaise > 0) {
+      eligiblePaise = args.slotSubtotalPaise;
+    }
+  }
+
+  if (eligiblePaise < code.min_spend_paise) {
     return {
       ok: false,
       error: `Spend at least ₹${Math.round(code.min_spend_paise / 100).toLocaleString("en-IN")} to use this code.`,
@@ -116,14 +178,14 @@ export async function quote(args: {
     }
   }
 
-  const discountPaise = valueOf(code, args.subtotalPaise);
+  const discountPaise = valueOf(code, eligiblePaise);
   if (discountPaise <= 0) return { ok: false, error: "That code takes nothing off this basket." };
 
   return {
     ok: true,
     code,
     discountPaise,
-    netPaise: args.subtotalPaise - discountPaise,
+    netPaise: Math.max(0, args.subtotalPaise - discountPaise),
     label: describe(code),
   };
 }

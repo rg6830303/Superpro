@@ -39,7 +39,12 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          code: entered, scope: hasProducts ? "shop" : "games", subtotal_paise: subtotalPaise }),
+          code: entered,
+          scope: hasProducts ? "shop" : "games",
+          subtotal_paise: subtotalPaise,
+          product_subtotal_paise: productSubtotalPaise,
+          slot_subtotal_paise: slotSubtotalPaise,
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Could not check that code.");
@@ -115,13 +120,14 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
           delivery_mode: mode,
           address: mode === "delivery" ? address : undefined,
           payment_method: pay,
+          discount_code: discount?.code,
           notes,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not place the order.");
 
-      // Cash / pickup — order is already recorded, go straight to confirmation.
+      // Cash / pickup / free — order is already recorded, go straight to confirmation.
       if (!data.razorpay_order_id) {
         clear();
         router.push(`/order/${data.reference}`);
@@ -133,9 +139,20 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
         orderId: data.razorpay_order_id,
         amountPaise: data.total_paise,
         name: "SuperPro",
-        description: `SuperPro ${data.reference}`,
+        description: discount
+          ? `SuperPro ${data.reference} (${discount.label})`
+          : `SuperPro ${data.reference}`,
         prefill: { name, email, contact: phone },
-        notes: { reference: data.reference },
+        notes: {
+          reference: data.reference,
+          ...(discount
+            ? {
+                discount_code: discount.code,
+                discount_value: discount.label,
+                discount_amount: formatPaise(discount.discount_paise),
+              }
+            : {}),
+        },
         onSuccess: async (payload) => {
           const verify = await fetch("/api/payments/verify", {
             method: "POST",

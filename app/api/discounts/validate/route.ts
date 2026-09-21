@@ -8,8 +8,10 @@ export const runtime = "nodejs";
 
 const schema = z.object({
   code: z.string().trim().min(1).max(32),
-  scope: z.enum(["shop", "games", "coaching", "tournaments"]),
+  scope: z.enum(["shop", "games", "coaching", "tournaments"]).optional(),
   subtotal_paise: z.number().int().min(0).max(100000000),
+  product_subtotal_paise: z.number().int().min(0).max(100000000).optional(),
+  slot_subtotal_paise: z.number().int().min(0).max(100000000).optional(),
 });
 
 /**
@@ -35,6 +37,8 @@ export async function POST(req: Request) {
       code: parsed.data.code,
       scope: parsed.data.scope,
       subtotalPaise: parsed.data.subtotal_paise,
+      productSubtotalPaise: parsed.data.product_subtotal_paise,
+      slotSubtotalPaise: parsed.data.slot_subtotal_paise,
       userId: session?.id ?? null,
     });
 

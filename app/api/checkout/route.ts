@@ -129,17 +129,27 @@ export async function POST(req: Request) {
     let discountPaise = 0;
     let discountCode: string | null = null;
     if (input.discount_code) {
-      const scope = items.length > 0 ? "shop" : "games";
+      const basketScopes: import("@/lib/discounts").DiscountScope[] = [];
+      if (items.length > 0) basketScopes.push("shop");
+      if (sessions.length > 0) basketScopes.push("games");
+
       const q = await quote({
-        code: input.discount_code, scope,
+        code: input.discount_code,
+        scope: basketScopes.length > 0 ? basketScopes : ["shop", "games"],
         subtotalPaise: goods + courtTime,
+        productSubtotalPaise: goods,
+        slotSubtotalPaise: courtTime,
         userId: session?.id ?? null,
       });
       if (!q.ok) return NextResponse.json({ error: q.error }, { status: 409 });
 
+      const redemptionScope = items.length > 0 ? "shop" : "games";
       const claimed = await redeem({
-        codeId: q.code.id, userId: session?.id ?? null, scope,
-        reference, discountPaise: q.discountPaise,
+        codeId: q.code.id,
+        userId: session?.id ?? null,
+        scope: redemptionScope,
+        reference,
+        discountPaise: q.discountPaise,
       });
       if (!claimed) return NextResponse.json({ error: "That code was just fully claimed." }, { status: 409 });
       discountPaise = q.discountPaise;
@@ -149,7 +159,8 @@ export async function POST(req: Request) {
 
     const totals = priceBasket({ lines: priced, shippingPaise: shipping, discountPaise });
 
-    const wantsWallet = input.payment_method === "wallet";
+    const isFree = totals.totalPaise === 0;
+    const wantsWallet = !isFree && input.payment_method === "wallet";
     if (wantsWallet && !session) {
       return NextResponse.json({ error: "Sign in to pay from your wallet." }, { status: 401 });
     }
@@ -164,9 +175,9 @@ export async function POST(req: Request) {
       refundOnFailure = { userId: session.id, amountPaise: totals.totalPaise, reference };
     }
 
-    const wantsOnline = !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled;
-    const method = wantsWallet ? "wallet" : wantsOnline ? "razorpay" : items.length > 0 ? "cod" : "venue";
-    const paymentStatus = wantsWallet ? "paid" : "pending";
+    const wantsOnline = !isFree && !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled;
+    const method = isFree ? "free" : wantsWallet ? "wallet" : wantsOnline ? "razorpay" : items.length > 0 ? "cod" : "venue";
+    const paymentStatus = isFree || wantsWallet ? "paid" : "pending";
 
     let orderId: string | null = null;
     if (items.length > 0) {
@@ -212,8 +223,15 @@ export async function POST(req: Request) {
     if (wantsOnline) {
       try {
         const rzp = await createRazorpayOrder({
-          amountPaise: totals.totalPaise, receipt: reference,
-          notes: { reference, items: String(items.length), slots: String(sessions.length) },
+          amountPaise: totals.totalPaise,
+          receipt: reference,
+          notes: {
+            reference,
+            items: String(items.length),
+            slots: String(sessions.length),
+            discount_code: discountCode ?? "none",
+            discount_paise: String(discountPaise),
+          },
         });
         razorpayOrderId = rzp.id;
         if (orderId) await query(`UPDATE orders SET razorpay_order_id = $1 WHERE id = $2`, [rzp.id, orderId]);

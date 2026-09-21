@@ -36,7 +36,15 @@ export async function GET() {
        FROM discount_codes c
        ORDER BY c.active DESC, c.created_at DESC`,
     );
-    return NextResponse.json({ codes });
+    const normalized = codes.map((c: any) => ({
+      ...c,
+      scopes: Array.isArray(c.scopes)
+        ? c.scopes
+        : typeof c.scopes === "string"
+          ? c.scopes.replace(/[{}"']/g, "").split(",").map((s: string) => s.trim()).filter(Boolean)
+          : ["shop", "games", "coaching", "tournaments"],
+    }));
+    return NextResponse.json({ codes: normalized });
   } catch (err) {
     return serverError("discounts:list", err);
   }
@@ -132,11 +140,22 @@ export async function PATCH(req: Request) {
       // Cleanly clear the unused value when switching kinds
       if (body.kind === "amount") {
         body.percent_off = null;
+        if (body.amount_off_paise !== undefined && body.amount_off_paise !== null) {
+          body.amount_off_paise = Math.round(Number(body.amount_off_paise));
+        }
       } else if (body.kind === "percent") {
         body.amount_off_paise = null;
+        if (body.percent_off !== undefined && body.percent_off !== null) {
+          body.percent_off = Number(body.percent_off);
+        }
       }
     }
 
+    if (body.scopes !== undefined) {
+      body.scopes = Array.isArray(body.scopes) && body.scopes.length > 0
+        ? body.scopes
+        : ["shop", "games", "coaching", "tournaments"];
+    }
     const update = buildUpdate("discount_codes", EDITABLE, body);
     if (!update) return badRequest("Nothing to update.");
     await query(update.text, update.params);
