@@ -113,7 +113,7 @@ export default function AdminPlayersPage() {
         action={<AddButton label="New account" onClick={() => setCreating(true)} />}
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Accounts" value={users.length} />
         <StatTile label="Staff & admins" value={admins} />
         <StatTile label="Wallet float held" value={formatPaise(walletTotal)} tone="accent" hint="Total unspent credit" />

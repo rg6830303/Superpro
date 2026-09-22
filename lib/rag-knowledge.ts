@@ -127,7 +127,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     title: "Player Community, Discover & Following",
     keywords: ["community", "discover", "follow", "friends", "activity", "feed", "notifications", "social"],
     content: `Search and discover other picklers across Kolkata right from your account dashboard! Follow players to get live alerts in your Activity Feed whenever they book a daily game slot or enter a tournament. You can also view public player profiles to inspect ratings and match history.`,
-    action: { label: "Discover Picklers", href: "/dashboard?tab=discover" },
+    action: { label: "Find players", href: "/dashboard?tab=discover" },
   },
   {
     id: "support-contact",

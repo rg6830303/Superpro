@@ -74,7 +74,7 @@ export default function AdminAnnouncementsPage() {
         action={<AddButton label="New announcement" onClick={() => setCreating(true)} />}
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Live now" value={live} tone={live > 0 ? "accent" : "default"} />
         <StatTile label="Total" value={items.length} />
         <StatTile label="Shown on site" value={live > 0 ? "Yes" : "None"} />

@@ -1,31 +1,24 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { INTRO_SEEN_KEY, introAlreadyPlayed, markIntroPlayed } from "@/lib/intro-once";
 
 /**
  * Mounts the Three.js smash entrance.
  *
- * Plays on a hard page load or refresh, and again right after a signup or
- * sign-in (which arrive carrying `?welcome=`). It deliberately does not replay
- * on client-side navigation — this component lives in the site layout, so it
- * survives route changes rather than remounting on each one.
+ * It plays once per visit — the first page opened in a tab — and then stands
+ * down: refreshes, back-navigation and moving between pages get the site
+ * directly. A signup or sign-in (which arrive carrying `?welcome=`) is the one
+ * thing that earns a replay, because there is something to celebrate.
  *
  * Three.js is behind a dynamic import so it never lands in the server bundle or
- * the first-load payload; the page is interactive while the scene is still
- * fetching, and a failure to load leaves the site exactly as it was.
+ * the first-load payload, and it is not fetched at all on the visits that will
+ * not play it — which is the majority of them.
  */
 
 /** Broadcast so the welcome card can wait its turn instead of overlapping. */
 export const INTRO_DONE_EVENT = "superpro:intro-done";
-
-/**
- * Module scope, not sessionStorage, is exactly the lifetime wanted here: it
- * survives client-side navigation inside one page load and resets on a real
- * refresh. So the entrance plays every time the site is opened or reloaded,
- * and never again while the visitor moves between tabs of the same session.
- */
-let playedThisLoad = false;
 
 function announceDone() {
   window.dispatchEvent(new CustomEvent(INTRO_DONE_EVENT));
@@ -54,7 +47,6 @@ function holdBootCover() {
 }
 
 export function SmashIntro() {
-  const pathname = usePathname();
   const params = useSearchParams();
   const welcome = params.get("welcome");
 
@@ -62,33 +54,32 @@ export function SmashIntro() {
     let cancelled = false;
     let api: { play(): void; dispose(): void; duration: number } | null = null;
 
-    // A signup or sign-in always earns a replay. Otherwise this runs once per
-    // page load, which is what a refresh is.
     const celebrating = welcome === "signup" || welcome === "login";
-    if (!celebrating && playedThisLoad) {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Reasons not to play, in the order they are cheapest to check. Each one
+    // returns without importing Three.js, so the scene's weight is never paid
+    // by a visitor who will not see it — reduced-motion users included, who
+    // previously downloaded and built the whole thing for nothing.
+    if ((introAlreadyPlayed() && !celebrating) || reduced || typeof WebGLRenderingContext === "undefined") {
+      markIntroPlayed();
       clearBootCover();
       announceDone();
       return;
     }
 
-    // Nothing to show on a screen that cannot paint it.
-    if (typeof WebGLRenderingContext === "undefined") {
-      clearBootCover();
-      announceDone();
-      return;
-    }
+    // Claimed up front, not after the scene paints: a refresh mid-animation, or
+    // an effect that re-runs during hydration, must not start a second one.
+    markIntroPlayed();
 
     // Tell the cover to wait: it has its own timer, and without this it would
     // lift on schedule and show the page moments before the scene paints.
     holdBootCover();
     const deadline = Date.now() + LOAD_BUDGET_MS;
 
-    // Started immediately rather than on a timer: the cover is holding the
-    // screen, so every millisecond here is a millisecond of blank branding.
-    // The scene waits for the header logo itself.
     import("@/lib/intro/scene")
-      .then(mod => mod.createIntro())
-      .then(created => {
+      .then((mod) => mod.createIntro())
+      .then((created) => {
         // Too late to be an entrance. The cover has already lifted and the
         // visitor is looking at the page; dropping an animation over it now
         // would be worse than the flash this all exists to prevent.
@@ -99,22 +90,14 @@ export function SmashIntro() {
           return;
         }
         api = created;
-        // Marked here rather than up front: this effect can be torn down and
-        // re-run during hydration, and claiming the slot before the scene is
-        // actually on screen would make the second pass skip it entirely.
-        playedThisLoad = true;
         created.play();
 
-        // Hand off only once the scene has genuinely painted. Two frames:
-        // the first schedules the render, the second is after it has landed.
-        // Lifting the cover any earlier puts the home page back on screen for
-        // exactly the blink this whole mechanism exists to remove.
+        // Hand off only once the scene has genuinely painted. Two frames: the
+        // first schedules the render, the second lands after it.
         requestAnimationFrame(() => requestAnimationFrame(clearBootCover));
-
-        // The scene clears itself; this is the cue for everything downstream.
         window.setTimeout(announceDone, created.duration * 1000);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("[intro] could not start:", err);
         clearBootCover();
         announceDone();
@@ -124,9 +107,11 @@ export function SmashIntro() {
       cancelled = true;
       api?.dispose();
     };
-    // Keyed on the route so a post-auth redirect retriggers it, and on nothing
-    // else — this must not replay on every render.
-  }, [welcome, pathname]);
+    // Only the welcome flag. `pathname` used to be here, which re-ran the whole
+    // effect — and re-fired the done event — on every client-side navigation.
+  }, [welcome]);
 
   return null;
 }
+
+export { INTRO_SEEN_KEY };

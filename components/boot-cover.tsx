@@ -1,14 +1,25 @@
 /**
- * The first thing painted on a hard load.
+ * The first thing painted on the visit that plays the entrance.
  *
  * The smash entrance cannot exist until React has hydrated and the Three.js
  * chunk has downloaded, which is a few hundred milliseconds during which the
  * home page would otherwise be plainly visible — the flash this removes. So the
  * cover is server-rendered, carries its own inline <style> rather than waiting
  * on the stylesheet, and is already on screen before a single line of our
- * JavaScript runs. The entrance hands off from it once its first frame is up.
+ * JavaScript runs.
  *
- * It clears itself three ways, in order of preference:
+ * On every visit that will NOT play the entrance it is never painted at all:
+ * the entrance runs once per session, and a full-screen logo on the other
+ * loads is just a delay wearing a brand. The decision is made by a blocking
+ * script in <head> (see `IntroGate`), which marks the document before first
+ * paint; the cover's own script then hides it before it can be seen.
+ *
+ * The cover is hidden rather than removed at that point because removing it
+ * pre-hydration only has React put it straight back — the server HTML contains
+ * it, so React restores what it expects to find. It is taken out of the DOM
+ * afterwards, once hydration has settled.
+ *
+ * It clears three ways, in order of preference:
  *   1. The entrance calls `__superproBootClear()` after painting frame one.
  *   2. Failing that, an inline script removes it on a timer.
  *   3. Failing even that — JavaScript disabled or broken — a CSS animation
@@ -21,6 +32,9 @@ export function BootCover() {
         // Inline: a stylesheet that arrives one round trip later is too late.
         dangerouslySetInnerHTML={{
           __html: `
+/* Applied by the cover's own script before the browser paints, on the loads
+   that are not going to play the entrance. */
+#superpro-boot.is-skipped{display:none}
 #superpro-boot{
   position:fixed;inset:0;z-index:2147483500;
   display:flex;align-items:center;justify-content:center;
@@ -69,10 +83,15 @@ export function BootCover() {
     el.classList.add('is-holding');
     timer=setTimeout(clear,budgetMs||3000);
   };
-  var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var noWebgl=typeof WebGLRenderingContext==='undefined';
-  // Nothing worth covering for if the entrance is not going to run.
-  if(reduced||noWebgl){clear();return;}
+  // Decided by the gate script in <head>, which ran before this element was
+  // parsed. Hidden now, dropped from the DOM once hydration has settled —
+  // removing it any earlier only has React restore what it expects to find.
+  if(window.__superproSkipIntro){
+    el.classList.add('is-skipped');
+    done=true;
+    setTimeout(function(){el.remove();},1200);
+    return;
+  }
   // Failsafe: never hold the page behind the cover waiting on a scene that is
   // not coming.
   timer=setTimeout(clear,5200);
@@ -80,5 +99,34 @@ export function BootCover() {
         }}
       />
     </>
+  );
+}
+
+/**
+ * Decides, before the browser paints anything, whether this load plays the
+ * entrance — and marks the document so the cover's own stylesheet can hide it
+ * without a frame of logo appearing first.
+ *
+ * This is the no-flash pattern a theme switcher uses, and for the same reason:
+ * the answer lives in sessionStorage, which only the client can read, so it has
+ * to be read in a blocking script rather than rendered on the server.
+ */
+export function IntroGate() {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `(function(){
+  var seen=false;
+  // Must match INTRO_SEEN_KEY in lib/intro-once.ts.
+  try{seen=sessionStorage.getItem('superpro:intro-seen')==='1';}catch(e){}
+  var celebrating=/[?&]welcome=(signup|login)\\b/.test(location.search);
+  var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var noWebgl=typeof WebGLRenderingContext==='undefined';
+  // A plain global, not an attribute on <html> or <body>: React reconciles
+  // those during hydration and strips anything it did not itself render.
+  window.__superproSkipIntro=!((!seen||celebrating)&&!reduced&&!noWebgl);
+})();`,
+      }}
+    />
   );
 }

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Award, Banknote, Check, CreditCard, MessageCircle } from "lucide-react";
-import { openRazorpay } from "@/components/razorpay-client";
+import { openRazorpay, useRazorpayPreload } from "@/components/razorpay-client";
 import { SignInGate } from "@/components/sign-in-gate";
 import { Alert, Spinner, Stepper } from "@/components/ui";
 import { Confetti } from "@/components/motion";
@@ -140,6 +140,10 @@ export function CoachingFlow({
   const [count, setCount] = useState(1);
   const [notes, setNotes] = useState("");
   const [pay, setPay] = useState<"razorpay" | "venue">(razorpayEnabled ? "razorpay" : "venue");
+
+  // Fetch the payment script while the form is being filled in, so pressing
+  // Pay opens the window straight away instead of waiting on a download.
+  useRazorpayPreload(razorpayEnabled);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);

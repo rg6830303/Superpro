@@ -60,17 +60,17 @@ export function Drawer({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" role="dialog" aria-modal="true">
       <div className="flex h-full w-full max-w-lg flex-col border-l border-line bg-paper">
-        <div className="flex items-start justify-between gap-4 border-b border-line p-6">
-          <div>
-            <h2 className="text-3xl">{title}</h2>
-            {sub && <p className="mt-1 text-xs text-ink/55">{sub}</p>}
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line p-5 sm:p-6">
+          <div className="min-w-0">
+            <h2 className="break-words text-2xl sm:text-3xl">{title}</h2>
+            {sub && <p className="mt-1 break-words text-xs text-ink/55">{sub}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-ink/70 hover:bg-mist">
+          <button type="button" onClick={onClose} aria-label="Close" className="shrink-0 rounded-full p-2 text-ink/70 hover:bg-mist">
             <X size={18} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
-        {footer && <div className="border-t border-line p-6">{footer}</div>}
+        <div className="min-w-0 flex-1 overflow-y-auto p-5 sm:p-6">{children}</div>
+        {footer && <div className="shrink-0 border-t border-line p-5 sm:p-6">{footer}</div>}
       </div>
     </div>
   );

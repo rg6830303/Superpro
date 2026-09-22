@@ -127,32 +127,29 @@
   }
 
   /* ── Buttons ──────────────────────────────────────────────────────────── */
+  /* One control height across the site: 44px, the minimum comfortable touch
+     target, dropping to 40px only for the dense `btn-sm` used in tables and
+     toolbars. Labels never break mid-word — a button is a shrinkable flex item
+     by default, so in a tight toolbar "Generate" would set as "Ge / ner / ate"
+     rather than the row wrapping. Rows holding buttons carry `flex-wrap`.
+
+     Hover is a colour and elevation change; the press is a 1px settle. Nothing
+     sweeps, shines or pulses — a button should confirm the press and stay out
+     of the way. */
   .btn {
-    @apply relative inline-flex min-h-[44px] select-none items-center justify-center gap-2 rounded-pill px-6 py-3
-           text-sm font-semibold transition-[transform,background-color,color,box-shadow,border-color]
-           duration-200 ease-out active:translate-y-px disabled:pointer-events-none disabled:opacity-45;
+    @apply relative inline-flex min-h-[44px] shrink-0 select-none items-center justify-center gap-2
+           whitespace-nowrap rounded-pill px-5 py-3 text-sm font-semibold leading-none
+           transition-[background-color,color,box-shadow,border-color,transform]
+           duration-150 ease-out active:translate-y-px
+           focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/15
+           disabled:pointer-events-none disabled:opacity-45 sm:px-6;
   }
   .btn-primary {
     @apply btn bg-ink text-paper hover:bg-ink-700 hover:shadow-lift;
   }
   .btn-volt {
-    @apply btn overflow-hidden bg-volt text-ink hover:bg-volt-bright hover:shadow-volt;
-  }
-  .btn-volt::after,
-  .btn-primary::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.45), transparent 80%);
-    transform: translateX(-130%);
-    pointer-events: none;
-  }
-  .btn-volt:hover::after,
-  .btn-primary:hover::after {
-    animation: shine-sweep 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .btn-primary {
-    @apply overflow-hidden;
+    @apply btn bg-volt text-ink hover:bg-volt-bright hover:shadow-volt
+           focus-visible:ring-volt-deep/30;
   }
   .btn-outline {
     @apply btn border border-line-strong bg-paper text-ink hover:border-ink hover:bg-mist;
@@ -161,10 +158,37 @@
     @apply btn text-ink/65 hover:bg-mist hover:text-ink;
   }
   .btn-danger {
-    @apply btn bg-signal/10 text-signal hover:bg-signal/20;
+    @apply btn bg-signal/10 text-signal hover:bg-signal/20 focus-visible:ring-signal/25;
   }
   .btn-sm {
-    @apply min-h-[40px] px-4 py-2 text-[13px];
+    @apply min-h-[40px] gap-1.5 px-4 py-2 text-[13px] sm:px-4;
+  }
+  /* Full width below `sm`, auto above: the pattern a primary action wants on a
+     phone, without every call site repeating the same two classes. */
+  .btn-block {
+    @apply w-full sm:w-auto;
+  }
+
+  /* ── Tabs ─────────────────────────────────────────────────────────────────
+     One strip, used by the console's section tabs and the site's filters. It
+     scrolls sideways rather than wrapping into a second and third row, so a
+     long set stays one predictable line on a phone and the content below it
+     does not jump down the page. */
+  .tab-strip {
+    @apply -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-1 no-scrollbar;
+    scrollbar-width: none;
+  }
+  .tab {
+    @apply inline-flex min-h-[38px] shrink-0 snap-start select-none items-center justify-center gap-1.5
+           whitespace-nowrap rounded-pill border border-line bg-paper px-3.5 text-[13px] font-semibold
+           capitalize text-ink/70
+           transition-[background-color,color,border-color] duration-150 ease-out
+           hover:border-line-strong hover:text-ink
+           focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/15
+           sm:px-4 sm:text-sm;
+  }
+  .tab-active {
+    @apply border-volt bg-volt text-ink hover:border-volt hover:text-ink;
   }
 
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
@@ -211,6 +235,12 @@
   }
   .field-error {
     @apply mt-1.5 text-xs font-medium text-signal;
+  }
+  /* Inline variant for the dense controls that live in table cells and
+     toolbars. `.field` is full-width for stacked forms; dropped into a flex row
+     that width makes the control overlap whatever it sits next to. */
+  .field-inline {
+    @apply field w-auto max-w-full shrink-0 px-3 py-1.5 text-sm;
   }
 
   /* Selectable tiles: slots, venues, coaches, payment methods. */
@@ -310,11 +340,17 @@
   transition:
     opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Only while it still has an entrance ahead of it. `will-change` reserves a
+     compositor layer, so leaving it on every revealed element for the life of
+     the page is memory spent on animations that already finished. */
   will-change: opacity, transform;
 }
 .enter.is-in {
   opacity: 1;
   transform: none;
+}
+.enter.is-done {
+  will-change: auto;
 }
 .enter-left {
   transform: translate3d(-24px, 0, 0);

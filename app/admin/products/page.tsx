@@ -85,7 +85,7 @@ export default function AdminProductsPage() {
         action={<AddButton label="New product" onClick={() => setCreating(true)} />}
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Listed products" value={products.filter((p) => p.active).length} />
         <StatTile label="Low stock" value={lowStock} tone={lowStock > 0 ? "warn" : "default"} hint="Fewer than 6 left" />
         <StatTile label="Stock value" value={formatPaise(stockValue)} tone="accent" />

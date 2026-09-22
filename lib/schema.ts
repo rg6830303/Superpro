@@ -579,6 +579,23 @@ export const SCHEMA_MIGRATIONS: string[] = [
   `ALTER TABLE tournament_registrations DROP CONSTRAINT IF EXISTS tournament_registrations_payment_method_check`,
   `ALTER TABLE tournament_registrations ADD CONSTRAINT tournament_registrations_payment_method_check
      CHECK (payment_method IN ('razorpay','cod','venue','wallet'))`,
+
+  // A basket a code has covered in full is recorded as 'free': nothing is owed
+  // and nothing is sent to the gateway. Without this the checkout raises a
+  // constraint violation on the insert, so a 100%-off code fails the order
+  // outright — after the code has already been claimed.
+  `ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_payment_method_check`,
+  `ALTER TABLE orders ADD CONSTRAINT orders_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet','free'))`,
+  `ALTER TABLE game_registrations DROP CONSTRAINT IF EXISTS game_registrations_payment_method_check`,
+  `ALTER TABLE game_registrations ADD CONSTRAINT game_registrations_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet','free'))`,
+  `ALTER TABLE coaching_bookings DROP CONSTRAINT IF EXISTS coaching_bookings_payment_method_check`,
+  `ALTER TABLE coaching_bookings ADD CONSTRAINT coaching_bookings_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet','free'))`,
+  `ALTER TABLE tournament_registrations DROP CONSTRAINT IF EXISTS tournament_registrations_payment_method_check`,
+  `ALTER TABLE tournament_registrations ADD CONSTRAINT tournament_registrations_payment_method_check
+     CHECK (payment_method IN ('razorpay','cod','venue','wallet','free'))`,
 ];
 
 export const SCHEMA_INDEXES: string[] = [

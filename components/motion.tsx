@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * The motion toolkit. Everything here is hand-rolled on IntersectionObserver,
- * CSS transforms and requestAnimationFrame — no animation library — so the
- * bundle stays small and the timing curves match the ones in globals.css
- * instead of a vendor's defaults.
+ * Motion primitives, built on IntersectionObserver, CSS transforms and
+ * requestAnimationFrame rather than an animation library, so the timing curves
+ * stay in step with the ones in globals.css.
  *
  * Every component degrades to a plain, fully visible element when
  * prefers-reduced-motion is set or JavaScript has not run.
@@ -42,7 +41,12 @@ export function Reveal({
     const io = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
-        window.setTimeout(() => el.classList.add("is-in"), delay);
+        window.setTimeout(() => {
+          el.classList.add("is-in");
+          // Hand the compositor layer back once the entrance has run, rather
+          // than holding one per element for the rest of the visit.
+          el.addEventListener("transitionend", () => el.classList.add("is-done"), { once: true });
+        }, delay);
         io.disconnect();
       },
       { rootMargin: "0px 0px -8% 0px", threshold: 0.08 },
@@ -237,9 +241,8 @@ export function Confetti({ trigger }: { trigger: number }) {
 }
 
 /**
- * Ball that bounces on a court line — the site's fidget. It reacts to a click
- * with a harder bounce, which is the whole joke: it is a toy, so it should do
- * something when you poke it.
+ * Ball bouncing on a court line. A click restarts the bounce faster, so the
+ * element responds to being pressed rather than ignoring it.
  */
 export function BounceBall({ size = 34, className = "" }: { size?: number; className?: string }) {
   const [kick, setKick] = useState(0);
@@ -257,7 +260,8 @@ export function BounceBall({ size = 34, className = "" }: { size?: number; class
         className="absolute left-1/2 -translate-x-1/2 animate-ball-bounce rounded-full border-2 border-ink/15 bg-volt"
         style={{ width: size, height: size, bottom: 10, animationDuration: kick ? "0.75s" : "1.5s" }}
       >
-        {/* The 40 holes of an outdoor ball, abbreviated to a readable four. */}
+        {/* Four holes stand in for the 40 on an outdoor ball; more would not
+            read at this size. */}
         <span className="absolute left-[22%] top-[26%] h-1 w-1 rounded-full bg-ink/25" />
         <span className="absolute right-[24%] top-[34%] h-1 w-1 rounded-full bg-ink/25" />
         <span className="absolute left-[34%] bottom-[24%] h-1 w-1 rounded-full bg-ink/25" />

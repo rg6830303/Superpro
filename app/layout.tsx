@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
-import { BootCover } from "@/components/boot-cover";
+import { IntroGate } from "@/components/boot-cover";
 import { CartProvider } from "@/components/cart-provider";
 import { SITE } from "@/lib/site";
 
@@ -84,9 +84,19 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+      <head>
+        {/* Razorpay's checkout script is fetched from these two hosts the moment
+            a payment page mounts. Opening the DNS/TLS connections up front takes
+            a noticeable slice off how long the payment window takes to appear on
+            a phone, and costs nothing when nobody checks out. */}
+        <link rel="preconnect" href="https://checkout.razorpay.com" crossOrigin="" />
+        <link rel="preconnect" href="https://api.razorpay.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://checkout.razorpay.com" />
+        {/* Blocking on purpose: it must settle before the first paint, and it
+            is a few lines that touch one attribute. */}
+        <IntroGate />
+      </head>
       <body>
-        {/* First in the body so it is painted before anything it covers. */}
-        <BootCover />
         <CartProvider>{children}</CartProvider>
       </body>
     </html>

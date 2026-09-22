@@ -257,7 +257,7 @@ export default function AdminGamesPage() {
         title="Daily games"
         sub="Slots, venues and who is on court."
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <AddButton label="Add slots" onClick={() => setBulkOpen(true)} />
             <button type="button" onClick={() => setCreatingVenue(true)} className="btn-outline btn-sm">
               <MapPin size={13} /> Add venue
@@ -266,7 +266,7 @@ export default function AdminGamesPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Slots today" value={todaySlots.length} />
         <StatTile label="Open spots (2 weeks)" value={openSpots} tone="accent" />
         <StatTile
@@ -282,15 +282,13 @@ export default function AdminGamesPage() {
         </div>
       )}
 
-      <div className="mb-5 flex gap-2">
+      <div className="tab-strip mb-5">
         {(["slots", "approvals", "times", "venues", "registrations"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${
-              tab === t ? "bg-volt text-ink" : "border border-line text-ink/70 hover:text-ink"
-            }`}
+            className={`tab ${tab === t ? "tab-active" : ""}`}
           >
             {t}
             {t === "approvals" && approvals.length > 0 && (
@@ -531,7 +529,7 @@ export default function AdminGamesPage() {
             <input
               id="reg-date"
               type="date"
-              className="field max-w-[200px]"
+              className="field-inline max-w-[200px]"
               value={regDate}
               onChange={(e) => setRegDate(e.target.value)}
             />
@@ -573,7 +571,7 @@ export default function AdminGamesPage() {
                           min={1}
                           max={20}
                           aria-label={`Court for ${r.player_name}`}
-                          className="field w-16 px-2 py-1 text-center text-sm"
+                          className="field-inline w-16 px-2 text-center"
                           onBlur={async (e) => {
                             const court = Number(e.target.value);
                             if (!court || court === (r.court_number ?? r.session_court)) return;
@@ -592,7 +590,7 @@ export default function AdminGamesPage() {
                         <select
                           defaultValue={r.status}
                           aria-label={`Status for ${r.player_name}`}
-                          className="field px-2 py-1 text-sm"
+                          className="field-inline"
                           onChange={async (e) => {
                             await submitResource("/api/admin/registrations", "PATCH", {
                               id: r.id,

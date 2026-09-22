@@ -1,3 +1,4 @@
+import { BootCover } from "@/components/boot-cover";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WhatsAppFab } from "@/components/whatsapp-fab";
@@ -14,6 +15,8 @@ import { Suspense } from "react";
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
+      {/* First in the group so it is painted before anything it covers. */}
+      <BootCover />
       <ReadProgress />
       <SiteHeader />
       <main className="flex-1">{children}</main>

@@ -9,7 +9,6 @@ import { ensureSchema } from "@/lib/schema";
 import { formatPaise } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/dates";
 import { waLink } from "@/lib/site";
-import { CONVENIENCE_FEE_RATE } from "@/lib/fees";
 
 export const dynamic = "force-dynamic";
 
@@ -227,12 +226,7 @@ export default async function OrderConfirmationPage({
           )}
           {order && order.convenience_fee_paise > 0 && (
             <div className="flex justify-between">
-              <dt className="text-ink/70">
-                Convenience fee
-                <span className="block text-[11px] text-ink/45">
-                  {(CONVENIENCE_FEE_RATE * 100).toFixed(1)}% on gear · court time is exempt
-                </span>
-              </dt>
+              <dt className="text-ink/70">Convenience fee</dt>
               <dd className="text-ink">{formatPaise(order.convenience_fee_paise)}</dd>
             </div>
           )}
