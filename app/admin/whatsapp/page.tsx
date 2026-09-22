@@ -83,7 +83,7 @@ export default function AdminWhatsappPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Waiting to send" value={queued} tone={queued > 0 ? "accent" : "default"} />
         <StatTile label="Failed" value={failed} tone={failed > 0 ? "warn" : "default"} />
         <StatTile label="Delivery" value={automatic ? "Automatic" : "Manual"} hint={automatic ? "Relay configured" : "One tap per message"} />
@@ -114,15 +114,13 @@ export default function AdminWhatsappPage() {
         {notice && <p className="mt-3 text-xs text-volt-deep">{notice}</p>}
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="tab-strip mb-5">
         {["", "queued", "sent", "failed"].map((s) => (
           <button
             key={s || "all"}
             type="button"
             onClick={() => setFilter(s)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${
-              filter === s ? "bg-volt text-ink" : "border border-line text-ink/70 hover:text-ink"
-            }`}
+            className={`tab ${filter === s ? "tab-active" : ""}`}
           >
             {s || "All"}
           </button>

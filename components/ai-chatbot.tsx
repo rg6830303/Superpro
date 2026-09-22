@@ -29,11 +29,11 @@ export function AIChatbot() {
       id: "welcome-1",
       role: "assistant",
       content:
-        "Hi Pickler! 👋 I'm your SuperPro AI Assistant. Ask me anything about pickleball rules, daily game bookings in Kolkata, carbon paddles, tournaments, or your player account!",
+        "Ask about rules, court bookings, paddles, tournaments or your account.",
       actions: [
-        { label: "Book a Game Slot", href: "/games" },
-        { label: "Shop Champion Paddles", href: "/products" },
-        { label: "Tournaments & Draws", href: "/tournaments" },
+        { label: "Book a slot", href: "/games" },
+        { label: "Shop paddles", href: "/products" },
+        { label: "Tournaments", href: "/tournaments" },
       ],
     },
   ]);
@@ -88,7 +88,7 @@ export function AIChatbot() {
           id: `bot-err-${Date.now()}`,
           role: "assistant",
           content:
-            "I ran into a temporary hiccup connecting to the server. You can reach our SuperPro venue team directly on WhatsApp (+91 91631 32551) anytime!",
+            "I could not reach the server. The venue team is on WhatsApp at +91 91631 32551.",
           actions: [{ label: "Chat on WhatsApp", href: "https://wa.me/919163132551" }],
         },
       ]);

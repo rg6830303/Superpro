@@ -281,7 +281,7 @@ export default function AdminDiscountsPage() {
         action={<AddButton label="New code" onClick={startCreate} />}
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Live codes" value={live} tone={live > 0 ? "accent" : "default"} />
         <StatTile label="Times redeemed" value={redeemed} />
         <StatTile label="Given away" value={formatPaise(givenAway)} hint="Total taken off by codes" />

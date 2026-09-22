@@ -5,12 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 
 /**
- * The hero fidget: a paddle you can grab and spin.
+ * The hero paddle, draggable.
  *
  * Drag rotates it on the Y axis with momentum; let go and the spin decays and
- * settles back to face-on. It idles with a slow drift so the page is never
- * completely still, and it flips to the spec face at a quarter turn — the toy
- * is also the product shot.
+ * settles back to face-on. Past a quarter turn it shows the spec face, so the
+ * same element serves as both the product shot and its detail.
  *
  * Reduced-motion users get a static, face-on paddle with no drift.
  */
@@ -35,6 +34,10 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
     }
 
     let idle = 0;
+    // Tracked here rather than in state: the loop needs to know the current
+    // face every frame, but React only needs telling when it actually changes.
+    let faceFlipped = false;
+
     const loop = () => {
       if (!dragging.current) {
         // Friction, then a gentle pull back to rest so it never ends up edge-on.
@@ -48,15 +51,56 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
       angle.current += velocity.current;
 
       const normalised = ((angle.current % 360) + 360) % 360;
-      setFlipped(normalised > 90 && normalised < 270);
+      const nowFlipped = normalised > 90 && normalised < 270;
+      // Previously called on every frame. React bails out on an unchanged
+      // value, but it still had to be asked sixty times a second, for the
+      // whole time the page was open, to be told nothing had happened.
+      if (nowFlipped !== faceFlipped) {
+        faceFlipped = nowFlipped;
+        setFlipped(nowFlipped);
+      }
 
       const tiltX = 4 + Math.sin(angle.current / 90) * 3;
       el.style.transform = `rotateY(${angle.current.toFixed(2)}deg) rotateX(${tiltX.toFixed(2)}deg)`;
       raf.current = requestAnimationFrame(loop);
     };
-    raf.current = requestAnimationFrame(loop);
+
+    // The idle drift is decoration; it should not cost anything once the paddle
+    // is scrolled past, which for most of a visit is where it is. The loop is
+    // started and stopped by visibility rather than running for the life of
+    // the page.
+    const start = () => {
+      if (raf.current === null) raf.current = requestAnimationFrame(loop);
+    };
+    const stop = () => {
+      if (raf.current !== null) {
+        cancelAnimationFrame(raf.current);
+        raf.current = null;
+      }
+    };
+
+    let onScreen = true;
+    const io =
+      typeof IntersectionObserver === "undefined"
+        ? null
+        : new IntersectionObserver(
+            ([entry]) => {
+              onScreen = entry.isIntersecting;
+              onScreen && !document.hidden ? start() : stop();
+            },
+            { threshold: 0 },
+          );
+    io?.observe(el);
+    // A background tab already throttles rAF, but stopping outright also drops
+    // the work a browser schedules on the way back.
+    const onVisibility = () => (document.hidden || !onScreen ? stop() : start());
+    document.addEventListener("visibilitychange", onVisibility);
+
+    start();
     return () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
+      stop();
+      io?.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

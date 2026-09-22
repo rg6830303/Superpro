@@ -116,7 +116,7 @@ export function DiscoverPlayers({ currentUserId }: { currentUserId: string }) {
               <Compass size={18} className="text-volt-deep" />
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Community Discovery</p>
             </div>
-            <h2 className="mt-1 text-2xl font-bold text-ink">Discover &amp; Follow Picklers</h2>
+            <h2 className="mt-1 text-2xl font-bold text-ink">Find players</h2>
             <p className="mt-1 text-sm text-ink/65">
               Connect with players in Kolkata. Follow friends and rivals to see when they book daily games or enter tournaments.
             </p>

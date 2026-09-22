@@ -83,21 +83,19 @@ export default function AdminOrdersPage() {
     <div>
       <AdminHeader title="Orders" sub="Gear orders — confirm, dispatch, deliver. Every change is logged and shown to the customer." />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Orders" value={orders.length} />
         <StatTile label="Awaiting confirmation" value={unfulfilled} tone={unfulfilled > 0 ? "accent" : "default"} />
         <StatTile label="Paid revenue" value={formatPaise(revenue)} tone="accent" />
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="tab-strip mb-5">
         {["", ...FULFILMENT].map((s) => (
           <button
             key={s || "all"}
             type="button"
             onClick={() => setFilter(s)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${
-              filter === s ? "bg-volt text-ink" : "border border-line text-ink/70 hover:text-ink"
-            }`}
+            className={`tab ${filter === s ? "tab-active" : ""}`}
           >
             {s || "All"}
           </button>

@@ -266,7 +266,7 @@ export default function AdminGamesPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <StatTile label="Slots today" value={todaySlots.length} />
         <StatTile label="Open spots (2 weeks)" value={openSpots} tone="accent" />
         <StatTile
@@ -282,15 +282,13 @@ export default function AdminGamesPage() {
         </div>
       )}
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="tab-strip mb-5">
         {(["slots", "approvals", "times", "venues", "registrations"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-colors ${
-              tab === t ? "bg-volt text-ink" : "border border-line text-ink/70 hover:text-ink"
-            }`}
+            className={`tab ${tab === t ? "tab-active" : ""}`}
           >
             {t}
             {t === "approvals" && approvals.length > 0 && (

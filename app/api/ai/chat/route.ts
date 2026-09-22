@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     if (!lastUserMessage) {
       return NextResponse.json({
-        reply: "Hi Pickler! I am SuperPro's AI assistant. How can I help you today? You can ask about court bookings, tournament draws, carbon paddles, coaching, or pickleball rules!",
+        reply: "Ask about court bookings, tournament draws, paddles, coaching or the rules.",
         actions: [
           { label: "Book a Game Slot", href: "/games" },
           { label: "Shop Carbon Paddles", href: "/products" },
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
     if (geminiKey) {
       try {
-        const systemInstruction = `You are the AI Caddy & Customer Support Assistant for SuperPro, an enterprise-grade pickleball club and web platform in Kolkata, India.
+        const systemInstruction = `You are the AI Caddy & Customer Support Assistant for SuperPro, a pickleball club and booking platform in Kolkata, India.
 Use the following verified context from the SuperPro knowledge base to answer the user's inquiry concisely, warmly, and accurately.
 Include relevant platform advice. Official WhatsApp is +91 91631 32551.
 Context:

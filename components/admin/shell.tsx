@@ -80,7 +80,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <Logo height={22} href="/admin" />
         </header>
 
-        <main className="p-5 sm:p-8">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
@@ -97,10 +97,10 @@ export function AdminHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
+    <div className="mb-6 flex flex-col gap-4 border-b border-line pb-5 sm:mb-8 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:pb-6">
       <div className="min-w-0 flex-1">
-        <h1 className="text-[2rem] leading-none sm:text-[2.5rem]">{title}</h1>
-        {sub && <p className="mt-2.5 text-sm text-ink/60">{sub}</p>}
+        <h1 className="text-[1.75rem] leading-tight sm:text-[2.5rem] sm:leading-none">{title}</h1>
+        {sub && <p className="mt-2 text-sm text-ink/60 sm:mt-2.5">{sub}</p>}
       </div>
       {action}
     </div>
@@ -124,10 +124,12 @@ export function StatTile({
     warn: "text-signal",
   } as const;
   return (
-    <div className="card p-5">
+    <div className="card p-4 sm:p-5">
       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{label}</p>
-      <p className={`mt-2.5 font-display text-4xl tabular-nums leading-none ${tones[tone]}`}>{value}</p>
-      {hint && <p className="mt-2 text-xs text-ink/50">{hint}</p>}
+      <p className={`mt-2 font-display text-[26px] tabular-nums leading-none sm:mt-2.5 sm:text-4xl ${tones[tone]}`}>
+        {value}
+      </p>
+      {hint && <p className="mt-1.5 text-xs text-ink/50">{hint}</p>}
     </div>
   );
 }
