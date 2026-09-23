@@ -45,7 +45,7 @@ export default async function HomePage() {
             <h1 className="mt-5 animate-rise-in headline-hero">
               Pickleball,
               <br />
-              played <span className="underscore">properly</span>.
+              played properly.
             </h1>
 
             <p className="lede mt-6 max-w-md animate-rise-in [animation-delay:80ms]">
