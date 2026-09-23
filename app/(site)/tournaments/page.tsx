@@ -78,7 +78,7 @@ export default async function TournamentsPage() {
     <div className="wrap section">
       <p className="eyebrow">Tournaments</p>
       <h1 className="mt-3 headline-page">Play for something</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
+      <p className="lede mt-4 max-w-2xl">
         Every draw we run, and every event around Kolkata we put our name behind. Published formats, published
         prize money, published results.
       </p>

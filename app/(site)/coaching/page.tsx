@@ -29,7 +29,7 @@ export default async function CoachingPage() {
     <div className="wrap section">
       <p className="eyebrow">Coaching</p>
       <h1 className="mt-3 headline-page">Learn from someone better</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
+      <p className="lede mt-4 max-w-2xl">
         Every coach on this roster owns a rung of the ladder — first paddle, first rally, first competitive
         match, first DUPR rating. Pick the one who matches where you are, and SuperPro connects you directly.
       </p>

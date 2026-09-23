@@ -39,7 +39,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <AmbientBackdrop />
       <div data-admin-content className="flex min-h-screen">
       <aside
-        className={`surface-glass fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r transition-transform lg:static lg:translate-x-0 ${
+        className={`surface-glass fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col overflow-y-auto border-r transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -83,7 +83,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <Logo height={22} href="/admin" />
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
       </div>
     </>

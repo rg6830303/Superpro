@@ -58,7 +58,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
 
         <h1 className="mt-4 max-w-3xl headline-page">{t.title}</h1>
 
-        {t.summary && <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">{t.summary}</p>}
+        {t.summary && <p className="lede mt-4 max-w-2xl">{t.summary}</p>}
 
         <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[

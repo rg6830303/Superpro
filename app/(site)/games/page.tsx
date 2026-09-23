@@ -33,7 +33,7 @@ export default async function GamesPage() {
     <div className="wrap section">
       <p className="eyebrow">Daily games</p>
       <h1 className="mt-3 headline-page">Turn up and play</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
+      <p className="lede mt-4 max-w-2xl">
         Open play across {venues.length || 2} venues, seven days a week. Register once, pick your slots for
         the week, and your name and court number are posted to the SuperPro WhatsApp group.
       </p>

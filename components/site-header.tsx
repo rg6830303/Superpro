@@ -77,7 +77,7 @@ export function SiteHeader() {
 
   return (
     <>
-    {open && <button type="button" className="fixed inset-0 z-[45] bg-ink/30 xl:hidden" aria-label="Close navigation backdrop" tabIndex={-1} onClick={() => { setOpen(false); toggleRef.current?.focus(); }} />}
+    {open && <button type="button" className="fixed inset-0 z-[45] bg-ink/30 lg:hidden" aria-label="Close navigation backdrop" tabIndex={-1} onClick={() => { setOpen(false); toggleRef.current?.focus(); }} />}
     <header
       ref={headerRef}
       className={`surface-glass sticky top-0 z-50 border-b transition-[border-color,box-shadow] duration-300 ${
@@ -88,14 +88,14 @@ export function SiteHeader() {
       <div className="wrap flex h-[72px] items-center justify-between gap-2 sm:gap-4">
         <Logo height={30} priority />
 
-        <nav aria-label="Main navigation" ref={navRef} className="relative hidden items-center gap-1 xl:flex">
+        <nav aria-label="Main navigation" ref={navRef} className="relative hidden items-center gap-0.5 lg:flex xl:gap-1">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               data-active={isActive(link.href)}
               aria-current={isActive(link.href) ? "page" : undefined}
-              className={`rounded-md px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ${
+              className={`whitespace-nowrap rounded-md px-2.5 py-2 text-[13.5px] font-medium transition-colors duration-200 xl:px-3.5 xl:text-[14px] ${
                 isActive(link.href) ? "text-ink" : "text-ink/55 hover:text-ink"
               }`}
             >
@@ -144,7 +144,7 @@ export function SiteHeader() {
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             aria-controls="mobile-navigation"
-            className="grid h-11 w-11 place-items-center rounded-full text-ink transition-colors hover:bg-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt xl:hidden"
+            className="grid h-11 w-11 place-items-center rounded-full text-ink transition-colors hover:bg-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt lg:hidden"
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -152,7 +152,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div id="mobile-navigation" className="surface-glass absolute inset-x-0 top-full max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain border-t border-line shadow-[0_20px_50px_-30px_rgba(6,38,61,0.7)] xl:hidden">
+        <div id="mobile-navigation" className="surface-glass absolute inset-x-0 top-full max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain border-t border-line shadow-[0_20px_50px_-30px_rgba(6,38,61,0.7)] lg:hidden">
           <nav aria-label="Mobile navigation" className="wrap flex flex-col pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
             {NAV_LINKS.map((link) => (
               <Link

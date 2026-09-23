@@ -30,7 +30,7 @@ export default async function PlayersPage() {
     <div className="wrap section">
       <p className="eyebrow">Community</p>
       <h1 className="mt-3 headline-page">Find your people</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
+      <p className="lede mt-4 max-w-2xl">
         Every SuperPro player has a page. Search for someone you rallied with last week, see what standard they
         play at, and follow them so you know when they are on court.
       </p>

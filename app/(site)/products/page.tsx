@@ -30,7 +30,7 @@ export default async function ProductsPage({
     <div className="wrap section">
       <p className="eyebrow">The shop</p>
       <h1 className="mt-3 headline-page">{active ? active.label : "Champion Series"}</h1>
-      <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink/70">
+      <p className="lede mt-4 max-w-2xl">
         {active
           ? active.blurb
           : "Everything we put on our own courts. Pickup free at TurfXL, New Alipore — or delivered anywhere in Kolkata, free over ₹5,000."}

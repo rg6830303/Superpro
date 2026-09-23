@@ -43,8 +43,8 @@ export function SiteFooter() {
       {/* Decorative: the volt light the dark panels carry, at page scale. */}
       <div aria-hidden className="aura aura-volt -right-24 -top-32 h-72 w-72" />
       <div aria-hidden className="ring-court -left-16 top-24 h-64 w-64" />
-      <div className="wrap relative grid min-w-0 gap-12 py-16 md:grid-cols-[1.5fr_repeat(3,1fr)]">
-        <div>
+      <div className="wrap relative grid min-w-0 gap-10 py-14 sm:grid-cols-2 sm:gap-12 lg:grid-cols-[1.5fr_repeat(3,1fr)] lg:py-16">
+        <div className="sm:col-span-2 lg:col-span-1">
           <Logo height={38} tone="white" href={null} />
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-paper/60">{SITE.description}</p>
           <div className="mt-6 flex flex-wrap gap-2">
