@@ -15,8 +15,20 @@
  */
 export const INTRO_SEEN_KEY = "superpro:intro-seen";
 
+/**
+ * The same visit, in memory: sessionStorage answers "has this tab seen it",
+ * these two answer "is the entrance playing right now", which the welcome card
+ * needs in order to wait its turn.
+ */
+let playedInMemory = false;
+let finishedInMemory = false;
+
+export function introHasFinished(): boolean { return finishedInMemory; }
+export function markIntroFinished(): void { finishedInMemory = true; }
+
 /** Storage access throws in some privacy modes; a failure must never gate the site. */
 export function introAlreadyPlayed(): boolean {
+  if (playedInMemory) return true;
   try {
     return window.sessionStorage.getItem(INTRO_SEEN_KEY) === "1";
   } catch {
@@ -25,6 +37,7 @@ export function introAlreadyPlayed(): boolean {
 }
 
 export function markIntroPlayed(): void {
+  playedInMemory = true;
   try {
     window.sessionStorage.setItem(INTRO_SEEN_KEY, "1");
   } catch {

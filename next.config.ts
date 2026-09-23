@@ -32,7 +32,9 @@ const CSP = [
   "connect-src 'self' https:",
   "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://*.razorpay.com https://www.google.com",
   "form-action 'self'",
-  "upgrade-insecure-requests",
+  // Safari upgrades even localhost under this directive. Keep it in production
+  // only, so local HTTP previews can load their scripts and media in WebKit.
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 const nextConfig: NextConfig = {

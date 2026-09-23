@@ -17,12 +17,18 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen flex-col">
       {/* First in the group so it is painted before anything it covers. */}
       <BootCover />
-      <ReadProgress />
-      <SiteHeader />
-      <main className="flex-1">{children}</main>
-      <SiteFooter />
-      <WhatsAppFab />
-      <AIChatbot />
+      {/* The entrance makes this subtree inert while it plays, so everything
+          the visitor could otherwise reach behind it lives inside it. */}
+      <div data-site-content className="flex min-h-screen flex-col">
+        <ReadProgress />
+        <SiteHeader />
+        <div data-menu-content className="flex flex-1 flex-col">
+          <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
+          <SiteFooter />
+          <WhatsAppFab />
+          <AIChatbot />
+        </div>
+      </div>
       {/* Both read the `welcome` query param, so both need a suspense boundary. */}
       <Suspense fallback={null}>
         <SmashIntro />

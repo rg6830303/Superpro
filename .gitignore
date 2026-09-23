@@ -22,3 +22,9 @@ output/playwright/**/*.webm
 output/playwright/**/*.mp4
 output/playwright/**/*.log
 output/playwright/**/*.txt
+output/playwright/**/*.jpg
+output/playwright/**/browser-state
+output/playwright/**/frames-*
+output/publish-meta*
+.codex-remote-attachments
+output/*.bundle

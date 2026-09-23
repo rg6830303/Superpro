@@ -134,7 +134,7 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
           onPointerCancel={onPointerUp}
           role="img"
           aria-label="SuperPro Champion Series T700 paddle — drag to spin"
-          className={`preserve-3d relative aspect-[3/4] w-full touch-none ${
+          className={`preserve-3d relative aspect-[3/4] w-full touch-pan-y ${
             grabbed ? "cursor-grabbing" : "cursor-grab"
           }`}
         >

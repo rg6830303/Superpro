@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SuperPro opening — demo</title>
+<style>
+  :root{--ink:#06263d;--paper:#f7fbfa;--line:#d8e4e6;--volt:#00e55f;--deep:#00913f}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.6 system-ui,Segoe UI,sans-serif}
+  .wrap{max-width:1160px;margin:0 auto;padding:30px 20px 90px}
+  h1{font-size:29px;margin:0 0 4px}
+  .sub{color:#5a7480;margin:0 0 24px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 18px;font:inherit;font-weight:600;cursor:pointer}
+  .tabs button[aria-selected=true]{background:var(--volt);border-color:var(--volt)}
+  video{width:100%;border:1px solid var(--line);border-radius:12px;background:#000;display:block}
+  .mob video{max-width:380px;margin:0 auto}
+  img{width:100%;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+  h2{font-size:19px;margin:30px 0 6px}
+  table{border-collapse:collapse;width:100%;margin-top:8px;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:#eef5f4}
+  .beats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:10px}
+  .beat{border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px}
+  .beat b{display:block;font-size:13px}
+  .beat span{font:12px ui-monospace,monospace;color:var(--deep)}
+  .note{border-left:3px solid var(--volt);background:#f2fbf6;padding:12px 14px;margin-top:14px;font-size:14px}
+</style>
+<div class="wrap">
+  <h1>SuperPro opening</h1>
+  <p class="sub">3.96 seconds. Real Kolkata plates, the strike, the glass, the mark. Not wired into the site.</p>
+
+  <div class="tabs">
+    <button id="bd" aria-selected="true">Desktop 1440×810</button>
+    <button id="bm" aria-selected="false">Mobile 390×844</button>
+  </div>
+  <div id="d"><video src="opening-desktop.mp4" controls muted playsinline autoplay loop></video></div>
+  <div id="m" class="mob" hidden><video src="opening-mobile.mp4" controls muted playsinline loop></video></div>
+
+  <h2>Beats</h2>
+  <div class="beats">
+    <div class="beat"><b>Howrah Bridge (photo)</b><span>0.06 – 1.02 s</span></div>
+    <div class="beat"><b>Victoria Memorial (photo)</b><span>1.00 – 2.00 s</span></div>
+    <div class="beat"><b>Paddle swings in</b><span>2.00 – 2.52 s</span></div>
+    <div class="beat"><b>Contact</b><span>2.52 s</span></div>
+    <div class="beat"><b>Ball fills the frame</b><span>2.52 – 3.02 s</span></div>
+    <div class="beat"><b>Glass cracks</b><span>3.02 – 3.38 s</span></div>
+    <div class="beat"><b>Mark settles</b><span>3.42 – 3.80 s</span></div>
+  </div>
+
+  <h2>Storyboard</h2>
+  <img src="storyboard.png" alt="Six frames from the opening">
+
+  <h2>Decisions worth flagging</h2>
+  <div class="note">
+    <strong>Real photographs, graded to the palette.</strong> Both plates are the images supplied,
+    not renders. They are pushed through a soft-light teal grade with a volt bloom rather than shown
+    raw, because a daylight snapshot dropped straight in front of the ball and the mark reads as a
+    different piece of film. Each one drifts and pushes in, so it never sits still. No captions on
+    either, as asked.
+  </div>
+  <div class="note">
+    <strong>Licensing is still worth checking.</strong> These look like third-party photographs
+    rather than your own. Confirm you hold a licence before this goes in front of the public.
+  </div>
+  <div class="note">
+    <strong>No wordmark anywhere.</strong> The sequence ends on <code>superpro-mark</code> alone,
+    per the brief — the lockup with the word never appears.
+  </div>
+  <div class="note">
+    <strong>No player.</strong> Only a paddle and a ball. Without a body to carry the swing, the
+    paddle arrives fast, rotates through the ball and leaves frame.
+  </div>
+
+  <h2>Measured</h2>
+  <table>
+    <tr><th>Check</th><th>Desktop</th><th>Mobile</th></tr>
+    <tr><td>Length</td><td>3.96 s</td><td>3.96 s</td></tr>
+    <tr><td>Median frame</td><td>16.7 ms — 60 fps</td><td>16.7 ms — 60 fps</td></tr>
+    <tr><td>JS errors</td><td>none</td><td>none</td></tr>
+    <tr><td>Wired into the site</td><td>no</td><td>no</td></tr>
+  </table>
+</div>
+<script>
+  const d=document.getElementById('d'),m=document.getElementById('m'),bd=document.getElementById('bd'),bm=document.getElementById('bm');
+  function show(mob){d.hidden=mob;m.hidden=!mob;bd.setAttribute('aria-selected',String(!mob));bm.setAttribute('aria-selected',String(mob));
+    const v=(mob?m:d).querySelector('video');v.currentTime=0;v.play().catch(()=>{});}
+  bd.onclick=()=>show(false);bm.onclick=()=>show(true);
+</script>

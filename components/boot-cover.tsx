@@ -1,8 +1,8 @@
 /**
  * The first thing painted on the visit that plays the entrance.
  *
- * The smash entrance cannot exist until React has hydrated and the Three.js
- * chunk has downloaded, which is a few hundred milliseconds during which the
+ * The smash entrance cannot exist until React has hydrated and its video can
+ * paint, which is a short interval during which the
  * home page would otherwise be plainly visible — the flash this removes. So the
  * cover is server-rendered, carries its own inline <style> rather than waiting
  * on the stylesheet, and is already on screen before a single line of our
@@ -21,7 +21,7 @@
  *
  * It clears three ways, in order of preference:
  *   1. The entrance calls `__superproBootClear()` after painting frame one.
- *   2. Failing that, an inline script removes it on a timer.
+ *   2. Failing that, an inline script hides it on a timer.
  *   3. Failing even that — JavaScript disabled or broken — a CSS animation
  *      fades it out on its own. The site is never left hidden behind it.
  */
@@ -55,11 +55,11 @@ export function BootCover() {
 }`,
         }}
       />
-      <div id="superpro-boot">
+      <div id="superpro-boot" aria-hidden="true" suppressHydrationWarning>
         {/* Plain <img>: next/image would defer this behind the very hydration
             the cover exists to hide. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/superpro-logo-white.png" alt="" width={672} height={381} />
+        <img src="/logo/superpro-mark-white.png" alt="" width={374} height={242} />
       </div>
       <script
         dangerouslySetInnerHTML={{
@@ -71,7 +71,6 @@ export function BootCover() {
     if(done)return;done=true;
     clearTimeout(timer);
     el.classList.add('is-done');
-    setTimeout(function(){el.remove();},300);
   }
   window.__superproBootClear=clear;
   // The entrance calls this the moment it starts fetching, to say it is coming
@@ -121,10 +120,9 @@ export function IntroGate() {
   try{seen=sessionStorage.getItem('superpro:intro-seen')==='1';}catch(e){}
   var celebrating=/[?&]welcome=(signup|login)\\b/.test(location.search);
   var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var noWebgl=typeof WebGLRenderingContext==='undefined';
   // A plain global, not an attribute on <html> or <body>: React reconciles
   // those during hydration and strips anything it did not itself render.
-  window.__superproSkipIntro=!((!seen||celebrating)&&!reduced&&!noWebgl);
+  window.__superproSkipIntro=!((!seen||celebrating)&&!reduced);
 })();`,
       }}
     />

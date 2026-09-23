@@ -20,7 +20,7 @@ export function WhatsAppFab() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3 print:hidden">
+    <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-end gap-3 sm:right-5 print:hidden">
       {open && (
         <div className="w-[280px] origin-bottom-right animate-wipe-in rounded-card border border-line bg-paper p-5 shadow-lift">
           <p className="font-display text-xl text-ink">Talk to a rep</p>

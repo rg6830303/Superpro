@@ -105,27 +105,26 @@ export function AIChatbot() {
   }
 
   return (
-    <aside aria-label="SuperPro AI Assistant" className="fixed bottom-5 left-5 z-40 print:hidden">
+    <aside aria-label="SuperPro AI Assistant" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-40 sm:left-5 print:hidden">
       {/* Floating Toggle Button */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="group relative flex items-center gap-2.5 rounded-full border-2 border-volt bg-ink px-4 py-3 shadow-[0_12px_32px_rgba(6,38,61,0.28)] transition-all hover:scale-105 hover:bg-[#07304e] active:scale-95"
+          className="group relative flex h-14 w-14 items-center justify-center gap-2.5 rounded-full border-2 border-volt bg-ink shadow-[0_12px_32px_rgba(6,38,61,0.28)] transition-colors hover:bg-[#07304e] sm:h-auto sm:w-auto sm:px-4 sm:py-3"
           aria-label="Open SuperPro AI Chatbot"
         >
-          <span className="relative flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-volt opacity-75" />
+          <span className="relative hidden h-3 w-3 sm:flex">
             <span className="relative inline-flex h-3 w-3 rounded-full bg-volt" />
           </span>
           <Bot size={20} className="text-volt" />
-          <span className="text-xs font-bold tracking-wide text-paper">Ask AI Caddy</span>
+          <span className="hidden text-xs font-bold tracking-wide text-paper sm:inline">Ask AI Caddy</span>
         </button>
       )}
 
       {/* Expanded Chat Drawer / Popover */}
       {open && (
-        <div className="animate-pop-in flex flex-col w-[360px] sm:w-[420px] max-w-[calc(100vw-32px)] h-[560px] max-h-[calc(100vh-100px)] rounded-2xl border border-line bg-paper shadow-[0_24px_64px_rgba(6,38,61,0.35)] overflow-hidden">
+        <div className="animate-pop-in flex flex-col w-[360px] sm:w-[420px] max-w-[calc(100vw-32px)] h-[560px] max-h-[calc(100dvh-100px)] rounded-2xl border border-line bg-paper shadow-[0_24px_64px_rgba(6,38,61,0.35)] overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-line bg-ink px-4 py-3.5 text-paper">
             <div className="flex items-center gap-2.5">

@@ -33,10 +33,11 @@ export default async function HomePage() {
       {/* ── Hero ───────────────────────────────────────────────────────────
           Asymmetric on purpose: the claim sits left, the object right, so the
           eye lands on the sentence before the product. ──────────────────── */}
-      <section className="border-b border-line">
+      <section className="relative overflow-hidden border-b border-line bg-[radial-gradient(circle_at_82%_30%,rgba(0,229,117,0.12),transparent_34%)]">
+        <div aria-hidden className="absolute -right-28 top-12 h-72 w-72 rounded-full border border-volt/20 opacity-70 blur-[1px]" />
         <div className="wrap grid min-w-0 items-center gap-10 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
           <div>
-            <p className="eyebrow animate-wipe-in">Kolkata · since 2024</p>
+            <p className="eyebrow animate-wipe-in inline-flex rounded-full border border-volt/30 bg-volt-soft px-3 py-1.5">Kolkata · since 2024</p>
 
             <h1 className="mt-5 animate-rise-in headline-hero">
               Pickleball,
@@ -49,13 +50,13 @@ export default async function HomePage() {
               shot rather than your confidence.
             </p>
 
-            <div className="mt-9 flex animate-rise-in flex-wrap items-center gap-3 [animation-delay:140ms]">
+            <div className="mt-7 grid animate-rise-in gap-3 min-[400px]:flex min-[400px]:flex-wrap min-[400px]:items-center sm:mt-9 [animation-delay:140ms]">
               <Link href="/games" className="btn-volt">
                 Book today&apos;s game <ArrowRight size={16} />
               </Link>
               <Link
                 href="/products"
-                className="link-underline group inline-flex items-center gap-1.5 text-sm font-semibold text-ink"
+                className="link-underline group inline-flex min-h-11 items-center justify-center gap-1.5 text-sm font-semibold text-ink sm:justify-start"
               >
                 Shop the Champion Series
                 <ArrowUpRight
@@ -66,7 +67,7 @@ export default async function HomePage() {
             </div>
 
             {/* A scoreboard rail, not a stat-card triple. */}
-            <dl className="mt-9 grid grid-cols-3 items-end gap-4 border-t border-line pt-6">
+            <dl className="mt-7 grid grid-cols-3 items-end gap-3 rounded-2xl border border-line bg-paper/75 p-4 shadow-[0_18px_50px_-38px_rgba(6,38,61,0.55)] backdrop-blur-sm sm:mt-9 sm:gap-4 sm:p-5">
               {[
                 { n: live.length, label: "Open slots this week" },
                 { n: coaches.length, label: "Certified coaches" },
@@ -111,7 +112,7 @@ export default async function HomePage() {
           Every visitor is here for one of these. Rather than make them read
           the nav, put the four rooms of the club on the page. ───────────── */}
       <section className="wrap section-tight">
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {[
             {
               href: "/products",
@@ -145,13 +146,13 @@ export default async function HomePage() {
             <Reveal key={door.href} delay={i * 70}>
               <Link
                 href={door.href}
-                className="group flex h-full flex-col rounded-card border border-line bg-paper p-6 transition-all duration-200 hover:-translate-y-1 hover:border-volt hover:shadow-[0_18px_40px_-24px_rgba(6,38,61,0.45)]"
+                className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-paper p-4 transition-all duration-200 before:absolute before:inset-x-0 before:top-0 before:h-1 before:origin-left before:scale-x-0 before:bg-volt before:transition-transform before:duration-300 hover:-translate-y-1 hover:border-volt hover:shadow-[0_18px_40px_-24px_rgba(6,38,61,0.45)] hover:before:scale-x-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt sm:p-6"
               >
                 <span className="grid h-11 w-11 place-items-center rounded-lg bg-volt-soft text-volt-deep transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
                   <door.icon size={20} />
                 </span>
-                <h3 className="mt-5 font-display text-2xl text-ink">{door.title}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-ink/65">{door.blurb}</p>
+                <h3 className="mt-4 break-words font-display text-lg text-ink sm:mt-5 sm:text-2xl">{door.title}</h3>
+                <p className="mt-2 flex-1 text-xs leading-relaxed text-ink/65 sm:text-sm">{door.blurb}</p>
                 <span className="mt-5 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-volt-deep">
                   {door.cta}
                   <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-1" />

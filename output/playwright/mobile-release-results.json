@@ -1,0 +1,103 @@
+[
+  {
+    "name": "phone-390",
+    "video": {
+      "src": "http://localhost:3001/intro/kolkata-smash-mobile.mp4",
+      "time": 0.232071,
+      "muted": true,
+      "inline": true,
+      "fit": "contain",
+      "duration": 3.95
+    },
+    "overflow": {
+      "viewport": 390,
+      "scroll": 390
+    },
+    "mediaRequests": 1,
+    "errors": []
+  },
+  {
+    "name": "phone-320",
+    "video": {
+      "src": "http://localhost:3001/intro/kolkata-smash-mobile.mp4",
+      "time": 0.186201,
+      "muted": true,
+      "inline": true,
+      "fit": "contain",
+      "duration": 3.95
+    },
+    "overflow": {
+      "viewport": 320,
+      "scroll": 320
+    },
+    "mediaRequests": 1,
+    "errors": []
+  },
+  {
+    "name": "phone-430",
+    "video": {
+      "src": "http://localhost:3001/intro/kolkata-smash-mobile.mp4",
+      "time": 0.163616,
+      "muted": true,
+      "inline": true,
+      "fit": "contain",
+      "duration": 3.95
+    },
+    "overflow": {
+      "viewport": 430,
+      "scroll": 430
+    },
+    "mediaRequests": 1,
+    "errors": []
+  },
+  {
+    "name": "tablet-768",
+    "video": {
+      "src": "http://localhost:3001/intro/kolkata-smash-mobile.mp4",
+      "time": 0.229926,
+      "muted": true,
+      "inline": true,
+      "fit": "contain",
+      "duration": 3.95
+    },
+    "overflow": {
+      "viewport": 768,
+      "scroll": 768
+    },
+    "mediaRequests": 1,
+    "errors": []
+  },
+  {
+    "name": "laptop-1366",
+    "video": {
+      "src": "http://localhost:3001/intro/kolkata-smash-desktop.mp4",
+      "time": 0.232848,
+      "muted": true,
+      "inline": true,
+      "fit": "contain",
+      "duration": 3.95
+    },
+    "overflow": {
+      "viewport": 1366,
+      "scroll": 1366
+    },
+    "mediaRequests": 1,
+    "errors": []
+  },
+  {
+    "mode": "reduced",
+    "pass": true
+  },
+  {
+    "mode": "blocked",
+    "pass": true
+  },
+  {
+    "mode": "storage",
+    "pass": true
+  },
+  {
+    "mode": "skip",
+    "pass": true
+  }
+]

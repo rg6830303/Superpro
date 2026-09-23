@@ -19,9 +19,39 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
   const [rail, setRail] = useState<{ left: number; width: number } | null>(null);
 
   useEffect(() => setOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    const background = document.querySelector<HTMLElement>("[data-menu-content]");
+    const wasInert = background?.inert ?? false;
+    if (background) background.inert = true;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setOpen(false); toggleRef.current?.focus(); }
+      if (event.key === "Tab") {
+        const targets = Array.from(headerRef.current?.querySelectorAll<HTMLElement>('a[href], button') ?? []).filter(el => el.getClientRects().length > 0);
+        const first = targets[0], last = targets[targets.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
+    const wide = window.matchMedia("(min-width: 1280px)");
+    const closeOnWide = () => { if (wide.matches) setOpen(false); };
+    wide.addEventListener("change", closeOnWide);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previous;
+      if (background) background.inert = wasInert;
+      window.removeEventListener("keydown", closeOnEscape);
+      wide.removeEventListener("change", closeOnWide);
+    };
+  }, [open]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -46,20 +76,25 @@ export function SiteHeader() {
   }, [pathname]);
 
   return (
+    <>
+    {open && <button type="button" className="fixed inset-0 z-[45] bg-ink/30 xl:hidden" aria-label="Close navigation backdrop" tabIndex={-1} onClick={() => { setOpen(false); toggleRef.current?.focus(); }} />}
     <header
-      className={`sticky top-0 z-50 border-b bg-paper transition-[border-color,box-shadow] duration-300 ${
-        scrolled ? "border-line shadow-[0_1px_0_rgba(6,38,61,0.04)]" : "border-transparent"
+      ref={headerRef}
+      className={`sticky top-0 z-50 border-b bg-paper/90 backdrop-blur-xl transition-[border-color,box-shadow,background-color] duration-300 ${
+        scrolled ? "border-line bg-paper/95 shadow-[0_12px_35px_-28px_rgba(6,38,61,0.65)]" : "border-transparent"
       }`}
     >
-      <div className="wrap flex h-[72px] items-center justify-between gap-6">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-ink focus:px-4 focus:py-3 focus:text-white">Skip to content</a>
+      <div className="wrap flex h-[72px] items-center justify-between gap-2 sm:gap-4">
         <Logo height={30} priority />
 
-        <nav ref={navRef} className="relative hidden items-center gap-1 lg:flex">
+        <nav aria-label="Main navigation" ref={navRef} className="relative hidden items-center gap-1 xl:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               data-active={isActive(link.href)}
+              aria-current={isActive(link.href) ? "page" : undefined}
               className={`rounded-md px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ${
                 isActive(link.href) ? "text-ink" : "text-ink/55 hover:text-ink"
               }`}
@@ -80,7 +115,7 @@ export function SiteHeader() {
           <Link
             href="/cart"
             aria-label={`Cart${ready && count ? `, ${count} items` : ""}`}
-            className="relative rounded-full p-2.5 text-ink/65 transition-colors hover:bg-mist hover:text-ink"
+            className="relative grid h-11 w-11 place-items-center rounded-full text-ink/65 transition-colors hover:bg-mist hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt"
           >
             <ShoppingBag size={19} />
             {ready && count > 0 && (
@@ -93,7 +128,7 @@ export function SiteHeader() {
           <Link
             href="/dashboard"
             aria-label="Your account"
-            className="hidden rounded-full p-2.5 text-ink/65 transition-colors hover:bg-mist hover:text-ink sm:block"
+            className="hidden rounded-full p-2.5 text-ink/65 transition-colors hover:bg-mist hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt sm:block"
           >
             <User size={19} />
           </Link>
@@ -103,11 +138,13 @@ export function SiteHeader() {
           </Link>
 
           <button
+            ref={toggleRef}
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
-            className="rounded-full p-2.5 text-ink lg:hidden"
+            aria-controls="mobile-navigation"
+            className="grid h-11 w-11 place-items-center rounded-full text-ink transition-colors hover:bg-mist focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt xl:hidden"
           >
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -115,14 +152,15 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="border-t border-line bg-paper lg:hidden">
-          <nav className="wrap flex flex-col py-2">
-            {NAV_LINKS.map((link, i) => (
+        <div id="mobile-navigation" className="absolute inset-x-0 top-full max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain border-t border-line bg-paper shadow-[0_20px_50px_-30px_rgba(6,38,61,0.7)] xl:hidden">
+          <nav aria-label="Mobile navigation" className="wrap flex flex-col pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+            {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                style={{ animationDelay: `${i * 32}ms` }}
-                className={`animate-wipe-in border-b border-line/70 py-3.5 text-[15px] font-medium last:border-0 ${
+                onClick={() => setOpen(false)}
+                aria-current={isActive(link.href) ? "page" : undefined}
+                className={`border-b border-line/70 py-3.5 text-[15px] font-medium last:border-0 ${
                   isActive(link.href) ? "text-volt-deep" : "text-ink/75"
                 }`}
               >
@@ -139,5 +177,6 @@ export function SiteHeader() {
         </div>
       )}
     </header>
+    </>
   );
 }

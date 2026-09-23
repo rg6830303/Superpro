@@ -1,0 +1,8 @@
+{
+  "layout": "passed",
+  "menu": "passed",
+  "fallback": "passed",
+  "refresh": "passed",
+  "errors": [],
+  "limitation": "Windows WebKit reports MEDIA_ERR_SRC_NOT_SUPPORTED for the H.264 clip; physical iOS playback not verified."
+}
