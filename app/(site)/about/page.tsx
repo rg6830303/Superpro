@@ -100,7 +100,7 @@ export default function AboutPage() {
       </section>
 
       {/* Timeline as an actual horizontal track, marked on a line. */}
-      <section className="section border-y border-line bg-mist">
+      <section className="band section">
         <div className="wrap">
           <Reveal>
             <h2 className="rule-head headline-section">How we got here</h2>

@@ -39,8 +39,11 @@ const COLUMNS = [
  */
 export function SiteFooter() {
   return (
-    <footer className="mt-28 bg-ink text-paper">
-      <div className="wrap grid min-w-0 gap-12 py-16 md:grid-cols-[1.5fr_repeat(3,1fr)]">
+    <footer className="band-ink relative mt-28 overflow-hidden">
+      {/* Decorative: the volt light the dark panels carry, at page scale. */}
+      <div aria-hidden className="aura aura-volt -right-24 -top-32 h-72 w-72" />
+      <div aria-hidden className="ring-court -left-16 top-24 h-64 w-64" />
+      <div className="wrap relative grid min-w-0 gap-12 py-16 md:grid-cols-[1.5fr_repeat(3,1fr)]">
         <div>
           <Logo height={38} tone="white" href={null} />
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-paper/60">{SITE.description}</p>
@@ -80,7 +83,7 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <div className="wrap flex flex-col gap-4 border-t border-paper/15 py-7 font-mono text-[11px] text-paper/45 sm:flex-row sm:items-center sm:justify-between">
+      <div className="wrap relative flex flex-col gap-4 border-t border-paper/15 py-7 font-mono text-[11px] text-paper/45 sm:flex-row sm:items-center sm:justify-between">
         <p>
           © {new Date().getFullYear()} {SITE.legalName}
         </p>

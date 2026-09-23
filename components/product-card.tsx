@@ -42,7 +42,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <TiltCard max={6} className="h-full">
       <article className="card-hover group flex h-full flex-col overflow-hidden">
-      <Link href={`/products/${product.slug}`} className="lift-media relative block aspect-[4/3] overflow-hidden bg-mist">
+      <Link href={`/products/${product.slug}`} className="lift-media media-plate relative block aspect-[4/3] overflow-hidden bg-mist">
         {product.image_url ? (
           <Image
             src={product.image_url}

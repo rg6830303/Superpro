@@ -80,8 +80,8 @@ export function SiteHeader() {
     {open && <button type="button" className="fixed inset-0 z-[45] bg-ink/30 xl:hidden" aria-label="Close navigation backdrop" tabIndex={-1} onClick={() => { setOpen(false); toggleRef.current?.focus(); }} />}
     <header
       ref={headerRef}
-      className={`sticky top-0 z-50 border-b bg-paper/90 backdrop-blur-xl transition-[border-color,box-shadow,background-color] duration-300 ${
-        scrolled ? "border-line bg-paper/95 shadow-[0_12px_35px_-28px_rgba(6,38,61,0.65)]" : "border-transparent"
+      className={`surface-glass sticky top-0 z-50 border-b transition-[border-color,box-shadow] duration-300 ${
+        scrolled ? "border-line shadow-[0_14px_40px_-30px_rgba(6,38,61,0.7)]" : "border-transparent"
       }`}
     >
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-ink focus:px-4 focus:py-3 focus:text-white">Skip to content</a>
@@ -152,7 +152,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div id="mobile-navigation" className="absolute inset-x-0 top-full max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain border-t border-line bg-paper shadow-[0_20px_50px_-30px_rgba(6,38,61,0.7)] xl:hidden">
+        <div id="mobile-navigation" className="surface-glass absolute inset-x-0 top-full max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain border-t border-line shadow-[0_20px_50px_-30px_rgba(6,38,61,0.7)] xl:hidden">
           <nav aria-label="Mobile navigation" className="wrap flex flex-col pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
             {NAV_LINKS.map((link) => (
               <Link

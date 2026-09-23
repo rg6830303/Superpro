@@ -33,8 +33,11 @@ export default async function HomePage() {
       {/* ── Hero ───────────────────────────────────────────────────────────
           Asymmetric on purpose: the claim sits left, the object right, so the
           eye lands on the sentence before the product. ──────────────────── */}
-      <section className="relative overflow-hidden border-b border-line bg-[radial-gradient(circle_at_82%_30%,rgba(0,229,117,0.12),transparent_34%)]">
-        <div aria-hidden className="absolute -right-28 top-12 h-72 w-72 rounded-full border border-volt/20 opacity-70 blur-[1px]" />
+      <section className="relative overflow-hidden border-b border-line">
+        {/* Decorative light behind the hero object, not behind the sentence. */}
+        <div aria-hidden className="aura aura-volt -right-20 top-0 h-[26rem] w-[26rem]" />
+        <div aria-hidden className="aura aura-ink -left-40 bottom-[-6rem] h-80 w-80 opacity-40" />
+        <div aria-hidden className="ring-court -right-28 top-12 h-72 w-72" />
         <div className="wrap grid min-w-0 items-center gap-10 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
           <div>
             <p className="eyebrow animate-wipe-in inline-flex rounded-full border border-volt/30 bg-volt-soft px-3 py-1.5">Kolkata · since 2024</p>
@@ -164,7 +167,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── What is pickleball ─────────────────────────────────────────────── */}
-      <section className="section border-y border-line bg-mist">
+      <section className="band section">
         <div className="wrap grid min-w-0 gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <Reveal>
             <div>
@@ -256,7 +259,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Vision ─────────────────────────────────────────────────────────── */}
-      <section className="section bg-ink">
+      <section className="band-ink section relative overflow-hidden">
         <div className="wrap grid min-w-0 gap-10 lg:grid-cols-[1fr_1fr]">
           <Reveal>
             <div>
@@ -375,7 +378,7 @@ export default async function HomePage() {
       {/* ── The ladder ─────────────────────────────────────────────────────
           Replaces the usual three feature cards with something a player can
           actually locate themselves on. ─────────────────────────────────── */}
-      <section className="section border-y border-line bg-mist">
+      <section className="band section">
         <div className="wrap grid min-w-0 gap-14 lg:grid-cols-[0.85fr_1.15fr]">
           <Reveal variant="left">
             <div className="lg:sticky lg:top-28">
@@ -436,7 +439,7 @@ export default async function HomePage() {
               <Reveal variant="scale">
                 <Link href={`/products/${hero.slug}`} className="group block h-full">
                   <article className="card-hover flex h-full flex-col overflow-hidden">
-                    <div className="relative aspect-[16/11] overflow-hidden bg-mist">
+                    <div className="media-plate relative aspect-[16/11] overflow-hidden bg-mist">
                       {hero.image_url && (
                         <Image
                           src={hero.image_url}

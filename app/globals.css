@@ -146,10 +146,14 @@
   }
   .btn-primary {
     @apply btn bg-ink text-paper hover:bg-ink-700 hover:shadow-lift;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 58%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14) inset, 0 10px 24px -18px rgba(6, 38, 61, 0.8);
   }
   .btn-volt {
     @apply btn bg-volt text-ink hover:bg-volt-bright hover:shadow-volt
            focus-visible:ring-volt-deep/30;
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 62%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 8px 20px -14px rgba(0, 145, 63, 0.7);
   }
   .btn-outline {
     @apply btn border border-line-strong bg-paper text-ink hover:border-ink hover:bg-mist;
@@ -189,12 +193,18 @@
   }
   .tab-active {
     @apply border-volt bg-volt text-ink hover:border-volt hover:text-ink;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45) inset, 0 8px 18px -14px rgba(0, 145, 63, 0.75);
   }
 
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
   .card {
     @apply min-w-0 rounded-card border border-line bg-paper;
     overflow-wrap: anywhere;
+    /* A single hairline of light along the top edge. It is what separates a
+       surface that sits on the page from a rectangle drawn on it, and at this
+       strength it reads as material rather than as a gradient. */
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 244, 248, 0.38) 92px, transparent 92px);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 1px 2px rgba(6, 38, 61, 0.04);
   }
   .card-hover {
     @apply card transition-[transform,border-color,box-shadow] duration-300 ease-out
@@ -202,15 +212,25 @@
   }
   .panel {
     @apply min-w-0 rounded-card bg-mist;
+    background-image: linear-gradient(165deg, rgba(255, 255, 255, 0.75), rgba(227, 235, 242, 0.55));
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
   }
+  /* The dark panels carry the one warm light source in the system: a volt glow
+     off the top-right corner, at the strength of a reflection rather than a
+     colour wash. */
   .panel-ink {
     @apply min-w-0 rounded-card bg-ink text-paper;
+    background-image:
+      radial-gradient(120% 120% at 88% 0%, rgba(0, 229, 95, 0.16), transparent 52%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 24px 60px -40px rgba(6, 38, 61, 0.8);
   }
 
   /* ── Status marks ─────────────────────────────────────────────────────── */
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-pill border border-line bg-paper px-3 py-1
            font-mono text-[10px] uppercase tracking-[0.14em] text-ink/60;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 1px 2px rgba(6, 38, 61, 0.04);
   }
   .chip-volt {
     @apply chip border-volt-deep/30 bg-volt-soft text-volt-deep;
@@ -230,8 +250,11 @@
     /* 16px on mobile is not a style choice: below it, iOS zooms the viewport
        on focus and never zooms back. Desktop can take the tighter 15px. */
     @apply w-full rounded-xl border border-line bg-paper px-4 py-3 text-base text-ink sm:text-[15px]
-           transition-[border-color,box-shadow] duration-150 placeholder:text-ink/35
+           transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-ink/35
            focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/10;
+    /* The faintest inset, so an empty field reads as a recess rather than as an
+       outlined rectangle sitting on the page. */
+    box-shadow: inset 0 1px 2px rgba(6, 38, 61, 0.05);
   }
   .field-error {
     @apply mt-1.5 text-xs font-medium text-signal;
@@ -627,5 +650,149 @@
   .ball-intro-ball {
     animation: none;
     display: none;
+  }
+}
+
+/* ── The page itself ──────────────────────────────────────────────────────
+   Until now the page was plain white and every surface on it had to supply
+   its own separation. This gives the paper a light source instead: two very
+   faint washes — volt from the top right, Prussian blue from the lower left —
+   and a court grid so weak it reads as tooth in the paper rather than as a
+   pattern. Nothing here is above 6% opacity, so text contrast is untouched
+   and the three-colour system stays exactly as it was.
+
+   The washes are fixed, so scrolling moves the content across the light
+   rather than dragging the light along with it.
+   ------------------------------------------------------------------------ */
+body {
+  background-color: #fff;
+  background-image:
+    radial-gradient(60rem 40rem at 88% -8%, rgba(0, 229, 95, 0.055), transparent 60%),
+    radial-gradient(52rem 42rem at 2% 26%, rgba(6, 38, 61, 0.045), transparent 62%),
+    linear-gradient(to right, rgba(6, 38, 61, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 38, 61, 0.022) 1px, transparent 1px);
+  background-size: auto, auto, 92px 92px, 92px 92px;
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+
+/* Phones scroll a fixed background by repainting it; the grid is the cheapest
+   thing to drop and the least missed at that width. */
+@media (max-width: 639px) {
+  body {
+    background-image:
+      radial-gradient(38rem 30rem at 92% -6%, rgba(0, 229, 95, 0.06), transparent 62%),
+      radial-gradient(34rem 30rem at 0% 22%, rgba(6, 38, 61, 0.05), transparent 64%);
+    background-attachment: scroll, scroll;
+  }
+}
+
+/* ── Bands and rules ──────────────────────────────────────────────────────
+   Long pages need somewhere for the eye to rest between sections. A band is a
+   tint plus two hairlines, not a box — the content keeps the same measure and
+   the page keeps its single column.
+   ------------------------------------------------------------------------ */
+.band {
+  position: relative;
+  background-image: linear-gradient(180deg, rgba(239, 244, 248, 0.9), rgba(255, 255, 255, 0.2));
+  border-block: 1px solid rgba(210, 222, 232, 0.9);
+}
+.band-ink {
+  position: relative;
+  color: #fff;
+  background-color: #06263d;
+  background-image:
+    radial-gradient(70% 90% at 82% 0%, rgba(0, 229, 95, 0.14), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 38%);
+}
+/* A hairline that fades out at both ends, for closing a section without
+   drawing a full-width line across the page. */
+.rule-fade {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, rgba(210, 222, 232, 1) 18%, rgba(210, 222, 232, 1) 82%, transparent);
+}
+/* The same, in volt, for the one rule a section wants to be noticed. */
+.rule-volt {
+  height: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00e55f, rgba(91, 255, 156, 0.35), transparent);
+}
+
+/* ── Glass ────────────────────────────────────────────────────────────────
+   For the surfaces that sit over content — the header, drawers, sticky
+   summaries. Frosted rather than opaque, so the page reads as continuous
+   underneath, with a fallback to solid paper where backdrop-filter is not
+   supported.
+   ------------------------------------------------------------------------ */
+.surface-glass {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(210, 222, 232, 0.8);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .surface-glass {
+    background-color: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    backdrop-filter: saturate(1.4) blur(14px);
+  }
+}
+
+/* ── Aura ─────────────────────────────────────────────────────────────────
+   A soft disc of colour behind a hero object or an empty corner. Decorative
+   and inert: always `aria-hidden`, never under text that needs contrast.
+   ------------------------------------------------------------------------ */
+.aura {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(46px);
+  opacity: 0.55;
+}
+.aura-volt {
+  background: radial-gradient(circle, rgba(0, 229, 95, 0.4), transparent 68%);
+}
+.aura-ink {
+  background: radial-gradient(circle, rgba(16, 82, 126, 0.32), transparent 68%);
+}
+
+/* A ring drawn in the court line weight, for corners that would otherwise be
+   empty. */
+.ring-court {
+  position: absolute;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 229, 95, 0.22);
+  pointer-events: none;
+}
+
+/* ── Media ────────────────────────────────────────────────────────────────
+   Product shots and photography sit on their own tinted plate rather than on
+   bare white, which is what stops a cut-out paddle from floating. */
+.media-plate {
+  background-image: radial-gradient(75% 75% at 50% 25%, rgba(239, 244, 248, 0.95), rgba(255, 255, 255, 0.4));
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────
+   Desktop only, and only where a scrollbar is already a visible part of the
+   layout. Coarse pointers keep the platform default. */
+@media (hover: hover) and (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(6, 38, 61, 0.22) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(6, 38, 61, 0.2);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(6, 38, 61, 0.34);
   }
 }
