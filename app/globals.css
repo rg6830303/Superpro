@@ -12,7 +12,11 @@
   }
 
   html {
-    scroll-behavior: smooth;
+    /* No global smooth scrolling. The App Router sets the scroll position on
+       every navigation, and with `scroll-behavior: smooth` the browser
+       animates to it from wherever the previous page was — which is what made
+       a new route appear to fly to the bottom or the top before settling.
+       In-page anchors opt in individually. */
     /* Chromium on Android inflates text inside any block wider than the
        viewport. Tailwind's reset ships only the -webkit- form; both are needed. */
     -webkit-text-size-adjust: 100%;
@@ -385,14 +389,8 @@
 /* Route change: the page rises while a volt rail wipes the top edge, so a
    navigation reads as a move rather than a repaint. */
 @keyframes route-in {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 14px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes route-rail {
   0% {
@@ -409,7 +407,7 @@
   }
 }
 .route-shell {
-  animation: route-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: route-in 0.28s ease-out both;
 }
 .route-shell::before {
   content: "";
@@ -666,24 +664,6 @@
    ------------------------------------------------------------------------ */
 body {
   background-color: #fff;
-  background-image:
-    radial-gradient(60rem 40rem at 88% -8%, rgba(0, 229, 95, 0.055), transparent 60%),
-    radial-gradient(52rem 42rem at 2% 26%, rgba(6, 38, 61, 0.045), transparent 62%),
-    linear-gradient(to right, rgba(6, 38, 61, 0.022) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(6, 38, 61, 0.022) 1px, transparent 1px);
-  background-size: auto, auto, 92px 92px, 92px 92px;
-  background-attachment: fixed, fixed, fixed, fixed;
-}
-
-/* Phones scroll a fixed background by repainting it; the grid is the cheapest
-   thing to drop and the least missed at that width. */
-@media (max-width: 639px) {
-  body {
-    background-image:
-      radial-gradient(38rem 30rem at 92% -6%, rgba(0, 229, 95, 0.06), transparent 62%),
-      radial-gradient(34rem 30rem at 0% 22%, rgba(6, 38, 61, 0.05), transparent 64%);
-    background-attachment: scroll, scroll;
-  }
 }
 
 /* ── Bands and rules ──────────────────────────────────────────────────────
@@ -729,11 +709,16 @@ body {
   background-color: rgba(255, 255, 255, 0.92);
   border-color: rgba(210, 222, 232, 0.8);
 }
-@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  .surface-glass {
-    background-color: rgba(255, 255, 255, 0.72);
-    -webkit-backdrop-filter: saturate(1.4) blur(14px);
-    backdrop-filter: saturate(1.4) blur(14px);
+/* Only where the device can afford it: a backdrop-filter on a sticky element
+   is re-evaluated on every scroll frame, and on a mid-range phone that is the
+   difference between a smooth scroll and a stuttering one. */
+@media (min-width: 768px) {
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .surface-glass {
+      background-color: rgba(255, 255, 255, 0.76);
+      -webkit-backdrop-filter: saturate(1.3) blur(12px);
+      backdrop-filter: saturate(1.3) blur(12px);
+    }
   }
 }
 
@@ -745,14 +730,22 @@ body {
   position: absolute;
   border-radius: 999px;
   pointer-events: none;
-  filter: blur(46px);
   opacity: 0.55;
+  /* The softness comes from the gradient falloff, not from `filter: blur()`.
+     A blurred element has to be rendered to an offscreen buffer and blurred
+     again every time it is repainted, and these sit inside sections that
+     scroll. */
+}
+@media (min-width: 768px) {
+  .aura {
+    filter: blur(36px);
+  }
 }
 .aura-volt {
-  background: radial-gradient(circle, rgba(0, 229, 95, 0.4), transparent 68%);
+  background: radial-gradient(circle, rgba(0, 229, 95, 0.34), transparent 72%);
 }
 .aura-ink {
-  background: radial-gradient(circle, rgba(16, 82, 126, 0.32), transparent 68%);
+  background: radial-gradient(circle, rgba(16, 82, 126, 0.28), transparent 72%);
 }
 
 /* A ring drawn in the court line weight, for corners that would otherwise be
@@ -798,16 +791,19 @@ body {
 }
 
 /* ── Ambient backdrop ─────────────────────────────────────────────────────
-   The moving half of the page background, mounted once per layout by
-   `components/ambient-backdrop.tsx`. Fixed, inert, and behind every stacking
-   context the content creates — `z-index: 0` on the layer with the content
-   above it, rather than a negative index that would slide under the body
-   background on Safari.
+   The page background, moving half and still half, in one fixed layer mounted
+   once per layout by `components/ambient-backdrop.tsx`.
 
-   Each loop ends on its own first frame, so nothing ever jumps: the grid
-   travels exactly one 92px tile, and the discs return to where they started.
-   Speeds are in the 30–90 second range, slow enough that the motion is felt
-   rather than watched.
+   It is one layer on purpose. The first version of this put four washes on the
+   body with `background-attachment: fixed` and then animated three blurred
+   elements on top of them, which made the browser repaint the whole viewport
+   on every scroll frame — the scroll jank this replaces. Here the washes are
+   painted once into a fixed, contained layer that scrolling never touches, and
+   the only moving thing is a grid that travels on `transform`.
+
+   The soft discs are radial gradients, not blurred boxes: `filter: blur()`
+   costs a full-size offscreen buffer per element per frame, and a gradient
+   with a wide falloff is visually the same thing for free.
    ------------------------------------------------------------------------ */
 .ambient {
   position: fixed;
@@ -815,7 +811,12 @@ body {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  /* Nothing inside can affect layout, paint or size outside this box, so the
+     compositor can keep it as one untouched layer while the page scrolls. */
   contain: strict;
+  background-image:
+    radial-gradient(58rem 40rem at 88% -6%, rgba(0, 229, 95, 0.07), transparent 62%),
+    radial-gradient(52rem 42rem at 0% 24%, rgba(16, 82, 126, 0.06), transparent 64%);
 }
 
 /* The content sits above the backdrop without needing a z-index of its own. */
@@ -826,7 +827,7 @@ body {
 }
 
 /* One tile larger than the viewport in each direction, so the travel never
-   exposes an edge. */
+   exposes an edge. One 92px tile per minute: felt, not watched. */
 .ambient-grid {
   position: absolute;
   inset: -92px;
@@ -835,86 +836,60 @@ body {
     linear-gradient(to bottom, rgba(6, 38, 61, 0.026) 1px, transparent 1px);
   background-size: 92px 92px;
   animation: ambient-grid-drift 60s linear infinite;
-  will-change: transform;
 }
 @keyframes ambient-grid-drift {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(92px, 92px, 0); }
 }
 
+/* Two discs that breathe against the fixed washes. Transform only, and the
+   loop ends on its own first frame so there is no seam. */
 .ambient-orb {
   position: absolute;
   border-radius: 999px;
-  filter: blur(70px);
-  will-change: transform;
 }
 .ambient-orb-volt {
-  top: -14vh;
-  right: -12vw;
-  width: 62vmin;
-  height: 62vmin;
-  background: radial-gradient(circle, rgba(0, 229, 95, 0.16), transparent 68%);
+  top: -16vh;
+  right: -14vw;
+  width: 64vmin;
+  height: 64vmin;
+  background: radial-gradient(circle, rgba(0, 229, 95, 0.1), transparent 70%);
   animation: ambient-drift-a 54s ease-in-out infinite;
 }
 .ambient-orb-ink {
-  bottom: -18vh;
-  left: -16vw;
-  width: 70vmin;
-  height: 70vmin;
-  background: radial-gradient(circle, rgba(16, 82, 126, 0.13), transparent 68%);
+  bottom: -20vh;
+  left: -18vw;
+  width: 72vmin;
+  height: 72vmin;
+  background: radial-gradient(circle, rgba(16, 82, 126, 0.08), transparent 70%);
   animation: ambient-drift-b 72s ease-in-out infinite;
 }
 @keyframes ambient-drift-a {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  33% { transform: translate3d(-3.5vw, 4vh, 0) scale(1.06); }
-  66% { transform: translate3d(2.5vw, 1.5vh, 0) scale(0.97); }
+  33% { transform: translate3d(-3vw, 3.5vh, 0) scale(1.06); }
+  66% { transform: translate3d(2vw, 1.5vh, 0) scale(0.97); }
 }
 @keyframes ambient-drift-b {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  40% { transform: translate3d(4vw, -3vh, 0) scale(1.05); }
-  75% { transform: translate3d(1vw, 2.5vh, 0) scale(0.98); }
+  40% { transform: translate3d(3.5vw, -2.5vh, 0) scale(1.05); }
+  75% { transform: translate3d(1vw, 2vh, 0) scale(0.98); }
 }
 
-/* A single band of light crossing the page every 40 seconds. It starts and
-   ends fully transparent, so its loop has no seam either. */
-.ambient-sheen {
-  position: absolute;
-  top: -30%;
-  left: -40%;
-  width: 45%;
-  height: 160%;
-  background: linear-gradient(90deg, transparent, rgba(0, 229, 95, 0.05), transparent);
-  transform: rotate(12deg);
-  animation: ambient-sheen-pass 40s linear infinite;
-  will-change: transform, opacity;
-}
-@keyframes ambient-sheen-pass {
-  0% { transform: translate3d(0, 0, 0) rotate(12deg); opacity: 0; }
-  12% { opacity: 1; }
-  88% { opacity: 1; }
-  100% { transform: translate3d(240vw, 0, 0) rotate(12deg); opacity: 0; }
-}
-
-/* Phones: keep the grid, which costs one composited layer, and drop the
-   blurred discs and the sheen, which cost three more for motion nobody sees
-   on a 6-inch screen. */
-@media (max-width: 639px) {
-  .ambient-orb,
-  .ambient-sheen {
+/* Phones keep the still washes and nothing else: a mid-range Android repaints
+   an animated full-viewport layer at the cost of the scroll itself. */
+@media (max-width: 767px) {
+  .ambient-grid,
+  .ambient-orb {
     animation: none;
   }
-  .ambient-sheen {
+  .ambient-grid {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ambient-grid,
-  .ambient-orb,
-  .ambient-sheen {
+  .ambient-orb {
     animation: none;
-  }
-  .ambient-sheen {
-    display: none;
   }
 }
