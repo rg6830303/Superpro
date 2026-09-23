@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Banknote, BellRing, CalendarDays, GraduationCap, LayoutDashboard, Menu, MessageSquare, Package, Settings, ShoppingCart, TicketPercent, Trophy, Users, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
+import { AmbientBackdrop } from "@/components/ambient-backdrop";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -34,9 +35,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
 
   return (
-    <div className="flex min-h-screen">
+    <>
+      <AmbientBackdrop />
+      <div data-admin-content className="flex min-h-screen">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-line bg-paper transition-transform lg:static lg:translate-x-0 ${
+        className={`surface-glass fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r transition-transform lg:static lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -73,7 +76,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {open && <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-paper px-5 lg:hidden">
+        <header className="surface-glass sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-5 lg:hidden">
           <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Toggle navigation" className="p-2 text-ink">
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -82,7 +85,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
         <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

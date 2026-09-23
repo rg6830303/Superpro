@@ -6,6 +6,7 @@ import { AIChatbot } from "@/components/ai-chatbot";
 import { ReadProgress } from "@/components/motion";
 import { WelcomePopup } from "@/components/welcome-popup";
 import { SmashIntro } from "@/components/smash-intro";
+import { AmbientBackdrop } from "@/components/ambient-backdrop";
 import { Suspense } from "react";
 
 /**
@@ -17,6 +18,9 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen flex-col">
       {/* First in the group so it is painted before anything it covers. */}
       <BootCover />
+      {/* Behind everything, and the reason the content below carries a
+          stacking context of its own. */}
+      <AmbientBackdrop />
       {/* The entrance makes this subtree inert while it plays, so everything
           the visitor could otherwise reach behind it lives inside it. */}
       <div data-site-content className="flex min-h-screen flex-col">
