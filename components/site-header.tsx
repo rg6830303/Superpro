@@ -77,7 +77,7 @@ export function SiteHeader() {
 
   return (
     <>
-    {open && <button type="button" className="fixed inset-0 z-[45] bg-ink/30 lg:hidden" aria-label="Close navigation backdrop" tabIndex={-1} onClick={() => { setOpen(false); toggleRef.current?.focus(); }} />}
+    {open && <button type="button" className="fixed inset-0 z-[45] bg-ink/40 backdrop-blur-[2px] lg:hidden" aria-label="Close navigation backdrop" tabIndex={-1} onClick={() => { setOpen(false); toggleRef.current?.focus(); }} />}
     <header
       ref={headerRef}
       className={`surface-glass sticky top-0 z-50 border-b transition-[border-color,box-shadow] duration-300 ${
@@ -152,7 +152,16 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div id="mobile-navigation" className="surface-glass absolute inset-x-0 top-full max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain border-t border-line shadow-[0_20px_50px_-30px_rgba(6,38,61,0.7)] lg:hidden">
+        <div
+          id="mobile-navigation"
+          /* Opaque, not glass: the drawer sits inside the header, which already
+             has a backdrop-filter of its own, so a nested one blurs the header
+             layer rather than the page and the menu reads straight through to
+             the content. It also stops well short of the fold — 68% of the
+             viewport at most, scrolling its own overflow — so the page it came
+             from stays visible behind it. */
+          className="absolute inset-x-0 top-full max-h-[68dvh] overflow-y-auto overscroll-contain rounded-b-2xl border-b border-t border-line bg-paper shadow-[0_28px_60px_-28px_rgba(6,38,61,0.55)] lg:hidden"
+        >
           <nav aria-label="Mobile navigation" className="wrap flex flex-col pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
             {NAV_LINKS.map((link) => (
               <Link

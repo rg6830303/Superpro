@@ -39,7 +39,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <AmbientBackdrop />
       <div data-admin-content className="flex min-h-screen">
       <aside
-        className={`surface-glass fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col overflow-y-auto border-r transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[min(17rem,84vw)] shrink-0 flex-col overflow-y-auto border-r border-line bg-paper shadow-[0_0_60px_-20px_rgba(6,38,61,0.45)] transition-transform lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:translate-x-0 lg:shadow-none ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -73,7 +73,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {open && <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
+      {open && <div className="fixed inset-0 z-30 bg-ink/40 backdrop-blur-[2px] lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
 
       <div className="min-w-0 flex-1">
         <header className="surface-glass sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-5 lg:hidden">
