@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Quote, X } from "lucide-react";
 
 /**
@@ -44,7 +45,16 @@ function markSeen(): void {
   }
 }
 
+/**
+ * Where a motivational pop-up is an interruption rather than a welcome: the
+ * coach portal is a work tool, and checkout is the one screen where nothing
+ * should get between a player and the pay button.
+ */
+const QUIET_PATHS = ["/coach", "/checkout"];
+
 export function WelcomePopup() {
+  const pathname = usePathname();
+  const quiet = QUIET_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const [open, setOpen] = useState(false);
   // Chosen on the client, after mount: picking during render would have the
   // server and the browser disagree about which line to show.
@@ -53,14 +63,14 @@ export function WelcomePopup() {
   const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
-    if (seenThisVisit()) return;
+    if (quiet || seenThisVisit()) return;
     const timer = window.setTimeout(() => {
       markSeen();
       setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
       setOpen(true);
     }, DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [quiet]);
 
   useEffect(() => {
     if (!open) return;
@@ -69,7 +79,7 @@ export function WelcomePopup() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
-  if (!open || !quote) return null;
+  if (quiet || !open || !quote) return null;
 
   return (
     <div

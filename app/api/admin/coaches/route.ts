@@ -17,10 +17,17 @@ const EDITABLE = [
   "languages",
   "image_url",
   "whatsapp",
+  "email",
   "available_days",
   "active",
   "sort_order",
 ] as const;
+
+/** The login email for a coach: trimmed, lower-cased, and null when blank. */
+function coachEmail(v: unknown): string | null {
+  const e = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
+}
 
 export async function GET() {
   const gate = await adminGate();
@@ -29,7 +36,8 @@ export async function GET() {
     const coaches = await query(
       `SELECT c.*,
               COALESCE((SELECT COUNT(*) FROM coaching_bookings b
-                        WHERE b.coach_id = c.id AND b.status <> 'cancelled'), 0)::int AS bookings
+                        WHERE b.coach_id = c.id AND b.status <> 'cancelled'), 0)::int AS bookings,
+              EXISTS (SELECT 1 FROM coach_accounts a WHERE a.coach_id = c.id) AS has_login
        FROM coaches c ORDER BY c.sort_order, c.name`,
     );
     return NextResponse.json({ coaches });
@@ -46,8 +54,8 @@ export async function POST(req: Request) {
     if (!body.name || !body.slug) return badRequest("Name and slug are required.");
     const rows = await query<{ id: string }>(
       `INSERT INTO coaches (slug, name, headline, bio, specialties, dupr, experience_years, rate_paise,
-         languages, image_url, whatsapp, available_days, active, sort_order)
-       VALUES ($1,$2,$3,$4,COALESCE($5,'[]')::jsonb,$6,$7,$8,$9,$10,$11,COALESCE($12,'[]')::jsonb,$13,$14)
+         languages, image_url, whatsapp, available_days, active, sort_order, email)
+       VALUES ($1,$2,$3,$4,COALESCE($5,'[]')::jsonb,$6,$7,$8,$9,$10,$11,COALESCE($12,'[]')::jsonb,$13,$14,$15)
        RETURNING id`,
       [
         body.slug,
@@ -64,6 +72,7 @@ export async function POST(req: Request) {
         body.available_days ? JSON.stringify(body.available_days) : null,
         body.active === false ? false : true,
         Number(body.sort_order ?? 0),
+        coachEmail(body.email),
       ],
     );
     await audit(gate, "coach.create", "coaches", rows[0].id, { name: body.name });
@@ -82,6 +91,7 @@ export async function PATCH(req: Request) {
       "available_days",
     ]);
     if (!body.id) return badRequest("Missing coach id.");
+    if ("email" in body) body.email = coachEmail(body.email);
     const update = buildUpdate("coaches", EDITABLE, body);
     if (!update) return badRequest("Nothing to update.");
     const rows = await query(update.text, update.params);

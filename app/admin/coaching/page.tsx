@@ -27,6 +27,8 @@ type Coach = {
   rate_paise: number;
   languages: string | null;
   whatsapp: string | null;
+  email: string | null;
+  has_login?: boolean;
   available_days: string[];
   image_url: string | null;
   active: boolean;
@@ -80,6 +82,11 @@ const COACH_FIELDS: FieldDef[] = [
   { name: "rate_paise", label: "Rate per session (paise)", type: "number", hint: "150000 = ₹1,500" },
   { name: "languages", label: "Languages" },
   { name: "whatsapp", label: "WhatsApp number", hint: "With country code, e.g. 919830000000" },
+  {
+    name: "email",
+    label: "Coach login email",
+    hint: "The coach signs up at /coach/signup with exactly this email. Leave blank to keep them off the coach portal.",
+  },
   { name: "sort_order", label: "Sort order", type: "number" },
   { name: "active", label: "Listed on the site", type: "checkbox" },
 ];
@@ -194,6 +201,9 @@ export default function AdminCoachingPage() {
                 <tr key={c.id}>
                   <td>
                     <span className="block font-semibold text-ink">{c.name}</span>
+                    <span className="block text-[11px] text-ink/50">
+                      {c.has_login ? "Coach portal active" : c.email ? `Invited · ${c.email}` : "No portal login"}
+                    </span>
                     <span className="block text-xs text-ink/55">{c.headline ?? "—"}</span>
                   </td>
                   <td>{c.dupr != null ? Number(c.dupr).toFixed(1) : "—"}</td>
@@ -373,6 +383,7 @@ export default function AdminCoachingPage() {
                   rate_paise: editing.rate_paise,
                   languages: editing.languages ?? "",
                   whatsapp: editing.whatsapp ?? "",
+                  email: editing.email ?? "",
                   sort_order: editing.sort_order,
                   active: editing.active,
                 }

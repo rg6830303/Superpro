@@ -210,7 +210,11 @@
     /* Fades out rather than stopping: a hard stop at 92px drew a visible line
        across every card taller than that. */
     background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 244, 248, 0.38) 60px, rgba(239, 244, 248, 0) 120px);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 1px 2px rgba(6, 38, 61, 0.04);
+    /* Defined, not floating: a hairline, a contact shadow, and a soft drop. */
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.8) inset,
+      0 1px 2px rgba(6, 38, 61, 0.06),
+      0 8px 24px -18px rgba(6, 38, 61, 0.28);
   }
   .card-hover {
     @apply card transition-[transform,border-color,box-shadow] duration-300 ease-out
@@ -664,8 +668,11 @@
    The washes are fixed, so scrolling moves the content across the light
    rather than dragging the light along with it.
    ------------------------------------------------------------------------ */
+/* A cool off-white canvas rather than pure white. Cards, panels and the header
+   stay white, so every surface now has an edge against the page instead of
+   white sitting on white. Still a light theme: this is 96% lightness. */
 body {
-  background-color: #fff;
+  background-color: #f3f6f9;
 }
 
 /* ── Bands and rules ──────────────────────────────────────────────────────
@@ -673,10 +680,14 @@ body {
    tint plus two hairlines, not a box — the content keeps the same measure and
    the page keeps its single column.
    ------------------------------------------------------------------------ */
+/* On the off-white canvas a band is a white sheet with crisp hairlines — the
+   reverse of before — so alternating sections still read as distinct. */
 .band {
   position: relative;
-  background-image: linear-gradient(180deg, rgba(239, 244, 248, 0.9), rgba(255, 255, 255, 0.2));
-  border-block: 1px solid rgba(210, 222, 232, 0.9);
+  background-color: rgba(255, 255, 255, 0.72);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.55));
+  border-block: 1px solid rgba(210, 222, 232, 1);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 .band-ink {
   position: relative;
@@ -816,9 +827,14 @@ body {
   /* Nothing inside can affect layout, paint or size outside this box, so the
      compositor can keep it as one untouched layer while the page scrolls. */
   contain: strict;
+  /* The brand light, strong enough to register: volt off the top-right, deep
+     blue from the left, and a white lift under the header so the top of every
+     page reads brightest and the eye starts there. */
   background-image:
-    radial-gradient(58rem 40rem at 88% -6%, rgba(0, 229, 95, 0.07), transparent 62%),
-    radial-gradient(52rem 42rem at 0% 24%, rgba(16, 82, 126, 0.06), transparent 64%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 22rem),
+    radial-gradient(60rem 38rem at 92% -8%, rgba(0, 229, 95, 0.16), transparent 60%),
+    radial-gradient(54rem 44rem at -4% 18%, rgba(16, 82, 126, 0.11), transparent 62%),
+    radial-gradient(70rem 40rem at 50% 115%, rgba(16, 82, 126, 0.06), transparent 65%);
 }
 
 /* The content sits above the backdrop without needing a z-index of its own. */
@@ -830,18 +846,17 @@ body {
 
 /* One tile larger than the viewport in each direction, so the travel never
    exposes an edge. One 92px tile per minute: felt, not watched. */
+/* A fine dot grid — the texture of a well-made business page — visible at the
+   top of the viewport and fading out below, so it frames the content instead
+   of sitting behind every paragraph. Still: a moving pattern under text reads
+   as shimmer, and nothing here needs to move to be seen. */
 .ambient-grid {
   position: absolute;
-  inset: -92px;
-  background-image:
-    linear-gradient(to right, rgba(6, 38, 61, 0.026) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(6, 38, 61, 0.026) 1px, transparent 1px);
-  background-size: 92px 92px;
-  animation: ambient-grid-drift 60s linear infinite;
-}
-@keyframes ambient-grid-drift {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(92px, 92px, 0); }
+  inset: 0;
+  background-image: radial-gradient(rgba(6, 38, 61, 0.16) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 85% 62% at 50% 0%, #000 22%, transparent 78%);
+  mask-image: radial-gradient(ellipse 85% 62% at 50% 0%, #000 22%, transparent 78%);
 }
 
 /* Two discs that breathe against the fixed washes. Transform only, and the
@@ -855,7 +870,7 @@ body {
   right: -14vw;
   width: 64vmin;
   height: 64vmin;
-  background: radial-gradient(circle, rgba(0, 229, 95, 0.1), transparent 70%);
+  background: radial-gradient(circle, rgba(0, 229, 95, 0.14), transparent 70%);
   animation: ambient-drift-a 54s ease-in-out infinite;
 }
 .ambient-orb-ink {
@@ -863,7 +878,7 @@ body {
   left: -18vw;
   width: 72vmin;
   height: 72vmin;
-  background: radial-gradient(circle, rgba(16, 82, 126, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(16, 82, 126, 0.1), transparent 70%);
   animation: ambient-drift-b 72s ease-in-out infinite;
 }
 @keyframes ambient-drift-a {
@@ -880,17 +895,16 @@ body {
 /* Phones keep the still washes and nothing else: a mid-range Android repaints
    an animated full-viewport layer at the cost of the scroll itself. */
 @media (max-width: 767px) {
-  .ambient-grid,
   .ambient-orb {
     animation: none;
   }
+  /* Still, so it costs nothing to keep; tighter so it reads at phone scale. */
   .ambient-grid {
-    display: none;
+    background-size: 18px 18px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ambient-grid,
   .ambient-orb {
     animation: none;
   }

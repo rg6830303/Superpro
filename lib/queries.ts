@@ -327,10 +327,16 @@ export async function getSessionsByIds(ids: string[]): Promise<GameSession[]> {
 
 // ── Coaching ────────────────────────────────────────────────────────────────
 
+/**
+ * Named columns, never `*`: coach rows reach client components, and `*` would
+ * carry the coach's private login email into the public page source.
+ */
+const PUBLIC_COACH_COLUMNS = "id, slug, name, headline, bio, specialties, dupr, experience_years, rate_paise, languages, image_url, whatsapp, available_days, active, sort_order, created_at";
+
 export async function getCoaches(): Promise<Coach[]> {
   return safe(
     "getCoaches",
-    async () => query<Coach>(`SELECT * FROM coaches WHERE active ORDER BY sort_order, name`),
+    async () => query<Coach>(`SELECT ${PUBLIC_COACH_COLUMNS} FROM coaches WHERE active ORDER BY sort_order, name`),
     FALLBACK_COACHES,
   );
 }
@@ -340,7 +346,7 @@ export async function getCoachBySlug(slug: string): Promise<Coach | null> {
   return safe(
     "getCoachBySlug",
     async () => {
-      const rows = await query<Coach>(`SELECT * FROM coaches WHERE slug = $1 AND active LIMIT 1`, [slug]);
+      const rows = await query<Coach>(`SELECT ${PUBLIC_COACH_COLUMNS} FROM coaches WHERE slug = $1 AND active LIMIT 1`, [slug]);
       return rows[0] ?? fallback;
     },
     fallback,

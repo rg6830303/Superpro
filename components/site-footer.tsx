@@ -29,6 +29,7 @@ const COLUMNS = [
       { href: "/about", label: "About & vision" },
       { href: "/login", label: "Player login" },
       { href: "/signup", label: "Create account" },
+      { href: "/coach/login", label: "Coach sign in" },
     ],
   },
 ];

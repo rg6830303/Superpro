@@ -64,10 +64,13 @@ async function loadSecret(): Promise<Uint8Array> {
 
 export const PLAYER_COOKIE = "superpro_player_session";
 export const ADMIN_COOKIE = "superpro_admin_session";
+export const COACH_COOKIE = "superpro_coach_session";
 
 export type PlayerPayload = { id: string; email: string; name: string; role: "user" };
 export type AdminPayload = { id: string; email: string; name: string; role: "admin" };
-export type SessionPayload = PlayerPayload | AdminPayload;
+/** `id` is the coach_accounts row; `coach_id` is the coach it logs in as. */
+export type CoachPayload = { id: string; coach_id: string; email: string; name: string; role: "coach" };
+export type SessionPayload = PlayerPayload | AdminPayload | CoachPayload;
 
 // The JWT `exp` and the cookie `maxAge` MUST agree, so both always come from
 // here rather than from literals scattered across the auth routes.
@@ -75,10 +78,12 @@ export const PLAYER_JWT_EXP = "7d";
 export const PLAYER_SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 export const ADMIN_JWT_EXP = "12h";
 export const ADMIN_SESSION_MAX_AGE = 60 * 60 * 12;
+export const COACH_JWT_EXP = "7d";
+export const COACH_SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
 export async function signToken(
   payload: SessionPayload,
-  expiresIn: string = payload.role === "admin" ? ADMIN_JWT_EXP : PLAYER_JWT_EXP,
+  expiresIn: string = payload.role === "admin" ? ADMIN_JWT_EXP : payload.role === "coach" ? COACH_JWT_EXP : PLAYER_JWT_EXP,
 ): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
@@ -110,6 +115,17 @@ export async function getAdminSession(): Promise<AdminPayload | null> {
   if (!token) return null;
   const payload = await verifyToken(token);
   return payload && payload.role === "admin" ? (payload as AdminPayload) : null;
+}
+
+/**
+ * The signed-in coach, or null. Each session reader checks its own role, so a
+ * coach token is never accepted as a player or admin session, or vice versa.
+ */
+export async function getCoachSession(): Promise<CoachPayload | null> {
+  const token = (await cookies()).get(COACH_COOKIE)?.value;
+  if (!token) return null;
+  const payload = await verifyToken(token);
+  return payload && payload.role === "coach" ? (payload as CoachPayload) : null;
 }
 
 /** Guard for admin API routes: returns the session or throws a 401 Response. */
