@@ -57,12 +57,24 @@ function create(): Sql {
     max: 5,
     // pgbouncer transaction mode cannot hold prepared statements.
     prepare: false,
+    // Never pipeline. Without prepared statements, every query that has
+    // parameters runs in two steps — Parse/Describe, wait for the server's
+    // reply, then Bind — and when all connections are busy postgres.js slips
+    // the next query onto one of them mid-exchange. Behind the transaction
+    // pooler that interleaving leaves the backend waiting on a Bind that never
+    // comes ("active / ClientRead"), holding its read locks indefinitely.
+    // With pipelining off, a query waits for a free connection instead: a few
+    // milliseconds, rather than a page that hangs. Measured: the home page ran
+    // six queries on a pool of five and went from ~1s to a reliable 8.8s.
+    max_pipeline: 0,
     // Keep the socket warm between consecutive user actions, release when idle.
     idle_timeout: 30,
     connect_timeout: 10,
     ssl: "require",
     onnotice: () => {},
-  });
+    // max_pipeline is a real runtime option (postgres/src/index.js reads it)
+    // that the bundled type definitions leave out.
+  } as Parameters<typeof postgres>[1]);
 }
 
 export function getSql(): Sql {
