@@ -348,6 +348,19 @@ export const SCHEMA_TABLES: string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, created_at DESC)`,
 
+  // A coach's login. Deliberately separate from player accounts: a coach sees
+  // their clients' contact details, so a coach account can only be created
+  // for an email the club has put on that coach's profile (coaches.email).
+  // One login per coach.
+  `CREATE TABLE IF NOT EXISTS coach_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    coach_id UUID UNIQUE NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_login_at TIMESTAMPTZ
+  )`,
+
   `CREATE TABLE IF NOT EXISTS coach_availability (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
@@ -467,6 +480,9 @@ export const SCHEMA_TABLES: string[] = [
 
 /** Additive migrations for databases created by an earlier version. */
 export const SCHEMA_MIGRATIONS: string[] = [
+  // The email a coach signs up with. Set by an admin, so only a real coach
+  // on the roster can claim a coach login.
+  `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS email TEXT`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_opt_in BOOLEAN NOT NULL DEFAULT true`,
   `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS whatsapp_posted_at TIMESTAMPTZ`,
   `ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS partner_name TEXT`,
@@ -599,6 +615,8 @@ export const SCHEMA_MIGRATIONS: string[] = [
 ];
 
 export const SCHEMA_INDEXES: string[] = [
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_email ON coaches(lower(email)) WHERE email IS NOT NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_coaching_coach_date ON coaching_bookings(coach_id, preferred_date)`,
   `CREATE INDEX IF NOT EXISTS idx_products_category ON products(category) WHERE active`,
   `CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_orders_phone ON orders(customer_phone)`,
@@ -693,6 +711,7 @@ async function apply(force: boolean): Promise<void> {
 
   const sql = getSql();
   let waitedOut = 0;
+  let failed = 0;
   const groups: Array<[string, string[]]> = [
     ["table", [SCHEMA_META_TABLE, ...SCHEMA_TABLES]],
     ["migration", SCHEMA_MIGRATIONS],
@@ -701,28 +720,33 @@ async function apply(force: boolean): Promise<void> {
   for (const [label, statements] of groups) {
     for (const stmt of statements) {
       try {
-        await sql.begin(async (tx) => {
-          await tx.unsafe(`SET LOCAL lock_timeout = '1s'`);
-          await tx.unsafe(stmt);
-        });
+        // One simple-protocol message, which Postgres runs as a single implicit
+        // transaction: SET LOCAL applies to this DDL and is gone afterwards, so
+        // nothing leaks onto the pooled connection. Not sql.begin — with
+        // pipelining disabled (see lib/db.ts) postgres.js never reserves the
+        // connection for it, and every statement failed as UNSAFE_TRANSACTION.
+        await sql.unsafe(`SET LOCAL lock_timeout = '1s'; ${stmt}`);
       } catch (err) {
-        const code = (err as { code?: string })?.code;
-        if (code === LOCK_TIMEOUT) waitedOut++;
+        failed++;
+        if ((err as { code?: string })?.code === LOCK_TIMEOUT) waitedOut++;
         console.error(`[schema] ${label} failed:`, err instanceof Error ? err.message : err);
       }
     }
   }
 
-  // Record the version only if nothing had to back off for a lock; otherwise
-  // leave it stale so a later cold start finishes the job.
-  if (waitedOut === 0) {
+  // Record the version only when every statement went through. Anything that
+  // failed — a lock it had to give up on, or anything else — leaves it stale,
+  // so a later cold start tries again rather than believing it is done.
+  if (failed === 0) {
     await query(
       `INSERT INTO schema_meta (id, version, applied_at) VALUES (1, $1, now())
        ON CONFLICT (id) DO UPDATE SET version = EXCLUDED.version, applied_at = now()`,
       [SCHEMA_VERSION],
     ).catch((err) => console.error("[schema] version write failed:", err instanceof Error ? err.message : err));
   } else {
-    console.warn(`[schema] ${waitedOut} statement(s) backed off for a lock; will retry on a later start`);
+    console.warn(
+      `[schema] ${failed} statement(s) failed (${waitedOut} backed off for a lock); will retry on a later start`,
+    );
   }
   ensured = true;
 }

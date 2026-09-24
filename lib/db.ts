@@ -66,6 +66,10 @@ function create(): Sql {
     // With pipelining off, a query waits for a free connection instead: a few
     // milliseconds, rather than a page that hangs. Measured: the home page ran
     // six queries on a pool of five and went from ~1s to a reliable 8.8s.
+    // Side effect worth knowing: postgres.js reserves a connection for
+    // sql.begin through the same check, so sql.begin does not work with this
+    // set — it fails with UNSAFE_TRANSACTION. Use single atomic statements, or
+    // one multi-statement simple query, which Postgres runs as one transaction.
     max_pipeline: 0,
     // Keep the socket warm between consecutive user actions, release when idle.
     idle_timeout: 30,
