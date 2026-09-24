@@ -1,18 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CalendarDays, GraduationCap, MapPin, ShoppingBag, Trophy, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarDays, GraduationCap, MapPin, ShoppingBag, Trophy } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { Counter, Reveal, ScoreMeter, TiltCard } from "@/components/motion";
 import { Paddle3D } from "@/components/paddle-3d";
-import {
-  getAnnouncements,
-  getCommunitySnapshot,
-  getCoaches,
-  getFeaturedProducts,
-  getTournaments,
-  getWeekSessions,
-} from "@/lib/queries";
-import { initials } from "@/lib/profile";
+import { getAnnouncements, getCoaches, getFeaturedProducts, getTournaments, getWeekSessions } from "@/lib/queries";
 import { formatDate, formatTime, isPast } from "@/lib/dates";
 import { DUPR_BANDS } from "@/lib/dupr";
 import { formatPaise, perPlayerPaise } from "@/lib/money";
@@ -21,13 +13,12 @@ import { PRODUCT_CATEGORIES, SITE } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [featured, sessions, tournaments, coaches, announcements, community] = await Promise.all([
-    getFeaturedProducts(5),
+  const [featured, sessions, tournaments, coaches, announcements] = await Promise.all([
+    getFeaturedProducts(4),
     getWeekSessions(7),
     getTournaments(),
     getCoaches(),
     getAnnouncements(1),
-    getCommunitySnapshot(),
   ]);
 
   const live = sessions.filter((s) => !isPast(s.session_date, s.start_time) && (s.booked ?? 0) < s.capacity);
@@ -35,9 +26,7 @@ export default async function HomePage() {
   const openTournament = tournaments.find((t) => t.registration_open) ?? tournaments[0];
   const notice = announcements[0];
   const hero = featured[0];
-  // The side grid is two columns wide, so an odd count always left a hole.
-  const side = featured.slice(1, 5);
-  const rest = side.length > 1 && side.length % 2 === 1 ? side.slice(0, -1) : side;
+  const rest = featured.slice(1, 4);
 
   return (
     <>
@@ -176,213 +165,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-
-      {/* ── Next on court ─────────────────────────────────────────────────── */}
-      <section className="wrap section">
-        <Reveal>
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <h2 className="rule-head headline-section">Next on court</h2>
-              <p className="lede mt-4 max-w-xl">
-                Register once, pick your slots, turn up. Your name and court number reach the games group
-                before you leave the house.
-              </p>
-            </div>
-            <Link href="/games" className="btn-outline btn-sm">
-              All slots <ArrowRight size={14} />
-            </Link>
-          </div>
-        </Reveal>
-
-        {nextUp.length > 0 ? (
-          <div className="stagger mt-10 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {nextUp.map((s, i) => {
-              const left = s.capacity - (s.booked ?? 0);
-              return (
-                <Reveal key={s.id} delay={i * 70}>
-                  <Link href="/games" className="group block h-full">
-                    <TiltCard className="h-full">
-                      <article className="card-hover flex h-full flex-col p-6">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="kicker">{formatDate(s.session_date)}</span>
-                          <span className={left <= 2 ? "chip-warn" : "chip-volt"}>
-                            <span className="live-dot" aria-hidden />
-                            {left} left
-                          </span>
-                        </div>
-                        <p className="mt-5 font-display text-5xl leading-none tabular-nums text-ink">
-                          {formatTime(s.start_time)}
-                        </p>
-                        <p className="mt-3 flex items-center gap-1.5 text-sm text-ink/65">
-                          <MapPin size={13} /> {s.venue_name} · Court {s.court_number}
-                        </p>
-                        <div className="mt-6 border-t border-line pt-4">
-                          <ScoreMeter value={s.booked ?? 0} max={s.capacity} label="Court filling" />
-                        </div>
-                        <p className="mt-4 font-mono text-sm tabular-nums text-ink">{formatPaise(perPlayerPaise(s))}</p>
-                      </article>
-                    </TiltCard>
-                  </Link>
-                </Reveal>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="mt-10 rounded-card border border-dashed border-line-strong p-10 text-center">
-            <p className="font-display text-2xl text-ink/70">This week&apos;s schedule goes up shortly</p>
-            <Link href="/games" className="btn-outline btn-sm mt-5">
-              See the calendar
-            </Link>
-          </div>
-        )}
-      </section>
-
-      {/* ── Community ──────────────────────────────────────────────────────
-          The club is the people in it. A row of real faces and a live count
-          says that faster than a paragraph could. ───────────────────────── */}
-      {community.players > 0 && (
-        <section className="wrap section-tight">
-          <Reveal>
-            <div className="panel flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
-              <div className="min-w-0">
-                <p className="eyebrow flex items-center gap-2">
-                  <Users size={14} /> Community
-                </p>
-                <h2 className="mt-3 font-display text-3xl text-ink sm:text-4xl">The people you&apos;ll play with</h2>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink/65">
-                  {community.players} players have a page on SuperPro
-                  {community.onCourtThisWeek > 0 && <>, and {community.onCourtThisWeek} are on court this week</>}.
-                  Follow the ones you rally with and you&apos;ll hear when they book.
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center lg:flex-col lg:items-end">
-                <ul className="flex -space-x-2.5" aria-label="Some of our players">
-                  {community.faces.map((f) => (
-                    <li key={f.handle}>
-                      <Link
-                        href={`/players/${f.handle}`}
-                        title={f.full_name}
-                        className="grid h-11 w-11 place-items-center overflow-hidden rounded-full border-2 border-paper bg-mist font-mono text-[11px] font-semibold text-ink/60 transition-transform hover:z-10 hover:-translate-y-1"
-                      >
-                        {f.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={f.avatar_url} alt={f.full_name} className="h-full w-full object-cover" />
-                        ) : (
-                          initials(f.full_name)
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/players" className="btn-volt btn-sm self-start lg:self-end">
-                  Find your people <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-          </Reveal>
-        </section>
-      )}
-
-      {/* ── The ladder ─────────────────────────────────────────────────────
-          Replaces the usual three feature cards with something a player can
-          actually locate themselves on. ─────────────────────────────────── */}
-      <section className="band section">
-        <div className="wrap grid min-w-0 gap-14 lg:grid-cols-[0.85fr_1.15fr]">
-          <Reveal variant="left">
-            <div className="lg:sticky lg:top-28">
-              <h2 className="rule-head headline-section">Find your rung</h2>
-              <p className="lede mt-5">
-                Every session, coach and draw is banded by DUPR, so you always know which court you belong on —
-                and what it takes to move up one.
-              </p>
-              <Link href="/signup" className="btn-primary mt-8">
-                Get your band <ArrowRight size={16} />
-              </Link>
-            </div>
-          </Reveal>
-
-          <ol className="space-y-4">
-            {DUPR_BANDS.map((band, i) => (
-              <Reveal key={band.level} delay={i * 90}>
-                <li className="card flex items-center gap-6 p-6 transition-colors hover:border-line-strong">
-                  <span className="font-mono text-[11px] tabular-nums text-ink/35">0{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-2xl text-ink">{band.label}</p>
-                    <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55">
-                      DUPR {band.range}
-                    </p>
-                  </div>
-                  <div className="hidden w-32 sm:block">
-                    <ScoreMeter value={i + 1} max={DUPR_BANDS.length} />
-                  </div>
-                </li>
-              </Reveal>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* ── Shop ──────────────────────────────────────────────────────────── */}
-      {featured.length > 0 && (
-        <section className="wrap section">
-          <Reveal>
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <h2 className="rule-head headline-section">The kit</h2>
-              <div className="flex flex-wrap gap-2">
-                {PRODUCT_CATEGORIES.map((c) => (
-                  <Link
-                    key={c.slug}
-                    href={`/products?category=${c.slug}`}
-                    className="rounded-pill border border-line px-4 py-2 text-[13px] font-medium text-ink/70 transition-colors hover:border-ink hover:text-ink"
-                  >
-                    {c.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-
-          <div className="mt-10 grid min-w-0 gap-5 lg:grid-cols-[1.15fr_1fr]">
-            {hero && (
-              <Reveal variant="scale">
-                <Link href={`/products/${hero.slug}`} className="group block h-full">
-                  <article className="card-hover flex h-full flex-col overflow-hidden">
-                    <div className="media-plate relative aspect-[16/11] overflow-hidden bg-mist">
-                      {hero.image_url && (
-                        <Image
-                          src={hero.image_url}
-                          alt={hero.name}
-                          fill
-                          sizes="(max-width: 1024px) 100vw, 55vw"
-                          className="object-contain p-8 transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-                        />
-                      )}
-                      <span className="chip-ink absolute left-5 top-5">Flagship</span>
-                    </div>
-                    <div className="flex flex-1 flex-col p-7">
-                      <h3 className="font-display text-3xl text-ink">{hero.name}</h3>
-                      {hero.tagline && (
-                        <p className="mt-3 max-w-md text-sm leading-relaxed text-ink/65">{hero.tagline}</p>
-                      )}
-                      <p className="mt-auto pt-6 font-display text-3xl tabular-nums text-ink">
-                        {formatPaise(hero.price_paise)}
-                      </p>
-                    </div>
-                  </article>
-                </Link>
-              </Reveal>
-            )}
-
-            <div className="grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {rest.map((p, i) => (
-                <Reveal key={p.id} delay={80 + i * 70}>
-                  <ProductCard product={p} />
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── What is pickleball ─────────────────────────────────────────────── */}
       <section className="band section">
@@ -532,6 +314,167 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── Next on court ─────────────────────────────────────────────────── */}
+      <section className="wrap section">
+        <Reveal>
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <h2 className="rule-head headline-section">Next on court</h2>
+              <p className="lede mt-4 max-w-xl">
+                Register once, pick your slots, turn up. Your name and court number reach the games group
+                before you leave the house.
+              </p>
+            </div>
+            <Link href="/games" className="btn-outline btn-sm">
+              All slots <ArrowRight size={14} />
+            </Link>
+          </div>
+        </Reveal>
+
+        {nextUp.length > 0 ? (
+          <div className="stagger mt-10 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {nextUp.map((s, i) => {
+              const left = s.capacity - (s.booked ?? 0);
+              return (
+                <Reveal key={s.id} delay={i * 70}>
+                  <Link href="/games" className="group block h-full">
+                    <TiltCard className="h-full">
+                      <article className="card-hover flex h-full flex-col p-6">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="kicker">{formatDate(s.session_date)}</span>
+                          <span className={left <= 2 ? "chip-warn" : "chip-volt"}>
+                            <span className="live-dot" aria-hidden />
+                            {left} left
+                          </span>
+                        </div>
+                        <p className="mt-5 font-display text-5xl leading-none tabular-nums text-ink">
+                          {formatTime(s.start_time)}
+                        </p>
+                        <p className="mt-3 flex items-center gap-1.5 text-sm text-ink/65">
+                          <MapPin size={13} /> {s.venue_name} · Court {s.court_number}
+                        </p>
+                        <div className="mt-6 border-t border-line pt-4">
+                          <ScoreMeter value={s.booked ?? 0} max={s.capacity} label="Court filling" />
+                        </div>
+                        <p className="mt-4 font-mono text-sm tabular-nums text-ink">{formatPaise(perPlayerPaise(s))}</p>
+                      </article>
+                    </TiltCard>
+                  </Link>
+                </Reveal>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-10 rounded-card border border-dashed border-line-strong p-10 text-center">
+            <p className="font-display text-2xl text-ink/70">This week&apos;s schedule goes up shortly</p>
+            <Link href="/games" className="btn-outline btn-sm mt-5">
+              See the calendar
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {/* ── The ladder ─────────────────────────────────────────────────────
+          Replaces the usual three feature cards with something a player can
+          actually locate themselves on. ─────────────────────────────────── */}
+      <section className="band section">
+        <div className="wrap grid min-w-0 gap-14 lg:grid-cols-[0.85fr_1.15fr]">
+          <Reveal variant="left">
+            <div className="lg:sticky lg:top-28">
+              <h2 className="rule-head headline-section">Find your rung</h2>
+              <p className="lede mt-5">
+                Every session, coach and draw is banded by DUPR, so you always know which court you belong on —
+                and what it takes to move up one.
+              </p>
+              <Link href="/signup" className="btn-primary mt-8">
+                Get your band <ArrowRight size={16} />
+              </Link>
+            </div>
+          </Reveal>
+
+          <ol className="space-y-4">
+            {DUPR_BANDS.map((band, i) => (
+              <Reveal key={band.level} delay={i * 90}>
+                <li className="card flex items-center gap-6 p-6 transition-colors hover:border-line-strong">
+                  <span className="font-mono text-[11px] tabular-nums text-ink/35">0{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-2xl text-ink">{band.label}</p>
+                    <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55">
+                      DUPR {band.range}
+                    </p>
+                  </div>
+                  <div className="hidden w-32 sm:block">
+                    <ScoreMeter value={i + 1} max={DUPR_BANDS.length} />
+                  </div>
+                </li>
+              </Reveal>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* ── Shop ──────────────────────────────────────────────────────────── */}
+      {featured.length > 0 && (
+        <section className="wrap section">
+          <Reveal>
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <h2 className="rule-head headline-section">The kit</h2>
+              <div className="flex flex-wrap gap-2">
+                {PRODUCT_CATEGORIES.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/products?category=${c.slug}`}
+                    className="rounded-pill border border-line px-4 py-2 text-[13px] font-medium text-ink/70 transition-colors hover:border-ink hover:text-ink"
+                  >
+                    {c.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+
+          <div className="mt-10 grid min-w-0 gap-5 lg:grid-cols-[1.15fr_1fr]">
+            {hero && (
+              <Reveal variant="scale">
+                <Link href={`/products/${hero.slug}`} className="group block h-full">
+                  <article className="card-hover flex h-full flex-col overflow-hidden">
+                    <div className="media-plate relative aspect-[16/11] overflow-hidden bg-mist">
+                      {hero.image_url && (
+                        <Image
+                          src={hero.image_url}
+                          alt={hero.name}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 55vw"
+                          className="object-contain p-8 transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                        />
+                      )}
+                      <span className="chip-ink absolute left-5 top-5">Flagship</span>
+                    </div>
+                    <div className="flex flex-1 flex-col p-7">
+                      <h3 className="font-display text-3xl text-ink">{hero.name}</h3>
+                      {hero.tagline && (
+                        <p className="mt-3 max-w-md text-sm leading-relaxed text-ink/65">{hero.tagline}</p>
+                      )}
+                      <p className="mt-auto pt-6 font-display text-3xl tabular-nums text-ink">
+                        {formatPaise(hero.price_paise)}
+                      </p>
+                    </div>
+                  </article>
+                </Link>
+              </Reveal>
+            )}
+
+            <div className="grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {rest.map((p, i) => (
+                <Reveal key={p.id} delay={80 + i * 70}>
+                  <ProductCard product={p} />
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Coaching & tournaments ────────────────────────────────────────── */}
       <section className="wrap grid min-w-0 gap-5 pb-16 sm:pb-20 lg:grid-cols-2">

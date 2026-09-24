@@ -22,8 +22,6 @@ export type DirectoryPlayer = {
 
 /** Which slice of the directory to return. */
 const VIEWS = new Set(["all", "following", "followers", "mutual"]);
-/** Level filter; anything else means "every level". */
-const LEVELS = new Set(["beginner", "intermediate", "advanced"]);
 
 /**
  * The player directory.
@@ -44,8 +42,6 @@ export async function GET(req: Request) {
     const limit = Math.min(Number(url.searchParams.get("limit") ?? 24) || 24, 48);
     const viewParam = url.searchParams.get("view") ?? "all";
     const view = VIEWS.has(viewParam) ? viewParam : "all";
-    const levelParam = url.searchParams.get("level") ?? "";
-    const level = LEVELS.has(levelParam) ? levelParam : "";
     const session = await getPlayerSession();
     const me = session?.id ?? null;
 
@@ -75,11 +71,10 @@ export async function GET(req: Request) {
          AND ($3::uuid IS NULL OR u.id <> $3::uuid)
          AND ($1 = '' OR u.full_name ILIKE '%' || $1 || '%' OR u.handle ILIKE '%' || $1 || '%'
               OR COALESCE(u.city, '') ILIKE '%' || $1 || '%' OR u.skill_level ILIKE '%' || $1 || '%')
-         AND ($4 = '' OR u.skill_level = $4)
          ${relationship}
        ORDER BY follows_me DESC, followers DESC, u.full_name
        LIMIT $2`,
-      [q, limit, me, level],
+      [q, limit, me],
     );
 
     // The viewer's own counts, so the UI can show a real profile summary rather

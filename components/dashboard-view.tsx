@@ -21,7 +21,7 @@ import { EmptyState } from "@/components/ui";
 import { ProfileForm } from "@/components/profile-form";
 import { WalletTopUp } from "@/components/wallet-topup";
 import { Avatar } from "@/components/player-directory";
-import { PlayerDirectory } from "@/components/player-directory";
+import { DiscoverPlayers } from "@/components/discover-players";
 import { ActivityFeed } from "@/components/activity-feed";
 import { formatDate, formatTime } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
@@ -306,7 +306,7 @@ export function DashboardView({
             }`}
           >
             <Compass size={15} className={activeTab === "discover" ? "text-volt-deep" : "text-ink/50"} />
-            <span>Community</span>
+            <span>Discover</span>
           </button>
 
           <button
@@ -416,10 +416,10 @@ export function DashboardView({
             {/* Discover Snapshot */}
             <div className="card flex flex-col p-6">
               <Compass size={18} className="text-volt-deep" />
-              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Community</p>
-              <h3 className="mt-1 text-lg font-bold text-ink">Find your people</h3>
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Pickleball Community</p>
+              <h3 className="mt-1 text-lg font-bold text-ink">Discover Players</h3>
               <p className="mt-1 text-xs leading-relaxed text-ink/55">
-                Follow the players you rally with and you&apos;ll hear when they book a game or enter a tournament.
+                Follow fellow players, challenge opponents, and get notified whenever friends book daily games or register for tournaments.
               </p>
               <div className="mt-auto pt-4">
                 <button
@@ -427,7 +427,7 @@ export function DashboardView({
                   onClick={() => switchTab("discover")}
                   className="btn-volt btn-sm inline-flex items-center gap-1.5 text-xs w-full justify-center"
                 >
-                  <Users size={13} /> Find players
+                  <Users size={13} /> Search &amp; Follow Players
                 </button>
               </div>
             </div>
@@ -696,7 +696,7 @@ export function DashboardView({
       {/* TAB 2: DISCOVER (Search & Follow Players) */}
       {activeTab === "discover" && (
         <div className="mt-8">
-          <PlayerDirectory initial={[]} signedIn />
+          <DiscoverPlayers currentUserId={session.id} />
         </div>
       )}
 

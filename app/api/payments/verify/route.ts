@@ -5,7 +5,6 @@ import { ensureSchema } from "@/lib/schema";
 import { formatDate, formatTimeRange } from "@/lib/dates";
 import { postSlotToGroup } from "@/lib/games";
 import { fulfilOnlineOrder, asLines } from "@/lib/orders";
-import { announceSlots } from "@/lib/booking";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
 import { adjustWallet } from "@/lib/wallet";
 import { bookingReceiptMessage, orderReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
@@ -301,17 +300,11 @@ async function settleCheckout(p: Payload) {
   }
 
   if (slots.length > 0) {
-    // RETURNING tells us whether this call is the one that settled the seats.
-    // A replayed callback matches nothing, so followers are told exactly once.
-    const settled = await query(
+    await query(
       `UPDATE game_registrations SET payment_status = 'paid', razorpay_payment_id = $1
-       WHERE reference = $2 AND payment_status <> 'paid'
-       RETURNING id`,
+       WHERE reference = $2`,
       [p.razorpay_payment_id, p.reference],
     );
-    if (settled.length > 0) {
-      await announceSlots(p.reference).catch((err) => console.error("[payments] announce failed:", err));
-    }
   }
 
   return NextResponse.json({ ok: true, reference: p.reference });

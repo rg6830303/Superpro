@@ -7,7 +7,7 @@ import { createRazorpayOrder, isRazorpayEnabled } from "@/lib/razorpay";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, tournamentRegistrationSchema } from "@/lib/validation";
 import { sendWhatsApp } from "@/lib/whatsapp";
-import { notifyFollowers } from "@/lib/notifications";
+import { notifyFollowersAndFollowing } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -168,8 +168,9 @@ export async function POST(req: Request) {
     }
 
     // Notify followers and following in the community feed
-    await notifyFollowers({
+    notifyFollowersAndFollowing({
       actorId: session.id,
+      actorName: session.name || input.player1_name,
       kind: "tournament_entry",
       title: `${session.name || input.player1_name} entered a Tournament!`,
       message: `${session.name || input.player1_name} registered for ${tournament.title} (${input.team_name})! Check out the draw.`,
