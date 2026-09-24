@@ -1,4 +1,4 @@
-import { query, isDbConfigured } from "@/lib/db";
+import { getSql, query, isDbConfigured } from "@/lib/db";
 
 /**
  * Single source of truth for the SuperPro database schema.
@@ -632,31 +632,106 @@ export const SCHEMA_INDEXES: string[] = [
 ];
 
 let ensured = false;
+let inflight: Promise<void> | null = null;
 
 /**
- * Idempotent bootstrap. Runs at most once per warm instance; safe to call from
- * any route. Failures are logged and swallowed so a transient DB hiccup never
- * turns into a 500 on a page that could still render.
+ * A fingerprint of every statement above. When the code's DDL changes, so does
+ * this, and the next cold start applies it; when it has not, nothing runs.
+ * FNV-1a rather than node:crypto so this module stays importable anywhere.
+ */
+const SCHEMA_VERSION = (() => {
+  let h = 0x811c9dc5;
+  for (const ch of [...SCHEMA_TABLES, ...SCHEMA_MIGRATIONS, ...SCHEMA_INDEXES].join(String.fromCharCode(10))) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16);
+})();
+
+/** Postgres "lock_not_available" — the DDL gave up rather than wait. */
+const LOCK_TIMEOUT = "55P03";
+
+/**
+ * Idempotent bootstrap, safe to call from any route.
+ *
+ * This used to run all ~150 statements on every cold start. On a fresh deploy
+ * that is every instance at once, and `ALTER TABLE … ADD COLUMN IF NOT EXISTS`
+ * takes an ACCESS EXCLUSIVE lock even when the column already exists. One slow
+ * or abandoned read on `users` made that ALTER wait, and every later query on
+ * `users` queued behind the ALTER: pages hung for a minute at a time.
+ *
+ * Now:
+ *   - Fast path: one read of the stored schema version. If it matches, done —
+ *     no DDL, no locks beyond an ordinary read.
+ *   - Slow path, only after the schema changes: each statement runs in its own
+ *     short transaction with a one-second lock_timeout, so DDL gives up rather
+ *     than queue behind readers and stall the site. SET LOCAL keeps that
+ *     setting inside the transaction, which matters behind a pooler that hands
+ *     the same connection to other requests.
+ *
+ * Failures are logged, never thrown: a page that can render should not 500
+ * because a migration had to wait for a quieter moment.
  */
 export async function ensureSchema(force = false): Promise<void> {
   if (!isDbConfigured) return;
   if (ensured && !force) return;
-  ensured = true;
+  // Concurrent first requests on one instance share a single run.
+  inflight ??= apply(force).finally(() => {
+    inflight = null;
+  });
+  return inflight;
+}
+
+async function apply(force: boolean): Promise<void> {
+  if (!force) {
+    const current = await query<{ version: string }>(`SELECT version FROM schema_meta WHERE id = 1`).catch(() => []);
+    if (current[0]?.version === SCHEMA_VERSION) {
+      ensured = true;
+      return;
+    }
+  }
+
+  const sql = getSql();
+  let waitedOut = 0;
   const groups: Array<[string, string[]]> = [
-    ["table", SCHEMA_TABLES],
+    ["table", [SCHEMA_META_TABLE, ...SCHEMA_TABLES]],
     ["migration", SCHEMA_MIGRATIONS],
     ["index", SCHEMA_INDEXES],
   ];
   for (const [label, statements] of groups) {
     for (const stmt of statements) {
       try {
-        await query(stmt);
+        await sql.begin(async (tx) => {
+          await tx.unsafe(`SET LOCAL lock_timeout = '1s'`);
+          await tx.unsafe(stmt);
+        });
       } catch (err) {
+        const code = (err as { code?: string })?.code;
+        if (code === LOCK_TIMEOUT) waitedOut++;
         console.error(`[schema] ${label} failed:`, err instanceof Error ? err.message : err);
       }
     }
   }
+
+  // Record the version only if nothing had to back off for a lock; otherwise
+  // leave it stale so a later cold start finishes the job.
+  if (waitedOut === 0) {
+    await query(
+      `INSERT INTO schema_meta (id, version, applied_at) VALUES (1, $1, now())
+       ON CONFLICT (id) DO UPDATE SET version = EXCLUDED.version, applied_at = now()`,
+      [SCHEMA_VERSION],
+    ).catch((err) => console.error("[schema] version write failed:", err instanceof Error ? err.message : err));
+  } else {
+    console.warn(`[schema] ${waitedOut} statement(s) backed off for a lock; will retry on a later start`);
+  }
+  ensured = true;
 }
+
+const SCHEMA_META_TABLE = `CREATE TABLE IF NOT EXISTS schema_meta (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    version TEXT NOT NULL,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`;
 
 /** Full DDL as one script — what supabase/schema.sql contains. */
 export function schemaSql(): string {
@@ -664,7 +739,7 @@ export function schemaSql(): string {
     "-- SuperPro — generated from lib/schema.ts. Do not edit by hand.",
     "-- Run this in the Supabase SQL editor, or POST /api/db-init once deployed.",
     "",
-    ...[...SCHEMA_TABLES, ...SCHEMA_MIGRATIONS, ...SCHEMA_INDEXES].map((s) => `${s.trim()};`),
+    ...[SCHEMA_META_TABLE, ...SCHEMA_TABLES, ...SCHEMA_MIGRATIONS, ...SCHEMA_INDEXES].map((s) => `${s.trim()};`),
     "",
   ].join("\n\n");
 }
