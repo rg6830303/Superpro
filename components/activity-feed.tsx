@@ -86,11 +86,11 @@ export function ActivityFeed({
           <div>
             <div className="flex items-center gap-2">
               <Bell size={18} className="text-volt-deep" />
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Pickleball Circle Feed</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Activity</p>
             </div>
-            <h2 className="mt-1 text-2xl font-bold text-ink">Follower &amp; Friend Activity</h2>
+            <h2 className="mt-1 text-2xl font-bold text-ink">From players you follow</h2>
             <p className="mt-1 text-sm text-ink/65">
-              Instant alerts whenever anyone in your pickleball circle books a daily game or enters a tournament.
+              When someone you follow books a game or enters a tournament, it shows up here — and so do new followers.
             </p>
           </div>
 
@@ -123,7 +123,7 @@ export function ActivityFeed({
           <Users size={36} className="mx-auto text-ink/30" />
           <p className="mt-4 text-base font-semibold text-ink">No activity yet</p>
           <p className="mt-1 max-w-sm mx-auto text-xs text-ink/55">
-            Follow more picklers from the Discover tab to receive live notifications when they book slots or enter tournaments.
+            Follow a few players from the Community tab and their games and tournament entries will show up here.
           </p>
         </div>
       ) : (

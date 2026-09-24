@@ -2,6 +2,7 @@ import { query } from "@/lib/db";
 import { formatDate } from "@/lib/dates";
 import { perPlayerPaise } from "@/lib/money";
 import { needsApproval } from "@/lib/levels";
+import { notifyFollowers } from "@/lib/notifications";
 
 /**
  * Slot booking, shared by the cart checkout and the direct games endpoint.
@@ -124,4 +125,44 @@ export async function insertRegistrations(args: {
   }
 
   return { gatedCount: gated.size };
+}
+
+/**
+ * Tell a player's followers they are on court.
+ *
+ * Only confirmed seats are announced — a slot waiting on coach approval may
+ * never happen, and announcing it would send people to a court the player is
+ * not on. Callers invoke this once the booking is real: straight away for
+ * pay-at-venue and wallet, and after signature verification for online
+ * payments, so an abandoned Razorpay window never tells anyone anything.
+ */
+export async function announceSlots(reference: string): Promise<void> {
+  const rows = await query<{
+    user_id: string;
+    player_name: string;
+    session_date: string;
+    start_time: string;
+    venue_name: string;
+  }>(
+    `SELECT r.user_id, COALESCE(u.full_name, r.player_name) AS player_name,
+            s.session_date::text AS session_date, s.start_time, v.name AS venue_name
+     FROM game_registrations r
+     JOIN game_sessions s ON s.id = r.session_id
+     JOIN venues v ON v.id = s.venue_id
+     LEFT JOIN users u ON u.id = r.user_id
+     WHERE (r.reference = $1 OR r.order_ref = $1) AND r.status = 'confirmed' AND r.user_id IS NOT NULL
+     ORDER BY s.session_date, s.start_time`,
+    [reference],
+  );
+  if (rows.length === 0) return;
+
+  const first = rows[0];
+  const more = rows.length > 1 ? ` (and ${rows.length - 1} more slot${rows.length > 2 ? "s" : ""})` : "";
+  await notifyFollowers({
+    actorId: first.user_id,
+    kind: "game_booking",
+    title: `${first.player_name} booked a game`,
+    message: `${first.player_name} is playing at ${first.venue_name} on ${formatDate(first.session_date)}, ${first.start_time}${more}. Join them on court.`,
+    linkUrl: "/games",
+  });
 }

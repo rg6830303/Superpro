@@ -29,7 +29,11 @@ type PublicProfile = {
   followers: number;
   following: number;
   is_following: boolean;
+  follows_me: boolean;
+  games_booked: number;
 };
+
+type Connection = { handle: string; full_name: string; avatar_url: string | null };
 
 /** Only the columns a player has agreed to show — never contact details. */
 async function load(handle: string, viewerId: string | null) {
@@ -38,7 +42,10 @@ async function load(handle: string, viewerId: string | null) {
             u.date_of_birth::text AS date_of_birth, u.gender, u.created_at::text AS created_at,
             COALESCE((SELECT COUNT(*) FROM follows f WHERE f.following_id = u.id), 0)::int AS followers,
             COALESCE((SELECT COUNT(*) FROM follows f WHERE f.follower_id = u.id), 0)::int AS following,
-            EXISTS (SELECT 1 FROM follows f2 WHERE f2.following_id = u.id AND f2.follower_id = $2::uuid) AS is_following
+            EXISTS (SELECT 1 FROM follows f2 WHERE f2.following_id = u.id AND f2.follower_id = $2::uuid) AS is_following,
+            EXISTS (SELECT 1 FROM follows f3 WHERE f3.follower_id = u.id AND f3.following_id = $2::uuid) AS follows_me,
+            COALESCE((SELECT COUNT(*) FROM game_registrations g
+                      WHERE g.user_id = u.id AND g.status = 'confirmed'), 0)::int AS games_booked
      FROM users u
      WHERE lower(u.handle) = $1 AND COALESCE(u.role, 'player') = 'player'
      LIMIT 1`,
@@ -89,10 +96,27 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
     [profile.id],
   ).catch(() => []);
 
+  // Who they follow and who follows them — the counts mean little without the
+  // faces behind them, and a mutual friend is the usual reason to follow.
+  const [followers, following] = await Promise.all([
+    query<Connection>(
+      `SELECT u.handle, u.full_name, u.avatar_url FROM follows f JOIN users u ON u.id = f.follower_id
+       WHERE f.following_id = $1 AND u.handle IS NOT NULL ORDER BY f.created_at DESC LIMIT 12`,
+      [profile.id],
+    ).catch(() => []),
+    query<Connection>(
+      `SELECT u.handle, u.full_name, u.avatar_url FROM follows f JOIN users u ON u.id = f.following_id
+       WHERE f.follower_id = $1 AND u.handle IS NOT NULL ORDER BY f.created_at DESC LIMIT 12`,
+      [profile.id],
+    ).catch(() => []),
+  ]);
+
+  // "Games booked" used to be the length of the six-row upcoming list, so it
+  // could never read higher than six. This is the real, all-time figure.
   const stats = [
     { label: "Followers", value: profile.followers },
     { label: "Following", value: profile.following },
-    { label: "Games booked", value: upcoming.length },
+    { label: "Games booked", value: profile.games_booked },
   ];
 
   return (
@@ -107,6 +131,11 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
           <div className="min-w-0 flex-1">
             <h1 className="headline-page">{profile.full_name}</h1>
+            {profile.follows_me && !isSelf && (
+              <span className="mt-2 inline-block rounded bg-mist px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-ink/60">
+                {profile.is_following ? "You follow each other" : "Follows you"}
+              </span>
+            )}
             <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-ink/45">
               @{profile.handle}
               {age != null && ` · ${age}`}
@@ -139,6 +168,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                 handle={profile.handle}
                 initialFollowing={profile.is_following}
                 initialFollowers={profile.followers}
+                followsMe={profile.follows_me}
                 signedIn={Boolean(session)}
                 size="md"
               />
@@ -147,12 +177,13 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         </header>
       </Reveal>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+      {/* One row at every width: stacked, three numbers took a whole phone screen. */}
+      <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-4">
         {stats.map((s, i) => (
           <Reveal key={s.label} delay={i * 60}>
-            <div className="rounded-xl border border-line bg-paper p-5">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-ink/45">{s.label}</p>
-              <p className="mt-1 font-display text-3xl text-ink">{s.value}</p>
+            <div className="rounded-xl border border-line bg-paper p-3 sm:p-5">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-ink/45 sm:text-[11px]">{s.label}</p>
+              <p className="mt-1 font-display text-2xl text-ink sm:text-3xl">{s.value}</p>
             </div>
           </Reveal>
         ))}
@@ -164,7 +195,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         </h2>
         {upcoming.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-line px-5 py-8 text-sm text-ink/55">
-            No games booked yet.{" "}
+            Nothing coming up right now.{" "}
             <Link href="/games" className="underline">
               Find a slot
             </Link>{" "}
@@ -189,6 +220,13 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         )}
       </section>
 
+      {(followers.length > 0 || following.length > 0) && (
+        <div className="mt-12 grid gap-8 md:grid-cols-2">
+          <ConnectionList title="Followers" total={profile.followers} people={followers} />
+          <ConnectionList title="Following" total={profile.following} people={following} />
+        </div>
+      )}
+
       <section className="mt-12 rounded-xl border border-line bg-mist p-6">
         <h2 className="flex items-center gap-2 font-display text-2xl text-ink">
           <Trophy size={18} className="text-volt-deep" /> Want to play them?
@@ -202,5 +240,37 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         </Link>
       </section>
     </div>
+  );
+}
+
+function ConnectionList({ title, total, people }: { title: string; total: number; people: Connection[] }) {
+  return (
+    <section>
+      <h2 className="flex items-baseline gap-2 font-display text-2xl text-ink">
+        {title} <span className="font-mono text-sm text-ink/40">{total}</span>
+      </h2>
+      {people.length === 0 ? (
+        <p className="mt-3 text-sm text-ink/50">Nobody yet.</p>
+      ) : (
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+          {people.map((p) => (
+            <li key={p.handle}>
+              <Link
+                href={`/players/${p.handle}`}
+                className="flex items-center gap-3 rounded-lg border border-line bg-paper px-3 py-2 transition-colors hover:border-ink/30"
+              >
+                <Avatar name={p.full_name} src={p.avatar_url} size="xs" />
+                <span className="truncate text-sm font-medium text-ink">{p.full_name}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {total > people.length && (
+        <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-ink/40">
+          and {total - people.length} more
+        </p>
+      )}
+    </section>
   );
 }

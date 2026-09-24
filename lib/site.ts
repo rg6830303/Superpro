@@ -29,14 +29,18 @@ export function waLink(message: string, phone: string = WHATSAPP_NUMBER): string
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
+/**
+ * Ordered by what people come to do: play first, then the community around it,
+ * then gear and the rest. There is no "Home" item — the logo is the way home,
+ * and a link that duplicates it spends a slot saying nothing.
+ */
 export const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/products", label: "Shop" },
   { href: "/games", label: "Daily Games" },
+  { href: "/players", label: "Community" },
+  { href: "/products", label: "Shop" },
   { href: "/coaching", label: "Coaching" },
   { href: "/tournaments", label: "Tournaments" },
-  { href: "/players", label: "Players" },
+  { href: "/about", label: "About" },
 ] as const;
 
 export const PRODUCT_CATEGORIES = [
