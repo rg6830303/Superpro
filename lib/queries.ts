@@ -491,3 +491,52 @@ export async function getCoachAvailability(): Promise<CoachSlot[]> {
     [],
   );
 }
+
+export type CommunitySnapshot = {
+  players: number;
+  onCourtThisWeek: number;
+  faces: Array<{ handle: string; full_name: string; avatar_url: string | null }>;
+};
+
+/**
+ * A glance at the community for the home page: how many players, how many are
+ * on court this week, and a row of faces. Photos first, so the row looks like
+ * people rather than a strip of initials.
+ */
+export async function getCommunitySnapshot(): Promise<CommunitySnapshot> {
+  return safe(
+    "community",
+    async () => {
+      // One round trip, not two: the home page already runs several queries in
+      // parallel, and each extra hop to the database costs a pool slot.
+      const [row] = await query<{
+        players: number;
+        on_court: number;
+        faces: CommunitySnapshot["faces"] | null;
+      }>(
+        `SELECT
+           (SELECT COUNT(*) FROM users WHERE handle IS NOT NULL AND COALESCE(role,'player') = 'player')::int AS players,
+           (SELECT COUNT(DISTINCT r.user_id) FROM game_registrations r
+              JOIN game_sessions s ON s.id = r.session_id
+             WHERE r.status = 'confirmed' AND r.user_id IS NOT NULL
+               AND s.session_date BETWEEN (now() AT TIME ZONE 'Asia/Kolkata')::date
+                                      AND (now() AT TIME ZONE 'Asia/Kolkata')::date + 7)::int AS on_court,
+           (SELECT json_agg(f) FROM (
+              SELECT u.handle, u.full_name, u.avatar_url
+              FROM users u
+              WHERE u.handle IS NOT NULL AND COALESCE(u.role,'player') = 'player'
+              ORDER BY (u.avatar_url IS NOT NULL) DESC,
+                       (SELECT COUNT(*) FROM follows x WHERE x.following_id = u.id) DESC,
+                       u.created_at DESC
+              LIMIT 8
+            ) f) AS faces`,
+      );
+      return {
+        players: row?.players ?? 0,
+        onCourtThisWeek: row?.on_court ?? 0,
+        faces: Array.isArray(row?.faces) ? row.faces : [],
+      };
+    },
+    { players: 0, onCourtThisWeek: 0, faces: [] },
+  );
+}

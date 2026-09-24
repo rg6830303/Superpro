@@ -5,7 +5,7 @@ import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { newRef, shippingFor } from "@/lib/money";
 import { priceBasket } from "@/lib/fees";
-import { checkSlots, insertRegistrations, loadSessions, slotPricePaise } from "@/lib/booking";
+import { announceSlots, checkSlots, insertRegistrations, loadSessions, slotPricePaise } from "@/lib/booking";
 import { quote, redeem, releaseRedemption } from "@/lib/discounts";
 import { createRazorpayOrder, isRazorpayEnabled } from "@/lib/razorpay";
 import { adjustWallet, chargeWallet, duesPaise, getWalletBalance, isBlocked } from "@/lib/wallet";
@@ -283,6 +283,15 @@ export async function POST(req: Request) {
 
     refundOnFailure = null;
     releaseOnFailure = null;
+
+    // Pay-at-venue and wallet bookings are real now; online ones are announced
+    // by payment verification instead, once the money has actually moved.
+    if (sessions.length > 0 && !razorpayOrderId) {
+      // Awaited: on Vercel the function can freeze as soon as the response is
+      // sent, and an un-awaited insert then simply never runs.
+      await announceSlots(reference).catch((err) => console.error("[checkout] announce failed:", err));
+    }
+
     // The basket has become records; it should not survive the checkout.
     if (session) await query(`DELETE FROM carts WHERE user_id = $1`, [session.id]).catch(() => {});
 

@@ -19,6 +19,7 @@ const COLUMNS = [
       { href: "/games", label: "Daily games" },
       { href: "/coaching", label: "Coaching" },
       { href: "/tournaments", label: "Tournaments" },
+      { href: "/players", label: "Community" },
       { href: "/dashboard", label: "My bookings" },
     ],
   },

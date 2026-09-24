@@ -30,19 +30,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "You already keep up with yourself." }, { status: 400 });
   }
 
-  await query(
-    `INSERT INTO follows (follower_id, following_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+  // RETURNING is how we know this is a new follow rather than a repeat click.
+  // Without it, follow → unfollow → follow pinged the other player every time.
+  const inserted = await query<{ follower_id: string }>(
+    `INSERT INTO follows (follower_id, following_id) VALUES ($1,$2)
+     ON CONFLICT DO NOTHING RETURNING follower_id`,
     [session.id, rows[0].id],
   );
 
-  createNotification({
-    userId: rows[0].id,
-    actorId: session.id,
-    kind: "follow",
-    title: "New Follower!",
-    message: `${session.name} started following you on SuperPro.`,
-    linkUrl: `/players`,
-  }).catch(() => {});
+  if (inserted.length > 0) {
+    // Only notify once per pair, ever: someone who unfollows and refollows has
+    // already been announced, and a second ping is noise.
+    const already = await query(
+      `SELECT 1 FROM user_notifications WHERE user_id = $1 AND actor_id = $2 AND kind = 'follow' LIMIT 1`,
+      [rows[0].id, session.id],
+    ).catch(() => [{}]);
+    if (already.length === 0) {
+      const me = await query<{ handle: string | null; full_name: string | null }>(
+        `SELECT handle, full_name FROM users WHERE id = $1`,
+        [session.id],
+      ).catch(() => []);
+      const name = me[0]?.full_name || session.name || "A player";
+      await createNotification({
+        userId: rows[0].id,
+        actorId: session.id,
+        kind: "follow",
+        title: `${name} followed you`,
+        message: `${name} started following you on SuperPro. Follow back to see when they are on court.`,
+        // To the follower, not the directory: the obvious next move is to look
+        // at who it was and decide whether to follow back.
+        linkUrl: me[0]?.handle ? `/players/${me[0].handle}` : "/players",
+      }).catch(() => {});
+    }
+  }
 
   const [count] = await query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM follows WHERE following_id = $1`,

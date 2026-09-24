@@ -207,7 +207,9 @@
     /* A single hairline of light along the top edge. It is what separates a
        surface that sits on the page from a rectangle drawn on it, and at this
        strength it reads as material rather than as a gradient. */
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 244, 248, 0.38) 92px, transparent 92px);
+    /* Fades out rather than stopping: a hard stop at 92px drew a visible line
+       across every card taller than that. */
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 244, 248, 0.38) 60px, rgba(239, 244, 248, 0) 120px);
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 1px 2px rgba(6, 38, 61, 0.04);
   }
   .card-hover {
