@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, MapPin, Trophy, Users } from "lucide-react";
 import { EmptyState, Reveal, SectionHeading } from "@/components/ui";
 import { getTournaments } from "@/lib/queries";
-import { formatDateRange } from "@/lib/dates";
+import { formatDateRange, toIsoDate } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 import type { Tournament } from "@/lib/types";
 
@@ -15,16 +15,35 @@ export const metadata: Metadata = {
     "Pickleball tournaments around Kolkata that SuperPro organises or sponsors — formats, prize pools, draws and results.",
 };
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function DateTile({ date, label }: { date: Tournament["start_date"]; label: string }) {
+  const iso = toIsoDate(date);
+  const [y, m, d] = iso ? iso.split("-").map(Number) : [];
+  return (
+    <div className="flex w-full shrink-0 items-center gap-4 rounded-xl border border-line bg-paper p-4 sm:h-28 sm:w-32 sm:flex-col sm:items-start sm:justify-between sm:gap-0">
+      <span className="kicker">{label}</span>
+      {iso ? (
+        <span className="flex items-baseline gap-2 sm:flex-col sm:gap-0.5">
+          <span className="font-display text-4xl tabular-nums leading-none text-ink">{d}</span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55">
+            {MONTHS[m - 1]} {y}
+          </span>
+        </span>
+      ) : (
+        <span className="font-display text-2xl text-ink/40">Date TBA</span>
+      )}
+    </div>
+  );
+}
+
 function TournamentCard({ t }: { t: Tournament }) {
   const isOpen = t.status === "open" && t.registration_open;
   return (
     <Link href={`/tournaments/${t.slug}`} className="card-hover group flex flex-col gap-5 p-6 sm:flex-row">
-      <div className="flex h-28 w-full shrink-0 flex-col justify-between rounded-xl border border-line bg-mist p-4 sm:w-40">
-        <span className="kicker">{t.kind === "sponsored" ? "Partner" : "Host"}</span>
-        <span className="font-display text-4xl tabular-nums leading-none text-ink">
-          {t.start_date ? String(t.start_date).slice(0, 4) : "—"}
-        </span>
-      </div>
+      {/* A calendar tile: the day, the month and the year. It used to slice
+          String(Date) for a year and printed the weekday ("Sat") instead. */}
+      <DateTile date={t.start_date} label={t.kind === "sponsored" ? "Partner" : "Host"} />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">

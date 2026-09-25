@@ -1,8 +1,7 @@
 import { BootCover } from "@/components/boot-cover";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { WhatsAppFab } from "@/components/whatsapp-fab";
-import { AIChatbot } from "@/components/ai-chatbot";
+import { FloatingActions } from "@/components/floating-actions";
 import { ReadProgress } from "@/components/motion";
 import { WelcomePopup } from "@/components/welcome-popup";
 import { SmashIntro } from "@/components/smash-intro";
@@ -29,8 +28,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <div data-menu-content className="flex flex-1 flex-col">
           <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
           <SiteFooter />
-          <WhatsAppFab />
-          <AIChatbot />
+          <FloatingActions />
         </div>
       </div>
       {/* Both read the `welcome` query param, so both need a suspense boundary. */}

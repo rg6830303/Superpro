@@ -38,6 +38,13 @@ export function Reveal({
       el.classList.add("is-in");
       return;
     }
+    // Already scrolled past — Back navigation restores the reader mid-page —
+    // so show it now. Waiting for it to re-enter left everything above the
+    // restored position blank until the reader scrolled back up through it.
+    if (el.getBoundingClientRect().bottom <= 0) {
+      el.classList.add("is-in", "is-done");
+      return;
+    }
     const io = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
@@ -49,7 +56,10 @@ export function Reveal({
         }, delay);
         io.disconnect();
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.08 },
+      // Any part on screen counts. A ratio threshold (it was 8%) can never be
+      // met by a block much taller than the viewport, so a long section on a
+      // phone could stay invisible for good.
+      { rootMargin: "0px 0px -6% 0px", threshold: 0 },
     );
     io.observe(el);
     return () => io.disconnect();

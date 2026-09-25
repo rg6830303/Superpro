@@ -7,6 +7,7 @@ import { Menu, ShoppingBag, User, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useCart } from "@/components/cart-provider";
 import { NAV_LINKS } from "@/lib/site";
+import { lockScroll } from "@/lib/scroll-lock";
 
 /**
  * The active section is marked by a volt rail that slides between items rather
@@ -27,11 +28,10 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (!open) return;
-    const previous = document.body.style.overflow;
     const background = document.querySelector<HTMLElement>("[data-menu-content]");
     const wasInert = background?.inert ?? false;
     if (background) background.inert = true;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") { setOpen(false); toggleRef.current?.focus(); }
       if (event.key === "Tab") {
@@ -46,7 +46,7 @@ export function SiteHeader() {
     wide.addEventListener("change", closeOnWide);
     window.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.body.style.overflow = previous;
+      unlock();
       if (background) background.inert = wasInert;
       window.removeEventListener("keydown", closeOnEscape);
       wide.removeEventListener("change", closeOnWide);

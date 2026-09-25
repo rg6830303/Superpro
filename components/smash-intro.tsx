@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { introAlreadyPlayed, markIntroPlayed, markIntroFinished } from "@/lib/intro-once";
+import { lockScroll } from "@/lib/scroll-lock";
 
 export const INTRO_DONE_EVENT = "superpro:intro-done";
 type BootCoverWindow = Window & { __superproBootClear?: () => void };
@@ -56,7 +57,7 @@ export function SmashIntro() {
         announceDone();
         return;
       }
-      markIntroPlayed();
+      markIntroPlayed(true);
       const portrait = window.matchMedia("(orientation: portrait)").matches;
       setSource(`/intro/kolkata-smash-${portrait ? "mobile" : "desktop"}.mp4`);
     }, 0);
@@ -73,8 +74,7 @@ export function SmashIntro() {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const content = document.querySelector<HTMLElement>("[data-site-content]");
     const wasInert = content?.inert ?? false;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     if (content) content.inert = true;
     skip.current?.focus({ preventScroll: true });
     let disposed = false;
@@ -87,7 +87,7 @@ export function SmashIntro() {
       disposed = true;
       clearTimeout(guard.current);
       player.pause();
-      document.body.style.overflow = previousOverflow;
+      unlock();
       if (content) content.inert = wasInert;
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
     };

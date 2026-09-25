@@ -20,6 +20,7 @@ import { formatPaise } from "@/lib/money";
 import { formatDate, formatTime } from "@/lib/dates";
 import { LEVEL_LABEL } from "@/lib/levels";
 import type { CoachBooking, ClientProfile } from "@/lib/coach-data";
+import { lockScroll } from "@/lib/scroll-lock";
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
 // Everything is a "YYYY-MM-DD" string handled in UTC arithmetic, so a coach in
@@ -350,11 +351,10 @@ function BookingDrawer({ booking: b, onClose }: { booking: CoachBooking; onClose
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      unlock();
     };
   }, [onClose]);
 

@@ -612,6 +612,28 @@ export const SCHEMA_MIGRATIONS: string[] = [
   `ALTER TABLE tournament_registrations DROP CONSTRAINT IF EXISTS tournament_registrations_payment_method_check`,
   `ALTER TABLE tournament_registrations ADD CONSTRAINT tournament_registrations_payment_method_check
      CHECK (payment_method IN ('razorpay','cod','venue','wallet','free'))`,
+  // Repair JSON saved as a quoted string. Until the write paths were fixed,
+  // lists like product specs and tournament categories were stored as jsonb
+  // strings, which the site read as empty — or, for a product gallery,
+  // iterated letter by letter. Converts only strings that hold a JSON list or
+  // object; anything else is left exactly as it is.
+  `DO $repair$
+DECLARE r record; n integer;
+BEGIN
+  FOR r IN SELECT table_name, column_name FROM information_schema.columns
+           WHERE table_schema = 'public' AND data_type = 'jsonb' LOOP
+    BEGIN
+      EXECUTE format(
+        'UPDATE %I SET %I = (%I #>> ''{}'')::jsonb WHERE jsonb_typeof(%I) = ''string'' AND left(ltrim(%I #>> ''{}''), 1) IN (''['', ''{'')',
+        r.table_name, r.column_name, r.column_name, r.column_name, r.column_name);
+      GET DIAGNOSTICS n = ROW_COUNT;
+      IF n > 0 THEN RAISE NOTICE 'repaired %.%: % rows', r.table_name, r.column_name, n; END IF;
+    EXCEPTION WHEN others THEN
+      RAISE NOTICE 'left %.% as it was: %', r.table_name, r.column_name, SQLERRM;
+    END;
+  END LOOP;
+END
+$repair$`,
 ];
 
 export const SCHEMA_INDEXES: string[] = [

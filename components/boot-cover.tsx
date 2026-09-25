@@ -116,13 +116,18 @@ export function IntroGate() {
       dangerouslySetInnerHTML={{
         __html: `(function(){
   var seen=false;
-  // Must match INTRO_SEEN_KEY in lib/intro-once.ts.
+  // Must match INTRO_SEEN_KEY and INTRO_LAST_KEY in lib/intro-once.ts.
   try{seen=sessionStorage.getItem('superpro:intro-seen')==='1';}catch(e){}
+  try{if(Date.now()-(+localStorage.getItem('superpro:intro-last')||0)<6048e5)seen=true;}catch(e){}
+  // Only a visit that lands on the home page gets the entrance. Someone who
+  // arrives on a deep link - a WhatsApp link to /games, a shared product - came
+  // for that page, and a full-screen film in front of it is in their way.
+  var home=location.pathname==='/';
   var celebrating=/[?&]welcome=(signup|login)\\b/.test(location.search);
   var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // A plain global, not an attribute on <html> or <body>: React reconciles
   // those during hydration and strips anything it did not itself render.
-  window.__superproSkipIntro=!((!seen||celebrating)&&!reduced);
+  window.__superproSkipIntro=!(((!seen&&home)||celebrating)&&!reduced);
 })();`,
       }}
     />

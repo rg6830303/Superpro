@@ -52,8 +52,13 @@ export function buildUpdate(
   const entries = Object.entries(patch).filter(([k]) => allowed.includes(k));
   if (entries.length === 0) return null;
 
-  const sets = entries.map(([k], i) => `${k} = $${i + 1}`);
-  const params = entries.map(([, v]) => v);
+  // JSONB values are cast via text. Assigning a JSON string straight to a jsonb
+  // column stores it as a jsonb *string*, not the list it spells — which is
+  // how every admin edit was turning product specs, galleries, coach
+  // specialties and tournament categories into strings the site then read as
+  // empty (or, for a gallery, iterated letter by letter).
+  const sets = entries.map(([k, v], i) => (v instanceof JsonbValue ? `${k} = $${i + 1}::text::jsonb` : `${k} = $${i + 1}`));
+  const params = entries.map(([, v]) => (v instanceof JsonbValue ? v.text : v));
   params.push(patch[idColumn] ?? patch.id);
 
   return {
@@ -62,13 +67,30 @@ export function buildUpdate(
   };
 }
 
-/** JSONB columns must be stringified before they hit a $n placeholder. */
-export function jsonbFields<T extends Record<string, unknown>>(patch: T, fields: string[]): T {
-  const out = { ...patch };
-  for (const f of fields) {
-    if (f in out && out[f] !== undefined && typeof out[f] !== "string") {
-      (out as Record<string, unknown>)[f] = JSON.stringify(out[f]);
+/** A value bound for a jsonb column; buildUpdate casts it properly. */
+export class JsonbValue {
+  constructor(readonly text: string) {}
+  /** So the audit log records the value itself, not a wrapper. */
+  toJSON(): unknown {
+    try {
+      return JSON.parse(this.text);
+    } catch {
+      return this.text;
     }
   }
-  return out;
+}
+
+/**
+ * Mark the JSONB columns in a patch. Values are serialised once (a string the
+ * client already serialised is kept as-is) and wrapped, so buildUpdate knows
+ * to cast them rather than store the JSON as a quoted string.
+ */
+export function jsonbFields<T extends Record<string, unknown>>(patch: T, fields: string[]): T {
+  const out = { ...patch } as Record<string, unknown>;
+  for (const f of fields) {
+    if (f in out && out[f] !== undefined && out[f] !== null) {
+      out[f] = new JsonbValue(typeof out[f] === "string" ? (out[f] as string) : JSON.stringify(out[f]));
+    }
+  }
+  return out as T;
 }

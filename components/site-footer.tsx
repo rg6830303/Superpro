@@ -85,7 +85,9 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <div className="wrap relative flex flex-col gap-4 border-t border-paper/15 py-7 font-mono text-[11px] text-paper/45 sm:flex-row sm:items-center sm:justify-between">
+      {/* Extra room under the last line on phones, where the two floating
+          launchers would otherwise sit on the contact details for good. */}
+      <div className="wrap relative flex flex-col gap-4 border-t border-paper/15 pb-24 pt-7 font-mono text-[11px] text-paper/45 sm:flex-row sm:items-center sm:justify-between sm:py-7">
         <p>
           © {new Date().getFullYear()} {SITE.legalName}
         </p>

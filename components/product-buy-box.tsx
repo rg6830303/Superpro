@@ -10,7 +10,10 @@ import { waLink } from "@/lib/site";
 import type { Product } from "@/lib/types";
 
 export function ProductGallery({ product }: { product: Product }) {
-  const images = [product.image_url, ...(product.gallery ?? [])].filter(Boolean) as string[];
+  // Only ever spread a real list: spreading a string yields one "image" per
+  // character, which is what the gallery did with badly stored rows.
+  const gallery = Array.isArray(product.gallery) ? product.gallery : [];
+  const images = [product.image_url, ...gallery].filter((x): x is string => typeof x === "string" && x.length > 0);
   const unique = [...new Set(images)];
   const [active, setActive] = useState(0);
 
