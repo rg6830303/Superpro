@@ -467,6 +467,21 @@ export const SCHEMA_TABLES: string[] = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
 
+  // Every sign-up, sign-in, failed sign-in and sign-out, for players and
+  // coaches — the admin activity monitor's source for account activity.
+  // actor_id has no foreign key on purpose: the history outlives the account.
+  `CREATE TABLE IF NOT EXISTS account_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    actor_type TEXT NOT NULL CHECK (actor_type IN ('player','coach')),
+    actor_id UUID,
+    email TEXT NOT NULL,
+    name TEXT,
+    kind TEXT NOT NULL CHECK (kind IN ('signup','login','login_failed','logout')),
+    ip TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
   `CREATE TABLE IF NOT EXISTS audit_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_email TEXT,
@@ -637,6 +652,8 @@ $repair$`,
 ];
 
 export const SCHEMA_INDEXES: string[] = [
+  `CREATE INDEX IF NOT EXISTS idx_account_events_recent ON account_events(created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_account_events_actor ON account_events(actor_id, created_at DESC)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_email ON coaches(lower(email)) WHERE email IS NOT NULL`,
   `CREATE INDEX IF NOT EXISTS idx_coaching_coach_date ON coaching_bookings(coach_id, preferred_date)`,
   `CREATE INDEX IF NOT EXISTS idx_products_category ON products(category) WHERE active`,

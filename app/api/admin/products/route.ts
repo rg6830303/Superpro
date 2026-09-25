@@ -97,28 +97,25 @@ export async function DELETE(req: Request) {
     const id = params.get("id");
     if (!id) return badRequest("Missing product id.");
 
-    // Archiving is the default: orders keep a historical reference to the
-    // product, and an accidental hard delete is not recoverable here. `purge=1`
-    // removes it outright, and is refused once anything has been ordered.
-    if (params.get("purge") === "1") {
-      const ordered = await query<{ n: number }>(
-        `SELECT COUNT(*)::int AS n FROM orders WHERE items::text LIKE '%' || $1 || '%'`,
-        [id],
-      );
-      if (Number(ordered[0]?.n ?? 0) > 0) {
-        return NextResponse.json(
-          { error: "This product appears on existing orders. Archive it instead of deleting it." },
-          { status: 409 },
-        );
-      }
+    // Remove means remove — unless the product is on an order, in which case
+    // it is archived (hidden from the shop) so the order's history still
+    // points at something. The response says which one happened.
+    const ordered = await query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM orders WHERE items::text LIKE '%' || $1 || '%'`,
+      [id],
+    );
+    if (Number(ordered[0]?.n ?? 0) === 0) {
       await query(`DELETE FROM products WHERE id = $1`, [id]);
       await audit(gate, "product.delete", "products", id);
       return NextResponse.json({ ok: true, deleted: true });
     }
-
     await query(`UPDATE products SET active = false, updated_at = now() WHERE id = $1`, [id]);
     await audit(gate, "product.archive", "products", id);
-    return NextResponse.json({ ok: true, archived: true });
+    return NextResponse.json({
+      ok: true,
+      archived: true,
+      message: "This product is on existing orders, so it was hidden from the shop rather than deleted.",
+    });
   } catch (err) {
     return serverError("products:delete", err);
   }

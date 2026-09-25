@@ -6,6 +6,7 @@ import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, loginSchema } from "@/lib/validation";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { recordAccountEvent } from "@/lib/activity";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
 
     const auth = await verifyCredentials(email, password);
     if (!auth.ok) {
+      await recordAccountEvent({ req, actorType: "player", email, kind: "login_failed" });
       // Fixed delay blunts credential stuffing and hides "no such user" timing.
       await new Promise((r) => setTimeout(r, 400));
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -60,6 +62,7 @@ export async function POST(req: Request) {
       sameSite: "lax",
       maxAge: PLAYER_SESSION_MAX_AGE,
     });
+    await recordAccountEvent({ req, actorType: "player", actorId: auth.id, email: auth.email, name, kind: "login" });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

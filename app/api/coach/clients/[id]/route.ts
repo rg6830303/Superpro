@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCoachSession } from "@/lib/auth";
+import { liveCoachSession } from "@/lib/coach-auth";
 import { clientForCoach } from "@/lib/coach-data";
 
 export const runtime = "nodejs";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getCoachSession();
+  const session = await liveCoachSession();
   if (!session) return NextResponse.json({ error: "Sign in as a coach." }, { status: 401 });
   const { id } = await params;
   if (!UUID.test(id)) return NextResponse.json({ error: "No such player among your clients." }, { status: 404 });

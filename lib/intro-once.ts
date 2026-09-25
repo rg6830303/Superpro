@@ -14,9 +14,8 @@
  * runs before this module is parsed — keep the string in step with it.
  */
 export const INTRO_SEEN_KEY = "superpro:intro-seen";
-/** When the entrance last played, in localStorage: at most once a week. */
+/** Set, in localStorage, the first time the entrance actually plays: once per device, ever. */
 export const INTRO_LAST_KEY = "superpro:intro-last";
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * The same visit, in memory: sessionStorage answers "has this tab seen it",
@@ -31,7 +30,7 @@ export function markIntroFinished(): void { finishedInMemory = true; }
 
 /** Storage access throws in some privacy modes; a failure must never gate the site. */
 /**
- * True when the entrance should NOT play: already shown this tab or this week,
+ * True when the entrance should NOT play: already shown on this device,
  * or the visit did not land on the home page — deep links go straight to the
  * page asked for. Mirrors the gate script in components/boot-cover.tsx.
  */
@@ -44,15 +43,14 @@ export function introAlreadyPlayed(): boolean {
     /* storage blocked */
   }
   try {
-    const last = Number(window.localStorage.getItem(INTRO_LAST_KEY) ?? 0);
-    if (Date.now() - last < WEEK_MS) return true;
+    if (window.localStorage.getItem(INTRO_LAST_KEY)) return true;
   } catch {
     /* storage blocked */
   }
   return false;
 }
 
-/** `shown` starts the once-a-week clock; only a real showing should do that. */
+/** `shown` records the one showing for this device; only a real showing should. */
 export function markIntroPlayed(shown = false): void {
   playedInMemory = true;
   try {

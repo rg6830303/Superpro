@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { checkDecoy, checkPassword, findCoachAccount, normaliseEmail, startCoachSession } from "@/lib/coach-auth";
+import { recordAccountEvent } from "@/lib/activity";
 
 export const runtime = "nodejs";
 
@@ -24,10 +25,12 @@ export async function POST(req: Request) {
   const email = normaliseEmail(parsed.data.email);
   const account = await findCoachAccount(email);
   if (!account) {
+    await recordAccountEvent({ req, actorType: "coach", email, kind: "login_failed" });
     await checkDecoy(parsed.data.password);
     return NextResponse.json({ error: NOPE }, { status: 401 });
   }
   if (!(await checkPassword(parsed.data.password, account.password_hash))) {
+    await recordAccountEvent({ req, actorType: "coach", actorId: account.coach_id, email, name: account.name, kind: "login_failed" });
     return NextResponse.json({ error: NOPE }, { status: 401 });
   }
   // A coach the club has delisted keeps their account but cannot sign in.
@@ -36,5 +39,6 @@ export async function POST(req: Request) {
   }
 
   await startCoachSession(account);
+  await recordAccountEvent({ req, actorType: "coach", actorId: account.coach_id, email, name: account.name, kind: "login" });
   return NextResponse.json({ ok: true, name: account.name });
 }

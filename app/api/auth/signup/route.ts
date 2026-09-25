@@ -7,6 +7,7 @@ import { formatZodError, signupSchema } from "@/lib/validation";
 import { isSupabaseAdminConfigured } from "@/lib/supabase";
 import { normaliseDuprId, skillFromDupr } from "@/lib/dupr";
 import { dobFromAge, handleFrom } from "@/lib/profile";
+import { recordAccountEvent } from "@/lib/activity";
 
 export const runtime = "nodejs";
 
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
       sameSite: "lax",
       maxAge: PLAYER_SESSION_MAX_AGE,
     });
+    await recordAccountEvent({ req, actorType: "player", actorId: created.id, email, name: full_name, kind: "signup" });
 
     return NextResponse.json({ ok: true, id: created.id });
   } catch (err) {

@@ -381,6 +381,33 @@ export function useResource<T>(url: string, key: string) {
 }
 
 /** POST/PATCH/DELETE helper that returns an error string instead of throwing. */
+export const ADMIN_NOTICE_EVENT = "superpro:admin-notice";
+
+/** Shows notices raised by submitResource, bottom-right, for a few seconds. */
+export function AdminNotices() {
+  const [notes, setNotes] = useState<Array<{ id: number; text: string }>>([]);
+  useEffect(() => {
+    const onNotice = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      const id = Date.now() + Math.random();
+      setNotes((n) => [...n, { id, text }]);
+      window.setTimeout(() => setNotes((n) => n.filter((x) => x.id !== id)), 7000);
+    };
+    window.addEventListener(ADMIN_NOTICE_EVENT, onNotice);
+    return () => window.removeEventListener(ADMIN_NOTICE_EVENT, onNotice);
+  }, []);
+  if (notes.length === 0) return null;
+  return (
+    <div className="fixed bottom-4 right-4 z-[90] flex max-w-sm flex-col gap-2" role="status" aria-live="polite">
+      {notes.map((n) => (
+        <p key={n.id} className="rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink shadow-lift">
+          {n.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export async function submitResource(
   url: string,
   method: "POST" | "PATCH" | "DELETE",
@@ -394,6 +421,11 @@ export async function submitResource(
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return data.error ?? "That did not save.";
+    // A success can still carry news — "hidden rather than deleted, because it
+    // is on orders" — which the console shows as a notice instead of dropping.
+    if (typeof data.message === "string" && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(ADMIN_NOTICE_EVENT, { detail: data.message }));
+    }
     return null;
   } catch (err) {
     return err instanceof Error ? err.message : "That did not save.";

@@ -110,27 +110,27 @@ export async function DELETE(req: Request) {
     const id = params.get("id");
     if (!id) return badRequest("Missing coach id.");
 
-    // Bookings reference the coach with ON DELETE RESTRICT, so deactivating is
-    // the default. `purge=1` removes a coach who never took a booking.
-    if (params.get("purge") === "1") {
-      const booked = await query<{ n: number }>(
-        `SELECT COUNT(*)::int AS n FROM coaching_bookings WHERE coach_id = $1`,
-        [id],
-      );
-      if (Number(booked[0]?.n ?? 0) > 0) {
-        return NextResponse.json(
-          { error: "This coach has bookings on record. Hide them from the site instead of deleting." },
-          { status: 409 },
-        );
-      }
+    // Remove means remove — unless the coach has bookings on record (which
+    // reference them with ON DELETE RESTRICT), in which case they are hidden
+    // from the site and their portal login is closed, so the history keeps its
+    // coach. The response says which one happened.
+    const booked = await query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM coaching_bookings WHERE coach_id = $1`,
+      [id],
+    );
+    if (Number(booked[0]?.n ?? 0) === 0) {
       await query(`DELETE FROM coaches WHERE id = $1`, [id]);
       await audit(gate, "coach.delete", "coaches", id);
       return NextResponse.json({ ok: true, deleted: true });
     }
-
     await query(`UPDATE coaches SET active = false WHERE id = $1`, [id]);
+    await query(`DELETE FROM coach_accounts WHERE coach_id = $1`, [id]);
     await audit(gate, "coach.deactivate", "coaches", id);
-    return NextResponse.json({ ok: true, deactivated: true });
+    return NextResponse.json({
+      ok: true,
+      deactivated: true,
+      message: "This coach has bookings on record, so they were hidden from the site and their login closed rather than deleted.",
+    });
   } catch (err) {
     return serverError("coaches:delete", err);
   }

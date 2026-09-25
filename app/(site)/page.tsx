@@ -80,27 +80,37 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            {/* A scoreboard rail, not a stat-card triple. */}
-            <dl className="mt-7 grid grid-cols-3 items-end gap-3 rounded-2xl border border-line bg-paper/75 p-4 shadow-[0_18px_50px_-38px_rgba(6,38,61,0.55)] backdrop-blur-sm sm:mt-9 sm:gap-4 sm:p-5">
-              {[
+            {/* A scoreboard line, not a box: three figures divided by hairlines,
+                and only the ones that are true today — a "0 coaches" boast on a
+                fresh roster reads worse than no number at all. */}
+            {(() => {
+              const stats = [
                 { n: live.length, label: "Open slots this week" },
                 { n: coaches.length, label: "Certified coaches" },
                 { n: tournaments.length, label: "Draws run & backed" },
-              ].map((s) => (
-                <div key={s.label}>
-                  <dt className="sr-only">{s.label}</dt>
-                  <dd>
-                    <Counter to={s.n} className="block font-display text-[2rem] leading-none text-ink sm:text-[2.75rem]" />
-                    <span className="mt-2 block font-mono text-[9px] uppercase leading-tight tracking-[0.12em] text-ink/50 sm:text-[10px]">
-                      {s.label}
-                    </span>
-                  </dd>
-                </div>
-              ))}
-                          </dl>
+              ].filter((st) => st.n > 0);
+              if (stats.length === 0) return null;
+              return (
+                <dl className="mt-8 flex flex-wrap items-end gap-x-7 gap-y-4 sm:mt-10 sm:gap-x-10">
+                  {stats.map((st, i) => (
+                    <div key={st.label} className={i > 0 ? "border-l border-line pl-7 sm:pl-10" : ""}>
+                      <dt className="sr-only">{st.label}</dt>
+                      <dd>
+                        <Counter to={st.n} className="block font-display text-[2rem] leading-none text-ink sm:text-[2.6rem]" />
+                        <span className="mt-2 block max-w-[9rem] font-mono text-[10px] uppercase leading-tight tracking-[0.12em] text-ink/50">
+                          {st.label}
+                        </span>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              );
+            })()}
           </div>
 
-          <div className="relative">
+          {/* Capped on phones: at full column width the paddle stood ~500px
+              tall and took a whole screen of its own under the headline. */}
+          <div className="relative mx-auto w-full max-w-[240px] sm:max-w-[320px] lg:max-w-none">
             <div aria-hidden className="court-grid court-grid-drift absolute inset-x-0 bottom-8 top-8 -z-10 rounded-card" />
             <Paddle3D priority />
           </div>
@@ -126,7 +136,7 @@ export default async function HomePage() {
           Every visitor is here for one of these. Rather than make them read
           the nav, put the four rooms of the club on the page. ───────────── */}
       <section className="wrap section-tight">
-        <div className="grid min-w-0 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
               href: "/products",
@@ -158,18 +168,25 @@ export default async function HomePage() {
             },
           ].map((door, i) => (
             <Reveal key={door.href} delay={i * 70}>
+              {/* An index entry, not a box: a hairline above, a number, the
+                  title and a line of copy. The volt rule drawing across the
+                  top on hover is the only frame it ever gets. */}
               <Link
                 href={door.href}
-                className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-paper p-4 transition-all duration-200 before:absolute before:inset-x-0 before:top-0 before:h-1 before:origin-left before:scale-x-0 before:bg-volt before:transition-transform before:duration-300 hover:-translate-y-1 hover:border-volt hover:shadow-[0_18px_40px_-24px_rgba(6,38,61,0.45)] hover:before:scale-x-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt sm:p-6"
+                className="group relative flex h-full items-start gap-4 border-t border-line pt-5 transition-colors before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:origin-left before:scale-x-0 before:bg-volt before:transition-transform before:duration-300 hover:before:scale-x-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-volt lg:flex-col lg:gap-0"
               >
-                <span className="grid h-11 w-11 place-items-center rounded-lg bg-volt-soft text-volt-deep transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3">
-                  <door.icon size={20} />
+                <span className="flex shrink-0 items-center gap-3 lg:w-full lg:justify-between">
+                  <span className="font-mono text-[11px] tabular-nums tracking-[0.14em] text-ink/35">0{i + 1}</span>
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-volt-soft text-volt-deep transition-transform duration-200 group-hover:scale-110 lg:order-last">
+                    <door.icon size={18} />
+                  </span>
                 </span>
-                <h3 className="mt-4 break-words font-display text-lg text-ink sm:mt-5 sm:text-2xl">{door.title}</h3>
-                <p className="mt-2 flex-1 text-xs leading-relaxed text-ink/65 sm:text-sm">{door.blurb}</p>
-                <span className="mt-5 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-volt-deep">
-                  {door.cta}
-                  <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-1" />
+                <span className="min-w-0 flex-1 lg:mt-6">
+                  <span className="flex items-center gap-2 font-display text-xl text-ink sm:text-2xl">
+                    {door.title}
+                    <ArrowRight size={16} className="text-ink/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-volt-deep" />
+                  </span>
+                  <span className="mt-1.5 block text-sm leading-relaxed text-ink/60">{door.blurb}</span>
                 </span>
               </Link>
             </Reveal>
@@ -210,7 +227,7 @@ export default async function HomePage() {
                             {left} left
                           </span>
                         </div>
-                        <p className="mt-5 font-display text-5xl leading-none tabular-nums text-ink">
+                        <p className="mt-5 font-display text-4xl leading-none tabular-nums text-ink sm:text-5xl">
                           {formatTime(s.start_time)}
                         </p>
                         <p className="mt-3 flex items-center gap-1.5 text-sm text-ink/65">
@@ -301,23 +318,38 @@ export default async function HomePage() {
             </div>
           </Reveal>
 
-          <ol className="space-y-4">
-            {DUPR_BANDS.map((band, i) => (
-              <Reveal key={band.level} delay={i * 90}>
-                <li className="card flex items-center gap-6 p-6 transition-colors hover:border-line-strong">
-                  <span className="font-mono text-[11px] tabular-nums text-ink/35">0{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-2xl text-ink">{band.label}</p>
-                    <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55">
-                      DUPR {band.range}
-                    </p>
+          {/* The ladder drawn as a ladder: one track, a node per rung that grows
+              and fills as it climbs. No cards — the rungs are the shape. */}
+          <ol className="relative pl-10 sm:pl-14">
+            <span aria-hidden className="absolute bottom-3 left-[15px] top-3 w-px bg-gradient-to-b from-line via-volt/50 to-volt sm:left-[23px]" />
+            {DUPR_BANDS.map((band, i) => {
+              const size = [14, 20, 28][i] ?? 28;
+              return (
+                <Reveal as="li" key={band.level} delay={i * 90}>
+                  <div className="relative flex items-center gap-5 py-6 sm:py-8">
+                    <span
+                      aria-hidden
+                      className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-paper shadow-[0_0_0_1px_rgba(0,229,95,0.45)]"
+                      style={{
+                        left: -24,
+                        width: size,
+                        height: size,
+                        background: i === DUPR_BANDS.length - 1 ? "#00e55f" : `rgba(0,229,95,${0.25 + i * 0.3})`,
+                      }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-[11px] tabular-nums tracking-[0.14em] text-ink/35">Rung 0{i + 1}</p>
+                      <p className="mt-1 font-display text-3xl text-ink sm:text-4xl">{band.label}</p>
+                      <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55">DUPR {band.range}</p>
+                    </div>
+                    <div className="hidden w-40 sm:block">
+                      <ScoreMeter value={i + 1} max={DUPR_BANDS.length} />
+                    </div>
                   </div>
-                  <div className="hidden w-32 sm:block">
-                    <ScoreMeter value={i + 1} max={DUPR_BANDS.length} />
-                  </div>
-                </li>
-              </Reveal>
-            ))}
+                  {i < DUPR_BANDS.length - 1 && <hr className="rule-fade" />}
+                </Reveal>
+              );
+            })}
           </ol>
         </div>
       </section>
@@ -407,7 +439,8 @@ export default async function HomePage() {
             </div>
           </Reveal>
 
-          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+          {/* A spec sheet, not four boxes: big figures on hairline rules. */}
+          <div className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-8 sm:gap-x-10">
             {[
               { k: "20 × 44", l: "Feet of court", n: "Same as a doubles badminton court." },
               { k: "11", l: "Points to win", n: "Win by two. Serve to score." },
@@ -415,8 +448,8 @@ export default async function HomePage() {
               { k: "10 min", l: "To your first rally", n: "That is the whole pitch." },
             ].map((f, i) => (
               <Reveal key={f.l} delay={i * 60}>
-                <div className="h-full rounded-card border border-line bg-paper p-5">
-                  <p className="font-display text-4xl text-volt-deep">{f.k}</p>
+                <div className="h-full border-t-2 border-ink pt-4">
+                  <p className="font-display text-3xl text-ink sm:text-5xl">{f.k}</p>
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{f.l}</p>
                   <p className="mt-2 text-[13px] leading-relaxed text-ink/60">{f.n}</p>
                 </div>
@@ -438,7 +471,9 @@ export default async function HomePage() {
           </p>
         </Reveal>
 
-        <div className="mt-10 grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Six reasons as an open list — a numbered line each, divided by
+            hairlines — rather than six identical boxes in a grid. */}
+        <div className="mt-12 grid min-w-0 gap-x-12 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
               t: "Play at your level",
@@ -466,10 +501,12 @@ export default async function HomePage() {
             },
           ].map((w, i) => (
             <Reveal key={w.t} delay={i * 55}>
-              <div className="h-full rounded-card border border-line bg-paper p-6">
-                <span className="block h-1 w-9 rounded-full bg-volt" />
-                <h3 className="mt-4 font-display text-xl text-ink">{w.t}</h3>
-                <p className="mt-2.5 text-sm leading-relaxed text-ink/65">{w.d}</p>
+              <div className="flex h-full gap-4 border-t border-line py-6">
+                <span className="font-mono text-[11px] tabular-nums tracking-[0.14em] text-volt-deep">0{i + 1}</span>
+                <div className="min-w-0">
+                  <h3 className="font-display text-xl text-ink">{w.t}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-ink/65">{w.d}</p>
+                </div>
               </div>
             </Reveal>
           ))}
@@ -542,6 +579,11 @@ export default async function HomePage() {
               Each coach owns a rung of the ladder — first paddle, first rally, first competitive match, first
               rating. Pick the one who matches where you are.
             </p>
+            {coaches.length === 0 ? (
+              <p className="mt-6 border-y border-line py-4 text-sm text-ink/55">
+                The coaching roster is being put together. Coaches will appear here as soon as they are listed.
+              </p>
+            ) : (
             <ul className="mt-6 divide-y divide-line border-y border-line">
               {coaches.slice(0, 3).map((c) => (
                 <li key={c.id} className="flex items-baseline justify-between gap-4 py-3">
@@ -552,6 +594,7 @@ export default async function HomePage() {
                 </li>
               ))}
             </ul>
+            )}
             <Link href="/coaching" className="btn-outline btn-sm mt-auto self-start pt-2">
               Meet the coaches <ArrowRight size={14} />
             </Link>

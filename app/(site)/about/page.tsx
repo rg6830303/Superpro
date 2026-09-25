@@ -33,7 +33,7 @@ const PILLARS = [
 const TIMELINE = [
   { year: "2024", title: "First paddles", body: "Champion Series prototypes tested through a full monsoon at TurfXL." },
   { year: "2025", title: "Daily games", body: "Open play goes seven days a week across two Kolkata venues." },
-  { year: "2026", title: "The circuit", body: "Legends & Challengers reaches a third edition; SuperPro becomes paddle partner for the Bengal Open." },
+  { year: "2026", title: "The circuit", body: "SuperPro starts running its own draws and backing tournaments across the city." },
   { year: "Next", title: "The academy", body: "A permanent SuperPro court with a junior programme and full-time coaching staff." },
 ];
 

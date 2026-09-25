@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Banknote, BellRing, CalendarDays, GraduationCap, LayoutDashboard, Menu, MessageSquare, Package, Settings, ShoppingCart, TicketPercent, Trophy, Users, X } from "lucide-react";
+import { Activity, Banknote, BellRing, CalendarDays, GraduationCap, LayoutDashboard, Menu, MessageSquare, Package, Settings, ShoppingCart, TicketPercent, Trophy, Users, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { AmbientBackdrop } from "@/components/ambient-backdrop";
+import { AdminNotices } from "@/components/admin/crud";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/activity", label: "Activity", icon: Activity },
   { href: "/admin/games", label: "Daily games", icon: CalendarDays },
   { href: "/admin/revenue", label: "Revenue", icon: Banknote },
   { href: "/admin/orders", label: "Gear orders", icon: ShoppingCart },
@@ -84,6 +86,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:p-8">{children}</main>
+        <AdminNotices />
       </div>
       </div>
     </>

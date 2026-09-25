@@ -59,7 +59,9 @@ export async function POST(req: Request) {
       [
         body.slug,
         body.title,
-        body.kind ?? "organized",
+        // Only two kinds exist; anything else (including "organised") is the
+        // organised kind rather than a constraint error and a 500.
+        body.kind === "sponsored" ? "sponsored" : "organized",
         body.status ?? "announced",
         body.start_date || null,
         body.end_date || null,
@@ -108,9 +110,25 @@ export async function DELETE(req: Request) {
   try {
     const id = new URL(req.url).searchParams.get("id");
     if (!id) return badRequest("Missing tournament id.");
+    // Remove means remove — unless teams have entered, in which case the
+    // tournament is cancelled so their entries keep their event. Groups and
+    // registration questions go with it (ON DELETE CASCADE).
+    const [entries] = await query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM tournament_registrations WHERE tournament_id = $1`,
+      [id],
+    );
+    if (Number(entries?.n ?? 0) === 0) {
+      await query(`DELETE FROM tournaments WHERE id = $1`, [id]);
+      await audit(gate, "tournament.delete", "tournaments", id);
+      return NextResponse.json({ ok: true, deleted: true });
+    }
     await query(`UPDATE tournaments SET status = 'cancelled', registration_open = false WHERE id = $1`, [id]);
     await audit(gate, "tournament.cancel", "tournaments", id);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      cancelled: true,
+      message: "Teams have entered this tournament, so it was marked cancelled rather than deleted.",
+    });
   } catch (err) {
     return serverError("tournaments:delete", err);
   }

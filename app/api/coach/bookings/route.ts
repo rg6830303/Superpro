@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCoachSession } from "@/lib/auth";
+import { liveCoachSession } from "@/lib/coach-auth";
 import { coachBookings } from "@/lib/coach-data";
 
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** The signed-in coach's bookings for a date range — at most one calendar page. */
 export async function GET(req: Request) {
-  const session = await getCoachSession();
+  const session = await liveCoachSession();
   if (!session) return NextResponse.json({ error: "Sign in as a coach." }, { status: 401 });
 
   const url = new URL(req.url);

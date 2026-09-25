@@ -18,9 +18,7 @@ function announceDone() {
 }
 
 /**
- * A tab gets one entrance, including across refreshes and navigation. A signup
- * or sign-in (which arrives carrying `?welcome=`) earns a replay, because there
- * is something to celebrate.
+ * One entrance per device, and only for a visit that lands on the home page.
  */
 export function SmashIntro() {
   const params = useSearchParams();
@@ -50,8 +48,8 @@ export function SmashIntro() {
     // A discarded setup must not consume the first visit or remove its timers.
     const start = setTimeout(() => {
       const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-      const celebrating = welcome === "signup" || welcome === "login";
-      if ((introAlreadyPlayed() && !celebrating) || window.matchMedia("(prefers-reduced-motion: reduce)").matches || connection?.saveData) {
+      // Once per device: a sign-in or sign-up no longer earns a replay.
+      if (introAlreadyPlayed() || window.matchMedia("(prefers-reduced-motion: reduce)").matches || connection?.saveData) {
         markIntroPlayed();
         clearBootCover();
         announceDone();

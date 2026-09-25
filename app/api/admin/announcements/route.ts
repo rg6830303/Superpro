@@ -26,7 +26,14 @@ export async function POST(req: Request) {
     if (!body.title || !body.body) return badRequest("Title and body are required.");
     const rows = await query<{ id: string }>(
       `INSERT INTO announcements (title, body, kind, link_url, active) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-      [body.title, body.body, body.kind ?? "info", body.link_url ?? null, body.active === false ? false : true],
+      [
+        body.title,
+        body.body,
+        // Unknown kinds fall back to "info" rather than a constraint error.
+        ["info", "tournament", "offer", "urgent"].includes(String(body.kind)) ? body.kind : "info",
+        body.link_url ?? null,
+        body.active === false ? false : true,
+      ],
     );
     await audit(gate, "announcement.create", "announcements", rows[0].id);
     return NextResponse.json({ ok: true, id: rows[0].id });

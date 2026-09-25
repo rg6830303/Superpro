@@ -83,3 +83,21 @@ export async function startCoachSession(account: { id: string; coach_id: string;
 export async function endCoachSession() {
   (await cookies()).delete(COACH_COOKIE);
 }
+
+/**
+ * The coach session, but only if the login still exists and the coach is still
+ * listed. A signed token stays valid for its whole lifetime on its own, so
+ * without this a coach whose login the club revoked could keep reading client
+ * details for up to a week.
+ */
+export async function liveCoachSession(): Promise<CoachPayload | null> {
+  const { getCoachSession } = await import("@/lib/auth");
+  const session = await getCoachSession();
+  if (!session) return null;
+  const ok = await queryOne<{ ok: boolean }>(
+    `SELECT EXISTS (SELECT 1 FROM coach_accounts a JOIN coaches c ON c.id = a.coach_id
+                    WHERE a.id = $1 AND a.coach_id = $2 AND c.active) AS ok`,
+    [session.id, session.coach_id],
+  ).catch(() => null);
+  return ok?.ok ? session : null;
+}

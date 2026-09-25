@@ -52,9 +52,11 @@ export function MixerRules() {
         </p>
       </Reveal>
 
-      <ol className="stagger mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* House rules as an open list on hairlines — five boxes in a grid left
+          an orphan box and read like a form. */}
+      <ol className="stagger mt-8 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
         {RULES.map((rule, i) => (
-          <li key={rule.title} className="card flex gap-4 p-5">
+          <li key={rule.title} className="flex gap-4 border-t border-line py-5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-volt-soft text-volt-deep">
               <rule.icon size={16} />
             </span>

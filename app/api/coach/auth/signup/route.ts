@@ -5,6 +5,7 @@ import { ensureSchema } from "@/lib/schema";
 import { hasSigningSecret } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { findRosterCoach, hashPassword, normaliseEmail, startCoachSession } from "@/lib/coach-auth";
+import { recordAccountEvent } from "@/lib/activity";
 
 export const runtime = "nodejs";
 
@@ -63,5 +64,6 @@ export async function POST(req: Request) {
   }
 
   await startCoachSession({ id: rows[0].id, coach_id: coach.id, email, name: coach.name });
+  await recordAccountEvent({ req, actorType: "coach", actorId: coach.id, email, name: coach.name, kind: "signup" });
   return NextResponse.json({ ok: true, name: coach.name });
 }

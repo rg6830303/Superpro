@@ -18,153 +18,26 @@ async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promis
     const timeoutPromise = new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error("Query timeout")), 8000),
     );
-    const result = await Promise.race([queryPromise, timeoutPromise]);
-    if (Array.isArray(result) && result.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
-      return fallback;
-    }
-    return result;
+    // An empty table is a real answer — show the empty state — never a cue
+    // to substitute sample content. That substitution is what kept seeded
+    // coaches and tournaments on the site after the tables were cleared.
+    return await Promise.race([queryPromise, timeoutPromise]);
   } catch (err) {
     console.error(`[queries:${label}]`, err instanceof Error ? err.message : err);
     return fallback;
   }
 }
 
-// ── Built-in Fallbacks ──────────────────────────────────────────────────────
+// ── Fallbacks ───────────────────────────────────────────────────────────────
+// Empty on purpose. Everything the site shows comes from the database, as
+// entered in the admin console; if the database cannot be reached, lists are
+// empty rather than filled with sample content nobody entered.
 
-const FALLBACK_PRODUCTS: Product[] = [
-  {
-    id: "fb-1",
-    slug: "champion-series-t700",
-    name: "Champion Series T700",
-    category: "paddles",
-    tagline: "The flagship. Toray T700 carbon, thermoformed, unforgiving on the other side of the net.",
-    description: "Our top paddle: a 16mm thermoformed unibody with a raw Toray T700 carbon-fibre face and a polypropylene honeycomb core.",
-    specs: ["16 mm thermoformed unibody", "Raw Toray T700 carbon face", "Polypropylene honeycomb core", "Weight 8.0–8.3 oz"],
-    price_paise: 900000,
-    compare_at_paise: 1100000,
-    image_url: "/products/paddle-champion-t700.png",
-    gallery: ["/products/paddle-champion-t700.png", "/products/paddle-ball-hero.png"],
-    stock: 24,
-    featured: true,
-    active: true,
-    sort_order: 1,
-  },
-  {
-    id: "fb-2",
-    slug: "champion-series-16-pro",
-    name: "Champion Series 16 Pro",
-    category: "paddles",
-    tagline: "All-court control paddle with a plush 16 mm core and a quiet, planted feel.",
-    description: "Built for the player who wins with placement. The 16mm core dampens pace so dinks sit down inside the kitchen.",
-    specs: ["16 mm polypropylene core", "Textured composite face", "Weight 7.8–8.1 oz"],
-    price_paise: 780000,
-    compare_at_paise: 890000,
-    image_url: "/products/paddle-edge-16mm.png",
-    gallery: ["/products/paddle-edge-16mm.png"],
-    stock: 36,
-    featured: true,
-    active: true,
-    sort_order: 2,
-  },
-  {
-    id: "fb-3",
-    slug: "superpro-outdoor-40-3pack",
-    name: "SuperPro Outdoor 40 — 3 pack",
-    category: "balls",
-    tagline: "40-hole outdoor ball, seam-welded to survive a Kolkata summer.",
-    description: "Rotationally moulded with a seam-welded equator so it does not crack open after two humid weeks.",
-    specs: ["40 holes · outdoor", "Seam-welded construction", "USAP-spec bounce"],
-    price_paise: 90000,
-    compare_at_paise: null,
-    image_url: "/products/paddle-ball-hero.png",
-    gallery: ["/products/paddle-ball-hero.png"],
-    stock: 120,
-    featured: true,
-    active: true,
-    sort_order: 3,
-  },
-  {
-    id: "fb-4",
-    slug: "superpro-gold-band",
-    name: "SuperPro Gold Series Band",
-    category: "grips",
-    tagline: "Gold-badge wristband — sweat management with the club mark on it.",
-    description: "Woven wristband with the SuperPro mark in brushed gold. Wide enough to actually catch sweat before it reaches the grip.",
-    specs: ["Woven terry-back band", "Brushed gold badge"],
-    price_paise: 70000,
-    compare_at_paise: null,
-    image_url: "/products/grip-band-gold.png",
-    gallery: ["/products/grip-band-gold.png"],
-    stock: 80,
-    featured: true,
-    active: true,
-    sort_order: 4,
-  },
-];
+const FALLBACK_PRODUCTS: Product[] = [];
 
-const FALLBACK_COACHES: Coach[] = [
-  {
-    id: "c-1",
-    slug: "arindam-basu",
-    name: "Arindam Basu",
-    headline: "Head coach · DUPR 5.4 · builds third-shot discipline",
-    bio: "Ten years across tennis and pickleball, and the coach most of our tournament players came up under. Arindam rebuilds your third shot first — drop before drive — then hands you the patterns that win the kitchen exchange.",
-    specialties: ["Third-shot drop", "Kitchen strategy", "Doubles positioning"],
-    dupr: 5.4,
-    experience_years: 10,
-    rate_paise: 150000,
-    languages: "English, Hindi, Bengali",
-    image_url: null,
-    whatsapp: null,
-    available_days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-    active: true,
-    sort_order: 1,
-  },
-  {
-    id: "c-2",
-    slug: "riya-mehta",
-    name: "Riya Mehta",
-    headline: "Beginner specialist · DUPR 4.6 · zero-to-rally in four sessions",
-    bio: "Riya coaches first-timers and improvers. Her four-session block takes someone who has never held a paddle to holding their own in an open game.",
-    specialties: ["First-timers", "Serve & return", "Women's clinics"],
-    dupr: 4.6,
-    experience_years: 5,
-    rate_paise: 110000,
-    languages: "English, Hindi",
-    image_url: null,
-    whatsapp: null,
-    available_days: ["Tue", "Wed", "Thu", "Sat", "Sun"],
-    active: true,
-    sort_order: 2,
-  },
-];
+const FALLBACK_COACHES: Coach[] = [];
 
-const FALLBACK_TOURNAMENTS: Tournament[] = [
-  {
-    id: "t-1",
-    slug: "legends-challengers-3",
-    title: "Legends & Challengers — 3rd Edition",
-    kind: "organized",
-    status: "open",
-    start_date: "2026-10-17",
-    end_date: "2026-10-18",
-    venue: "TurfXL, New Alipore",
-    city: "Kolkata",
-    format: "Split-age doubles · round robin into knockouts",
-    categories: ["Men's Doubles", "Women's Doubles", "Mixed Doubles"],
-    prize_pool_paise: 2500000,
-    entry_fee_paise: 150000,
-    max_teams: 24,
-    dupr_cap: 8.7,
-    banner_url: null,
-    summary: "The third edition of our flagship doubles event. 24 teams, three categories, round-robin groups into a knockout on day two.",
-    description: "Legends & Challengers pairs an experienced player with a challenger and rewards the pair that adapts fastest.",
-    result_note: null,
-    registration_open: true,
-    partner_name: null,
-    teams: 18,
-  },
-];
+const FALLBACK_TOURNAMENTS: Tournament[] = [];
 
 // ── Shop ────────────────────────────────────────────────────────────────────
 
@@ -431,15 +304,7 @@ export type Announcement = {
   link_url: string | null;
 };
 
-const FALLBACK_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: "a-1",
-    title: "Legends & Challengers 3rd Edition — registration open",
-    body: "24 teams, three categories, ₹25,000 prize pool. Registration closes when the draw fills.",
-    kind: "tournament",
-    link_url: "/tournaments/legends-challengers-3",
-  },
-];
+const FALLBACK_ANNOUNCEMENTS: Announcement[] = [];
 
 export async function getAnnouncements(limit = 3): Promise<Announcement[]> {
   return safe(

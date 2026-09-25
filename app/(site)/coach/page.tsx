@@ -5,7 +5,7 @@ import { CalendarCheck, Clock, Users, CheckCircle2, ExternalLink } from "lucide-
 import { CoachCalendar } from "@/components/coach-calendar";
 import { CoachSignOut } from "@/components/coach-sign-out";
 import { Avatar } from "@/components/player-directory";
-import { getCoachSession } from "@/lib/auth";
+import { liveCoachSession } from "@/lib/coach-auth";
 import { ensureSchema } from "@/lib/schema";
 import { coachSummary } from "@/lib/coach-data";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Coach dashboard", robots: { index: false } };
 
 export default async function CoachDashboardPage() {
-  const session = await getCoachSession();
+  const session = await liveCoachSession();
   if (!session) redirect("/coach/login");
 
   await ensureSchema();
