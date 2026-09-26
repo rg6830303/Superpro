@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     }
 
     const message = [
-      `🏓 *SUPERPRO — TODAY ON COURT*`,
+      `🏓 *SPARVIC — TODAY ON COURT*`,
       `${formatDate(today)}`,
       ``,
       ...rows.flatMap((r) => [

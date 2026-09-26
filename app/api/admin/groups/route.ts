@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       }
 
       const message = tournamentGroupMessage({
-        tournament: title[0]?.title ?? "SuperPro Tournament",
+        tournament: title[0]?.title ?? "Sparvic Tournament",
         groups: [...grouped.values()],
       });
       const result = await sendWhatsApp({

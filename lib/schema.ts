@@ -1,7 +1,7 @@
 import { getSql, query, isDbConfigured } from "@/lib/db";
 
 /**
- * Single source of truth for the SuperPro database schema.
+ * Single source of truth for the Sparvic database schema.
  *
  * Used by:
  *   - POST /api/db-init → explicit bootstrap + seed (run once after deploy)
@@ -40,7 +40,7 @@ export const SCHEMA_TABLES: string[] = [
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    name TEXT NOT NULL DEFAULT 'SuperPro Admin',
+    name TEXT NOT NULL DEFAULT 'Sparvic Admin',
     role TEXT NOT NULL DEFAULT 'manager' CHECK (role IN ('owner','manager','staff')),
     active BOOLEAN NOT NULL DEFAULT true,
     last_login_at TIMESTAMPTZ,
@@ -799,7 +799,7 @@ const SCHEMA_META_TABLE = `CREATE TABLE IF NOT EXISTS schema_meta (
 /** Full DDL as one script — what supabase/schema.sql contains. */
 export function schemaSql(): string {
   return [
-    "-- SuperPro — generated from lib/schema.ts. Do not edit by hand.",
+    "-- Sparvic — generated from lib/schema.ts. Do not edit by hand.",
     "-- Run this in the Supabase SQL editor, or POST /api/db-init once deployed.",
     "",
     ...[SCHEMA_META_TABLE, ...SCHEMA_TABLES, ...SCHEMA_MIGRATIONS, ...SCHEMA_INDEXES].map((s) => `${s.trim()};`),

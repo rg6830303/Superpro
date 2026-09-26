@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Checkout",
-  description: "Complete your SuperPro order — pickup at TurfXL or delivery across Kolkata.",
+  description: "Complete your Sparvic order — pickup at TurfXL or delivery across Kolkata.",
   robots: { index: false },
 };
 

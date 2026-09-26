@@ -64,7 +64,7 @@ export async function generateMetadata({
   if (!profile) return { title: "Player" };
   return {
     title: profile.full_name,
-    description: `${profile.full_name} plays pickleball with SuperPro in ${profile.city ?? "Kolkata"}.`,
+    description: `${profile.full_name} plays pickleball with Sparvic in ${profile.city ?? "Kolkata"}.`,
   };
 }
 
@@ -154,7 +154,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
             {profile.bio && <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink/70">{profile.bio}</p>}
 
             <p className="mt-4 font-mono text-[11px] uppercase tracking-wide text-ink/40">
-              On SuperPro since {formatDate(profile.created_at)}
+              On Sparvic since {formatDate(profile.created_at)}
             </p>
           </div>
 

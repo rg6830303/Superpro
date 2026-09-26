@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Paddles, balls & grips",
   description:
-    "The SuperPro Champion Series — Toray carbon paddles, outdoor and indoor balls, and grips built for Indian humidity. Pickup in Kolkata or delivered.",
+    "The Sparvic Champion Series — Toray carbon paddles, outdoor and indoor balls, and grips built for Indian humidity. Pickup in Kolkata or delivered.",
 };
 
 const FILTERS = [{ slug: "", label: "Everything" }, ...PRODUCT_CATEGORIES.map((c) => ({ slug: c.slug, label: c.label }))];
@@ -60,7 +60,7 @@ export default async function ProductsPage({
             sub="Stock is being loaded. Message a rep and we'll tell you exactly what's on the shelf right now."
             action={
               <a
-                href={waLink("Hi SuperPro! What paddles do you have in stock?")}
+                href={waLink("Hi Sparvic! What paddles do you have in stock?")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-outline btn-sm mt-2"
@@ -88,7 +88,7 @@ export default async function ProductsPage({
           </p>
         </div>
         <a
-          href={waLink("Hi SuperPro! Help me pick a paddle — here's how I play:")}
+          href={waLink("Hi Sparvic! Help me pick a paddle — here's how I play:")}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-primary shrink-0"

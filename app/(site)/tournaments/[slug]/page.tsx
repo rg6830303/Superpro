@@ -193,13 +193,13 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-ink/70">
                 {t.status === "completed"
-                  ? "Results are above. The next SuperPro draw is announced on the tournaments page and in the WhatsApp group."
+                  ? "Results are above. The next Sparvic draw is announced on the tournaments page and in the WhatsApp group."
                   : t.kind === "sponsored"
                     ? "Registration for this event is handled by the organisers. Message us and we'll point you to the right link."
                     : "Entries open shortly. Message a rep to be told the moment they do."}
               </p>
               <a
-                href={waLink(`Hi SuperPro! I'd like details about ${t.title}.`)}
+                href={waLink(`Hi Sparvic! I'd like details about ${t.title}.`)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary mt-6 w-full"

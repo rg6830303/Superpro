@@ -137,7 +137,7 @@ export function ActivityFeed({
             >
               <div className="relative shrink-0 mt-0.5">
                 <Avatar
-                  name={item.actor_name || "SuperPro"}
+                  name={item.actor_name || "Sparvic"}
                   src={item.actor_avatar}
                   size="sm"
                 />

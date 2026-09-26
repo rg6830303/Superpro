@@ -4,6 +4,7 @@ import { getSettings, setSettings } from "@/lib/settings";
 import { whatsappConfig } from "@/lib/whatsapp";
 import { isRazorpayEnabled } from "@/lib/razorpay";
 import { dbConnInfo } from "@/lib/db";
+import { SITE } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +20,8 @@ export async function GET() {
         whatsapp: whatsappConfig,
         razorpay: isRazorpayEnabled,
         db: dbConnInfo(),
-        adminHost: process.env.NEXT_PUBLIC_ADMIN_HOST ?? null,
+        // The console now lives on the main domain, at an unlinked path.
+        adminHost: `${SITE.url}/admin`,
       },
     });
   } catch (err) {

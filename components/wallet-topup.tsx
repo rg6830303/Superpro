@@ -92,7 +92,7 @@ export function WalletTopUp({
         keyId: razorpayKeyId,
         orderId: data.razorpay_order_id,
         amountPaise: data.amount_paise,
-        name: "SuperPro Wallet",
+        name: "Sparvic Wallet",
         description: `Top up ${formatPaise(data.amount_paise)}`,
         prefill: { name, email, contact: phone ?? "" },
         notes: { reference: data.reference },
@@ -139,7 +139,7 @@ export function WalletTopUp({
           <Wallet size={15} className="text-volt-deep" /> Top up at the venue
         </p>
         <p className="mt-1.5 text-xs leading-relaxed text-ink/60">
-          Online top-ups switch on once card payments are connected. Until then any SuperPro rep can load your
+          Online top-ups switch on once card payments are connected. Until then any Sparvic rep can load your
           wallet on court and it appears here straight away.
         </p>
       </div>

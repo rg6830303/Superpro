@@ -98,7 +98,7 @@ export function SmashIntro() {
       data-intro
       className={`fixed inset-0 z-[2147483600] overflow-hidden bg-[#031622] transition-opacity duration-200 ${leaving ? "pointer-events-none opacity-0" : "opacity-100"}`}
       role="dialog"
-      aria-label="SuperPro opening animation"
+      aria-label="Sparvic opening animation"
       aria-modal="true"
       onKeyDown={(event) => {
         if (event.key === "Escape") finish();

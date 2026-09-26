@@ -232,7 +232,7 @@ export function SignupForm() {
             {step === 1 ? "Step 1 of 2: Login Details" : "Step 2 of 2: Basic Profiling"}
           </span>
           <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-            {step === 1 ? "Join SuperPro" : "Complete Your Profile"}
+            {step === 1 ? "Join Sparvic" : "Complete Your Profile"}
           </h1>
         </div>
         <div className="flex items-center gap-1.5">
@@ -508,7 +508,7 @@ export function SignupForm() {
               className="btn-volt flex-1 py-3 flex items-center justify-center gap-2"
             >
               {busy ? <Spinner /> : null}
-              {busy ? "Creating account…" : "Join SuperPro"}
+              {busy ? "Creating account…" : "Join Sparvic"}
             </button>
           </div>
 

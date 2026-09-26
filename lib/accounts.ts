@@ -200,21 +200,21 @@ export async function ensureAdminAccount(email: string, password: string): Promi
     await supabaseAdmin()
       .auth.admin.updateUserById(existing.id, { password, app_metadata: { role: "admin" } })
       .catch((err) => console.error("[accounts] admin password sync failed:", err));
-    await syncUserRow({ id: existing.id, email, full_name: "SuperPro Admin", role: "admin" });
+    await syncUserRow({ id: existing.id, email, full_name: "Sparvic Admin", role: "admin" });
     return existing.id;
   }
 
   const created = await createAuthUser({
     email,
     password,
-    full_name: "SuperPro Admin",
+    full_name: "Sparvic Admin",
     role: "admin",
   });
   if (!created.ok) {
     console.error("[accounts] admin bootstrap failed:", created.error);
     return null;
   }
-  await syncUserRow({ id: created.id, email, full_name: "SuperPro Admin", role: "admin" });
+  await syncUserRow({ id: created.id, email, full_name: "Sparvic Admin", role: "admin" });
   return created.id;
 }
 

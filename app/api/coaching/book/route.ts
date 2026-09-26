@@ -115,7 +115,7 @@ export async function POST(req: Request) {
           kind: "coaching_coach_alert",
           target: "number",
           phone: coach.whatsapp,
-          message: `New SuperPro booking — ${input.player_name} (${input.skill_level}), ${input.sessions_count} × ${input.session_type}, ${when}. Ref ${bookingNo}. Player: +91${input.player_phone}`,
+          message: `New Sparvic booking — ${input.player_name} (${input.skill_level}), ${input.sessions_count} × ${input.session_type}, ${when}. Ref ${bookingNo}. Player: +91${input.player_phone}`,
           refTable: "coaching_bookings",
           refId: inserted[0].id,
         });

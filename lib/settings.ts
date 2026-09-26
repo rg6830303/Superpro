@@ -8,7 +8,7 @@ import { query, withTimeout } from "@/lib/db";
 export const SETTING_DEFAULTS: Record<string, string> = {
   whatsapp_number: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919163132551",
   whatsapp_group_url: process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL ?? "",
-  rep_name: "Team SuperPro",
+  rep_name: "Team Sparvic",
   daily_game_price: "35000",
   coaching_rate: "120000",
   home_notice: "",

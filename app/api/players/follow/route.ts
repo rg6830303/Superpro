@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         actorId: session.id,
         kind: "follow",
         title: `${name} followed you`,
-        message: `${name} started following you on SuperPro. Follow back to see when they are on court.`,
+        message: `${name} started following you on Sparvic. Follow back to see when they are on court.`,
         // To the follower, not the directory: the obvious next move is to look
         // at who it was and decide whether to follow back.
         linkUrl: me[0]?.handle ? `/players/${me[0].handle}` : "/players",

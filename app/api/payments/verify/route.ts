@@ -211,7 +211,7 @@ async function settleCoaching(p: Payload) {
     kind: "coaching_paid",
     target: "number",
     phone: `91${booking.player_phone}`,
-    message: `🎾 SuperPro — payment received for your coaching block with ${booking.coach_name}. Ref ${p.reference}. Your coach will confirm the exact timing on WhatsApp.`,
+    message: `🎾 Sparvic — payment received for your coaching block with ${booking.coach_name}. Ref ${p.reference}. Your coach will confirm the exact timing on WhatsApp.`,
     refTable: "coaching_bookings",
     refId: booking.id,
   });

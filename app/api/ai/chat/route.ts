@@ -43,8 +43,8 @@ export async function POST(req: Request) {
 
     if (geminiKey) {
       try {
-        const systemInstruction = `You are the AI Caddy & Customer Support Assistant for SuperPro, a pickleball club and booking platform in Kolkata, India.
-Use the following verified context from the SuperPro knowledge base to answer the user's inquiry concisely, warmly, and accurately.
+        const systemInstruction = `You are the AI Caddy & Customer Support Assistant for Sparvic, a pickleball club and booking platform in Kolkata, India.
+Use the following verified context from the Sparvic knowledge base to answer the user's inquiry concisely, warmly, and accurately.
 Include relevant platform advice. Official WhatsApp is +91 91631 32551.
 Context:
 ${contexts.map((c) => `--- ${c.title} ---\n${c.content}`).join("\n\n")}`;
@@ -83,7 +83,7 @@ ${contexts.map((c) => `--- ${c.title} ---\n${c.content}`).join("\n\n")}`;
             messages: [
               {
                 role: "system",
-                content: `You are SuperPro's AI Pickleball Assistant for our platform in Kolkata. Answer the user question based on this context:
+                content: `You are Sparvic's AI Pickleball Assistant for our platform in Kolkata. Answer the user question based on this context:
 ${contexts.map((c) => `[${c.title}]: ${c.content}`).join("\n\n")}`,
               },
               ...messages.slice(-4),
@@ -137,7 +137,7 @@ ${contexts.map((c) => `[${c.title}]: ${c.content}`).join("\n\n")}`,
     return NextResponse.json(
       {
         reply:
-          "I'm having a little trouble connecting right now. You can reach our SuperPro venue team directly on WhatsApp at +91 91631 32551 for instant assistance!",
+          "I'm having a little trouble connecting right now. You can reach our Sparvic venue team directly on WhatsApp at +91 91631 32551 for instant assistance!",
         actions: [{ label: "Chat on WhatsApp", href: "https://wa.me/919163132551" }],
       },
       { status: 200 },

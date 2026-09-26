@@ -288,7 +288,7 @@ export default async function OrderConfirmationPage({
           My account
         </Link>
         <a
-          href={waLink(`Hi SuperPro! A question about ${ref}.`)}
+          href={waLink(`Hi Sparvic! A question about ${ref}.`)}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-outline"

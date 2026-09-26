@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
 
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-ink">Admin Console</h1>
-          <p className="mt-1 text-xs text-ink/65">Sign in to manage SuperPro platform</p>
+          <p className="mt-1 text-xs text-ink/65">Sign in to manage Sparvic platform</p>
         </div>
 
         <form onSubmit={submit} className="space-y-4">
@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
 
         <div className="mt-6 text-center border-t border-line pt-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/45">
-            Protected Admin Environment · SuperPro Sports
+            Protected Admin Environment · Sparvic Sports
           </p>
         </div>
       </div>

@@ -122,7 +122,7 @@ export function ProfileForm({
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
-                <Wallet size={13} className="text-volt-deep" /> SuperPro wallet
+                <Wallet size={13} className="text-volt-deep" /> Sparvic wallet
               </p>
               <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(profile.wallet_balance_paise)}</p>
             </div>

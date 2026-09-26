@@ -35,7 +35,7 @@ export default async function GamesPage() {
       <h1 className="mt-3 headline-page">Turn up and play</h1>
       <p className="lede mt-4 max-w-2xl">
         Open play across {venues.length || 2} venues, seven days a week. Register once, pick your slots for
-        the week, and your name and court number are posted to the SuperPro WhatsApp group.
+        the week, and your name and court number are posted to the Sparvic WhatsApp group.
       </p>
 
       <div className="mt-10">

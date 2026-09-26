@@ -148,7 +148,7 @@ export type SlotPost = {
 /** The daily-games group post: date, time, court, and every confirmed name. */
 export function slotConfirmationMessage(post: SlotPost): string {
   const lines = [
-    `🏓 *SUPERPRO — CONFIRMED SLOT*`,
+    `🏓 *SPARVIC — CONFIRMED SLOT*`,
     ``,
     `📅 ${post.date}`,
     `⏰ ${post.time}`,
@@ -171,7 +171,7 @@ export function bookingReceiptMessage(args: {
   payMethod: string;
 }): string {
   return [
-    `🏓 *SUPERPRO — BOOKING CONFIRMED*`,
+    `🏓 *SPARVIC — BOOKING CONFIRMED*`,
     ``,
     `Hi ${args.name}, you're in.`,
     `Ref: *${args.ref}*`,
@@ -192,7 +192,7 @@ export function orderReceiptMessage(args: {
   mode: string;
 }): string {
   return [
-    `🏓 *SUPERPRO — ORDER ${args.orderNo}*`,
+    `🏓 *SPARVIC — ORDER ${args.orderNo}*`,
     ``,
     `Thanks ${args.name}! We've got your order.`,
     ``,
@@ -213,7 +213,7 @@ export function coachingRequestMessage(args: {
   ref: string;
 }): string {
   return [
-    `🎾 *SUPERPRO — COACHING REQUEST*`,
+    `🎾 *SPARVIC — COACHING REQUEST*`,
     ``,
     `Player: ${args.name}`,
     `Coach: *${args.coach}*`,

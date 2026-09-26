@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
     if (!isRazorpayEnabled) {
       return NextResponse.json(
-        { error: "Online top-ups are not switched on yet. Any SuperPro rep can load your wallet at the venue." },
+        { error: "Online top-ups are not switched on yet. Any Sparvic rep can load your wallet at the venue." },
         { status: 503 },
       );
     }

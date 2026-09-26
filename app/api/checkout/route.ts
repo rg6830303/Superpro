@@ -167,7 +167,7 @@ export async function POST(req: Request) {
     if (wantsWallet && session) {
       const charge = await chargeWallet({
         userId: session.id, amountPaise: totals.totalPaise, kind: "order",
-        reason: `SuperPro basket ${reference}`, refTable: "orders",
+        reason: `Sparvic basket ${reference}`, refTable: "orders",
       });
       if (!charge.ok) {
         // The code was claimed a moment ago; give the use back rather than

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Community",
-  description: "Find other SuperPro players in Kolkata, see who is on court this week, and follow the ones you want to rally with.",
+  description: "Find other Sparvic players in Kolkata, see who is on court this week, and follow the ones you want to rally with.",
 };
 
 type OnCourt = {
@@ -122,7 +122,7 @@ export default async function CommunityPage() {
           <p className="eyebrow">Community</p>
           <h1 className="mt-3 headline-page">Find your people</h1>
           <p className="lede mt-4 max-w-2xl">
-            Everyone who plays with SuperPro has a page. Find the person you rallied with last week, see what level
+            Everyone who plays with Sparvic has a page. Find the person you rallied with last week, see what level
             they play at, and follow them to hear when they book a court.
           </p>
           {stats && (

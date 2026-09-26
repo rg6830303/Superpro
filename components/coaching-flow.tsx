@@ -118,7 +118,7 @@ export function CoachCard({
  *
  * No date is picked here. A coach's real availability shifts week to week, so
  * asking a player to guess a slot only produces a booking that has to be
- * renegotiated. The player chooses a coach and a block; SuperPro connects the
+ * renegotiated. The player chooses a coach and a block; Sparvic connects the
  * two on WhatsApp and the date is set once the coach has confirmed it.
  */
 export function CoachingFlow({
@@ -196,7 +196,7 @@ export function CoachingFlow({
         keyId: razorpayKeyId,
         orderId: data.razorpay_order_id,
         amountPaise: data.amount_paise,
-        name: "SuperPro Coaching",
+        name: "Sparvic Coaching",
         description: `${count} session${count > 1 ? "s" : ""} with ${data.coach_name}`,
         prefill: { name: player.name, email: player.email, contact: player.phone },
         notes: { booking_no: data.booking_no },
@@ -385,7 +385,7 @@ export function CoachingFlow({
 
             <div className="mt-5">
               <Alert tone="info">
-                Dates are set with your coach directly. SuperPro passes this request straight to{" "}
+                Dates are set with your coach directly. Sparvic passes this request straight to{" "}
                 {coach.name.split(" ")[0]}, who confirms timing on WhatsApp — usually within a few hours.
               </Alert>
             </div>
@@ -448,13 +448,13 @@ export function CoachingFlow({
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <a
                 href={waLink(
-                  `Hi SuperPro! I've booked coaching with ${confirmation.coach_name} (ref ${confirmation.booking_no}).`,
+                  `Hi Sparvic! I've booked coaching with ${confirmation.coach_name} (ref ${confirmation.booking_no}).`,
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary"
               >
-                <MessageCircle size={16} /> Message SuperPro
+                <MessageCircle size={16} /> Message Sparvic
               </a>
               <Link href="/dashboard" className="btn-outline">
                 My bookings

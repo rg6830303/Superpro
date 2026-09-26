@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   keywords: [
     "pickleball Kolkata",
     "pickleball paddles India",
-    "SuperPro pickleball",
+    "Sparvic pickleball",
     "pickleball coaching Kolkata",
     "pickleball tournaments Kolkata",
   ],

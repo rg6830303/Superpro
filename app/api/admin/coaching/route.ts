@@ -56,7 +56,7 @@ export async function PATCH(req: Request) {
           kind: "coaching_confirmed",
           target: "number",
           phone: `91${booking.player_phone}`,
-          message: `🎾 SuperPro — ${booking.coach_name} has confirmed your session${booking.preferred_date ? ` on ${booking.preferred_date} at ${booking.preferred_time}` : ""}. Ref ${booking.booking_no}. See you on court.`,
+          message: `🎾 Sparvic — ${booking.coach_name} has confirmed your session${booking.preferred_date ? ` on ${booking.preferred_date} at ${booking.preferred_time}` : ""}. Ref ${booking.booking_no}. See you on court.`,
           refTable: "coaching_bookings",
           refId: String(body.id),
         });

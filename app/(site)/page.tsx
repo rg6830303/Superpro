@@ -163,7 +163,7 @@ export default async function HomePage() {
               href: "/tournaments",
               icon: Trophy,
               title: "Tournaments",
-              blurb: "Draws SuperPro runs and events we back across the city. Enter with a partner.",
+              blurb: "Draws Sparvic runs and events we back across the city. Enter with a partner.",
               cta: "See the draws",
             },
           ].map((door, i) => (
@@ -267,7 +267,7 @@ export default async function HomePage() {
                 </p>
                 <h2 className="mt-3 font-display text-3xl text-ink sm:text-4xl">The people you&apos;ll play with</h2>
                 <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink/65">
-                  {community.players} players have a page on SuperPro
+                  {community.players} players have a page on Sparvic
                   {community.onCourtThisWeek > 0 && <>, and {community.onCourtThisWeek} are on court this week</>}.
                   Follow the ones you rally with and you&apos;ll hear when they book.
                 </p>
@@ -459,14 +459,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Why SuperPro ───────────────────────────────────────────────────── */}
+      {/* ── Why Sparvic ───────────────────────────────────────────────────── */}
       <section className="wrap section">
         <Reveal>
-          <p className="eyebrow">Why SuperPro</p>
+          <p className="eyebrow">Why Sparvic</p>
           <h2 className="rule-head mt-3 headline-section">One place for the whole game</h2>
           <p className="lede mt-5 max-w-2xl">
             Most players in Kolkata juggle a WhatsApp group for games, a shop across town for gear and a friend
-            of a friend for coaching. SuperPro is the club that holds all three, so your rating, your bookings
+            of a friend for coaching. Sparvic is the club that holds all three, so your rating, your bookings
             and your kit live in one account.
           </p>
         </Reveal>
@@ -523,7 +523,7 @@ export default async function HomePage() {
                 A court within reach of every player in the city.
               </h2>
               <p className="mt-6 max-w-md text-[15px] leading-relaxed text-paper/70">
-                SuperPro started because there was nowhere in Kolkata to simply turn up and play. The plan has not
+                Sparvic started because there was nowhere in Kolkata to simply turn up and play. The plan has not
                 changed since: put courts where people already are, keep the standard of play honest, and make the
                 first paddle someone picks up a good one.
               </p>

@@ -224,7 +224,7 @@ export function GamesFlow({
         keyId: razorpayKeyId,
         orderId: data.razorpay_order_id,
         amountPaise: data.total_paise,
-        name: "SuperPro Daily Games",
+        name: "Sparvic Daily Games",
         description: `${picked.length} slot${picked.length > 1 ? "s" : ""}`,
         prefill: { name: player.name, email: player.email, contact: player.phone },
         notes: { reference: data.reference },
@@ -376,7 +376,7 @@ export function GamesFlow({
                   <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                     <a
                       href={waLink(
-                        `Hi SuperPro! Are there any daily game slots opening up for ${shownDate ? formatDate(shownDate) : "upcoming dates"} at ${currentVenue?.name ?? "the venue"}?`
+                        `Hi Sparvic! Are there any daily game slots opening up for ${shownDate ? formatDate(shownDate) : "upcoming dates"} at ${currentVenue?.name ?? "the venue"}?`
                       )}
                       target="_blank"
                       rel="noopener noreferrer"

@@ -4,15 +4,20 @@
  * these are the compile-time defaults and the values the marketing copy uses.
  */
 export const SITE = {
-  name: "SuperPro",
-  legalName: "SuperPro Sports",
+  name: "Sparvic",
+  legalName: "Sparvic Sports",
   tagline: "Pickleball, played properly.",
   description:
-    "SuperPro is Kolkata's pickleball house — Champion Series paddles, balls and grips, daily open games, coaching with certified pros, and the tournaments we run and sponsor.",
+    "Sparvic is Kolkata's pickleball house — Champion Series paddles, balls and grips, daily open games, coaching with certified pros, and the tournaments we run and sponsor.",
   city: "Kolkata",
   email: "hello@superpro.in",
   instagram: "https://instagram.com/superpro.pickleball",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://superpro.in",
+  // The live domain. An env value still pointing at an old Vercel address is
+  // ignored, so links in messages and metadata never send people back there.
+  url: (() => {
+    const env = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    return env && !/superpro|vercel\.app/i.test(env) ? env.replace(/\/+$/, "") : "https://www.sparvic.com";
+  })(),
 } as const;
 
 /** Sales/support rep — powers every "Chat with a rep" WhatsApp button. */

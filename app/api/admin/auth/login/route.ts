@@ -34,7 +34,7 @@ const schema = z.object({
 });
 
 const BOOTSTRAP_USERNAME = (process.env.ADMIN_USERNAME ?? "ishaanchetani").trim().toLowerCase();
-const BOOTSTRAP_PASSWORD = process.env.ADMIN_PASSWORD ?? "Superpro2026";
+const BOOTSTRAP_PASSWORD = process.env.ADMIN_PASSWORD ?? "Sparvic2026";
 
 export async function POST(req: Request) {
   try {
@@ -94,14 +94,14 @@ export async function POST(req: Request) {
     syncUserRow({
       id: auth.id,
       email: auth.email,
-      full_name: (auth.metadata.full_name as string) ?? "SuperPro Admin",
+      full_name: (auth.metadata.full_name as string) ?? "Sparvic Admin",
       role: isOwner ? "admin" : undefined,
     }).catch((err) => console.error("[admin-login] syncUserRow failed:", err));
 
     const token = await signToken({
       id: auth.id,
       email: auth.email,
-      name: (auth.metadata.full_name as string) ?? "SuperPro Admin",
+      name: (auth.metadata.full_name as string) ?? "Sparvic Admin",
       role: "admin",
     });
 

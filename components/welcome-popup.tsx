@@ -23,10 +23,10 @@ const DELAY_MS = 5000;
 
 const QUOTES = [
   { line: "The ball does not care how you felt about the last point.", who: "Court wisdom" },
-  { line: "Good players win rallies. Great players win the third shot.", who: "SuperPro coaches" },
+  { line: "Good players win rallies. Great players win the third shot.", who: "Sparvic coaches" },
   { line: "Dink like you have all day. Smash like you have one chance.", who: "Court wisdom" },
-  { line: "You do not rise to the level of your paddle. You fall to the level of your footwork.", who: "SuperPro coaches" },
-  { line: "Every regular on this court was once the newest player on it.", who: "SuperPro Kolkata" },
+  { line: "You do not rise to the level of your paddle. You fall to the level of your footwork.", who: "Sparvic coaches" },
+  { line: "Every regular on this court was once the newest player on it.", who: "Sparvic Kolkata" },
 ];
 
 function seenThisVisit(): boolean {

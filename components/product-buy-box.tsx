@@ -138,7 +138,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
       </p>
 
       <a
-        href={waLink(`Hi SuperPro! I have a question about the ${product.name}.`)}
+        href={waLink(`Hi Sparvic! I have a question about the ${product.name}.`)}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-volt-deep hover:underline"

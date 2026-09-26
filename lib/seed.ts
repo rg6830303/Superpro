@@ -78,7 +78,7 @@ const PRODUCTS = [
   },
   {
     slug: "superpro-outdoor-40-3pack",
-    name: "SuperPro Outdoor 40 — 3 pack",
+    name: "Sparvic Outdoor 40 — 3 pack",
     category: "balls",
     tagline: "40-hole outdoor ball, seam-welded to survive a Kolkata summer.",
     description:
@@ -94,7 +94,7 @@ const PRODUCTS = [
   },
   {
     slug: "superpro-outdoor-40-dozen",
-    name: "SuperPro Outdoor 40 — dozen",
+    name: "Sparvic Outdoor 40 — dozen",
     category: "balls",
     tagline: "The club box. What we put on court every morning.",
     description: "Twelve outdoor 40-hole balls in a reusable tube. Priced for clubs, academies and anyone running open play.",
@@ -109,7 +109,7 @@ const PRODUCTS = [
   },
   {
     slug: "superpro-indoor-26",
-    name: "SuperPro Indoor 26 — 3 pack",
+    name: "Sparvic Indoor 26 — 3 pack",
     category: "balls",
     tagline: "Softer 26-hole indoor ball for wood and synthetic courts.",
     description: "Larger holes, softer shell, slower flight — the right ball when you move play indoors.",
@@ -124,7 +124,7 @@ const PRODUCTS = [
   },
   {
     slug: "superpro-tacky-overgrip",
-    name: "SuperPro Tacky Overgrip — 3 pack",
+    name: "Sparvic Tacky Overgrip — 3 pack",
     category: "grips",
     tagline: "Perforated tacky overgrip that holds through a humid third game.",
     description:
@@ -140,11 +140,11 @@ const PRODUCTS = [
   },
   {
     slug: "superpro-gold-band",
-    name: "SuperPro Gold Series Band",
+    name: "Sparvic Gold Series Band",
     category: "grips",
     tagline: "Gold-badge wristband — sweat management with the club mark on it.",
     description:
-      "Woven wristband with the SuperPro mark in brushed gold. Wide enough to actually catch sweat before it reaches the grip.",
+      "Woven wristband with the Sparvic mark in brushed gold. Wide enough to actually catch sweat before it reaches the grip.",
     specs: ["Woven terry-back band", "Brushed gold badge", "One size", "Machine washable"],
     price_paise: 70000,
     compare_at_paise: null,
@@ -156,7 +156,7 @@ const PRODUCTS = [
   },
   {
     slug: "superpro-cushion-grip",
-    name: "SuperPro Cushion Replacement Grip",
+    name: "Sparvic Cushion Replacement Grip",
     category: "grips",
     tagline: "Full replacement grip when the original has flattened out.",
     description: "1.6mm cushioned replacement grip with a tapered end so the handle keeps its shape.",
@@ -324,9 +324,9 @@ const TOURNAMENTS = [
     entry_fee_paise: 0,
     max_teams: 128,
     dupr_cap: null,
-    summary: "SuperPro is the official paddle and ball partner for the Bengal Open 2026.",
+    summary: "Sparvic is the official paddle and ball partner for the Bengal Open 2026.",
     description:
-      "Kolkata's largest pickleball weekend. SuperPro supplies match balls for all courts and equips the referee crew. Registration is handled by the organising committee — the link goes live in October.",
+      "Kolkata's largest pickleball weekend. Sparvic supplies match balls for all courts and equips the referee crew. Registration is handled by the organising committee — the link goes live in October.",
     registration_open: false,
     partner_name: "Bengal Pickleball Association",
     result_note: null,
@@ -516,7 +516,7 @@ export async function seedAdmin(): Promise<"created" | "exists" | "skipped"> {
   await query(
     `INSERT INTO admins (email, password_hash, name, role) VALUES ($1,$2,$3,'owner')
      ON CONFLICT (email) DO NOTHING`,
-    [email, passwordHash, "SuperPro Owner"],
+    [email, passwordHash, "Sparvic Owner"],
   );
   return "created";
 }

@@ -8,7 +8,7 @@ import { SITE } from "@/lib/site";
 export const metadata: Metadata = {
   title: "About & vision",
   description:
-    "Why SuperPro exists: gear built for Indian conditions, a game every day in Kolkata, and a coaching path that takes a first-timer to a tournament draw.",
+    "Why Sparvic exists: gear built for Indian conditions, a game every day in Kolkata, and a coaching path that takes a first-timer to a tournament draw.",
 };
 
 const PILLARS = [
@@ -33,8 +33,8 @@ const PILLARS = [
 const TIMELINE = [
   { year: "2024", title: "First paddles", body: "Champion Series prototypes tested through a full monsoon at TurfXL." },
   { year: "2025", title: "Daily games", body: "Open play goes seven days a week across two Kolkata venues." },
-  { year: "2026", title: "The circuit", body: "SuperPro starts running its own draws and backing tournaments across the city." },
-  { year: "Next", title: "The academy", body: "A permanent SuperPro court with a junior programme and full-time coaching staff." },
+  { year: "2026", title: "The circuit", body: "Sparvic starts running its own draws and backing tournaments across the city." },
+  { year: "Next", title: "The academy", body: "A permanent Sparvic court with a junior programme and full-time coaching staff." },
 ];
 
 export default function AboutPage() {
@@ -48,7 +48,7 @@ export default function AboutPage() {
             We built the club we wanted to play at.
           </h1>
           <p className="lede mt-8 max-w-2xl">
-            SuperPro began with three players, one net and a shared complaint: Kolkata had people who wanted to
+            Sparvic began with three players, one net and a shared complaint: Kolkata had people who wanted to
             play pickleball and nothing built for them. No paddles that lasted a season, no game you could
             simply turn up to, no honest answer about which coach to learn from. So we made the gear, then the
             games, then the coaching — in that order, because that is the order players need them.
@@ -75,7 +75,7 @@ export default function AboutPage() {
                 <div className="relative aspect-[4/3]">
                   <Image
                     src="/products/paddle-champion-t700.png"
-                    alt="SuperPro Champion Series T700 paddle"
+                    alt="Sparvic Champion Series T700 paddle"
                     fill
                     sizes="(max-width: 1024px) 100vw, 40vw"
                     className="object-contain p-8"

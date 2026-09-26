@@ -6,7 +6,7 @@ export { WALLET_FLOOR_PAISE, canSpend, duesPaise, isBlocked } from "@/lib/postpa
 import { capturedPayment, fetchOrderPayments, isRazorpayEnabled } from "@/lib/razorpay";
 
 /**
- * SuperPro wallet — prepaid store credit, held in PAISE on `users`.
+ * Sparvic wallet — prepaid store credit, held in PAISE on `users`.
  *
  * Every movement is written twice: the running balance on the user row, and an
  * immutable row in `wallet_transactions`. The balance update is a single

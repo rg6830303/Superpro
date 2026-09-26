@@ -189,7 +189,7 @@ export function DashboardView({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-volt-deep bg-volt/15 px-2 py-0.5 rounded-full">
-                  SuperPro Player
+                  Sparvic Player
                 </span>
                 {profile.handle && (
                   <span className="font-mono text-xs text-ink/50">@{profile.handle}</span>
@@ -435,7 +435,7 @@ export function DashboardView({
             {/* Wallet Snapshot */}
             <div className="card flex flex-col p-6">
               <Wallet size={18} className="text-volt-deep" />
-              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">SuperPro wallet</p>
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Sparvic wallet</p>
               <p className={`mt-1 font-display text-4xl ${walletTone}`}>{formatPaise(walletPaise)}</p>
               {owing > 0 && (
                 <p className="mt-1 text-[11px] font-semibold text-signal">
@@ -751,7 +751,7 @@ export function DashboardView({
       {activeTab === "wallet" && (
         <div className="mt-8 max-w-3xl space-y-8">
           <div>
-            <p className="eyebrow">SuperPro Wallet</p>
+            <p className="eyebrow">Sparvic Wallet</p>
             <h2 className="mt-2 headline-page">Credit &amp; Top Up</h2>
             <p className="mt-2 text-sm text-ink/65">
               Prepaid balance used for instant checkout on game bookings, coaching sessions, tournaments, and shop items.

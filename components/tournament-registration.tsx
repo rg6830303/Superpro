@@ -97,7 +97,7 @@ export function TournamentRegistration({
         keyId: razorpayKeyId,
         orderId: data.razorpay_order_id,
         amountPaise: data.amount_paise,
-        name: "SuperPro Tournaments",
+        name: "Sparvic Tournaments",
         description: tournament.title,
         prefill: { name: p1.name, email, contact: p1.phone },
         notes: { reference: data.reference },
@@ -142,7 +142,7 @@ export function TournamentRegistration({
           Groups and match timings are published here and posted to the WhatsApp group once the draw closes.
         </p>
         <a
-          href={waLink(`Hi SuperPro! Question about our ${tournament.title} entry (${confirmation.reference}).`)}
+          href={waLink(`Hi Sparvic! Question about our ${tournament.title} entry (${confirmation.reference}).`)}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-primary mt-6"
@@ -164,7 +164,7 @@ export function TournamentRegistration({
 
       {prefill?.name && (
         <p className="mt-4 rounded-lg bg-volt-soft px-3 py-2 text-xs text-volt-deep">
-          Filled in from your SuperPro account — edit anything that has changed.
+          Filled in from your Sparvic account — edit anything that has changed.
         </p>
       )}
 

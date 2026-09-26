@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "That email isn't on a SuperPro coach profile. Ask the club to add it to your profile, then sign up again.",
+          "That email isn't on a Sparvic coach profile. Ask the club to add it to your profile, then sign up again.",
       },
       { status: 403 },
     );

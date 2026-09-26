@@ -30,7 +30,7 @@ export function Logo({
   const img = (
     <Image
       src={src}
-      alt="SuperPro"
+      alt="Sparvic"
       width={width}
       height={height}
       priority={priority}
@@ -41,7 +41,7 @@ export function Logo({
 
   if (!href) return img;
   return (
-    <Link href={href} aria-label="SuperPro — home" className="inline-flex items-center">
+    <Link href={href} aria-label="Sparvic — home" className="inline-flex items-center">
       {img}
     </Link>
   );

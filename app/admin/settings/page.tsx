@@ -186,7 +186,7 @@ export default function AdminSettingsPage() {
                     v: integrations?.whatsapp.hasCloudApi ? "Cloud API connected" : "Not configured",
                     ok: Boolean(integrations?.whatsapp.hasCloudApi),
                   },
-                  { k: "Admin host", v: integrations?.adminHost ?? "Not set", ok: Boolean(integrations?.adminHost) },
+                  { k: "Admin console URL", v: integrations?.adminHost ?? "Not set", ok: Boolean(integrations?.adminHost) },
                 ].map((row) => (
                   <div key={row.k} className="flex items-start justify-between gap-4 border-b border-line/70 pb-3 last:border-0">
                     <dt className="text-ink/65">{row.k}</dt>

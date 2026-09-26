@@ -105,14 +105,14 @@ export function AIChatbot() {
   }
 
   return (
-    <aside aria-label="SuperPro AI Assistant" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-40 sm:left-5 print:hidden">
+    <aside aria-label="Sparvic AI Assistant" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-40 sm:left-5 print:hidden">
       {/* Floating Toggle Button */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="group relative flex h-14 w-14 items-center justify-center gap-2.5 rounded-full border-2 border-volt bg-ink shadow-[0_12px_32px_rgba(6,38,61,0.28)] transition-colors hover:bg-[#07304e] sm:h-auto sm:w-auto sm:px-4 sm:py-3"
-          aria-label="Open SuperPro AI Chatbot"
+          aria-label="Open Sparvic AI Chatbot"
         >
           <span className="relative hidden h-3 w-3 sm:flex">
             <span className="relative inline-flex h-3 w-3 rounded-full bg-volt" />
@@ -133,7 +133,7 @@ export function AIChatbot() {
               </div>
               <div>
                 <p className="text-sm font-bold text-paper flex items-center gap-1.5">
-                  SuperPro AI Caddy
+                  Sparvic AI Caddy
                   <span className="h-2 w-2 rounded-full bg-volt inline-block" />
                 </p>
                 <p className="font-mono text-[10px] text-paper/60 uppercase tracking-wider">Enterprise Assistant</p>
@@ -210,7 +210,7 @@ export function AIChatbot() {
             {busy && (
               <div className="flex items-center gap-2 text-xs text-ink/50 py-1">
                 <Spinner />
-                <span>Thinking &amp; searching SuperPro knowledge…</span>
+                <span>Thinking &amp; searching Sparvic knowledge…</span>
               </div>
             )}
 

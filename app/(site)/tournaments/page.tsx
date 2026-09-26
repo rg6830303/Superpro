@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Tournaments",
   description:
-    "Pickleball tournaments around Kolkata that SuperPro organises or sponsors — formats, prize pools, draws and results.",
+    "Pickleball tournaments around Kolkata that Sparvic organises or sponsors — formats, prize pools, draws and results.",
 };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -106,7 +106,7 @@ export default async function TournamentsPage() {
         <div className="mt-12">
           <EmptyState
             title="No tournaments listed yet"
-            sub="The next SuperPro draw will be announced here and in the WhatsApp group."
+            sub="The next Sparvic draw will be announced here and in the WhatsApp group."
           />
         </div>
       ) : (
@@ -164,7 +164,7 @@ export default async function TournamentsPage() {
           </p>
         </div>
         <Link href="/about" className="btn-outline shrink-0">
-          About SuperPro <ArrowRight size={15} />
+          About Sparvic <ArrowRight size={15} />
         </Link>
       </div>
     </div>

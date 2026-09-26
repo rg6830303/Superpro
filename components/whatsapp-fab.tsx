@@ -5,10 +5,10 @@ import { MessageCircle, X } from "lucide-react";
 import { waLink, WHATSAPP_GROUP_URL, WHATSAPP_NUMBER } from "@/lib/site";
 
 const QUICK_ASKS = [
-  { label: "Which paddle suits me?", msg: "Hi SuperPro! I'd like help picking a paddle." },
-  { label: "Book today's game", msg: "Hi SuperPro! I want to book a slot for today's game." },
-  { label: "Coaching enquiry", msg: "Hi SuperPro! I'd like to know more about coaching sessions." },
-  { label: "Order / delivery status", msg: "Hi SuperPro! I have a question about my order." },
+  { label: "Which paddle suits me?", msg: "Hi Sparvic! I'd like help picking a paddle." },
+  { label: "Book today's game", msg: "Hi Sparvic! I want to book a slot for today's game." },
+  { label: "Coaching enquiry", msg: "Hi Sparvic! I'd like to know more about coaching sessions." },
+  { label: "Order / delivery status", msg: "Hi Sparvic! I have a question about my order." },
 ];
 
 /**
@@ -61,7 +61,7 @@ export function WhatsAppFab() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label={open ? "Close WhatsApp menu" : "Chat with a SuperPro representative"}
+        aria-label={open ? "Close WhatsApp menu" : "Chat with a Sparvic representative"}
         className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-paper shadow-lift transition-[transform,background-color] duration-200 ease-out hover:bg-ink-700 active:translate-y-px"
       >
         {open ? <X size={23} /> : <MessageCircle size={25} />}

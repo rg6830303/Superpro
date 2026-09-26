@@ -176,10 +176,10 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
         keyId: razorpayKeyId,
         orderId: data.razorpay_order_id,
         amountPaise: data.total_paise,
-        name: "SuperPro",
+        name: "Sparvic",
         description: discount
-          ? `SuperPro ${data.reference} (${discount.label})`
-          : `SuperPro ${data.reference}`,
+          ? `Sparvic ${data.reference} (${discount.label})`
+          : `Sparvic ${data.reference}`,
         prefill: { name, email, contact: phone },
         notes: {
           reference: data.reference,
@@ -306,7 +306,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
                 className={`tile sm:col-span-2 ${pay === "wallet" ? "tile-selected" : ""} ${walletPaise < total ? "opacity-40" : ""}`}
               >
                 <Wallet size={18} className="text-volt-deep" />
-                <p className="mt-2 font-display text-lg uppercase text-ink">SuperPro wallet</p>
+                <p className="mt-2 font-display text-lg uppercase text-ink">Sparvic wallet</p>
                 <p className="mt-1 text-xs text-ink/65">
                   {walletPaise < total
                     ? `Only ${formatPaise(walletPaise)} left — not enough for this order.`

@@ -51,7 +51,7 @@ export function SiteFooter() {
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-paper/60">{SITE.description}</p>
           <div className="mt-6 flex flex-wrap gap-2">
             <a
-              href={waLink("Hi SuperPro! I'd like to talk to a representative.")}
+              href={waLink("Hi Sparvic! I'd like to talk to a representative.")}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-pill border border-paper/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-paper/70 transition-colors hover:border-volt hover:text-volt"

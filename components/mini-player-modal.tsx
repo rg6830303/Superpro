@@ -115,7 +115,7 @@ export function MiniPlayerModal({
             <Avatar name={player.name} src={player.avatar_url} size="lg" />
             <div className="min-w-0 flex-1">
               <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-volt-deep font-bold">
-                SuperPro Player
+                Sparvic Player
               </span>
               <h3 className="truncate font-display text-xl font-bold text-ink">{player.name}</h3>
               {player.handle ? (
@@ -194,7 +194,7 @@ export function MiniPlayerModal({
                 )}
               </button>
             ) : (
-              <span className="text-xs text-ink/50 flex-1">Booked via SuperPro</span>
+              <span className="text-xs text-ink/50 flex-1">Booked via Sparvic</span>
             )}
 
             {player.handle && (

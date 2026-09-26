@@ -1,5 +1,5 @@
 /**
- * RAG Knowledge Base for SuperPro Enterprise Pickleball Platform.
+ * RAG Knowledge Base for Sparvic Enterprise Pickleball Platform.
  * Contains structured domain knowledge on rules, venues, daily games,
  * equipment, coaching, tournaments, DUPR ratings, wallet, and platform navigation.
  */
@@ -52,9 +52,9 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
   {
     id: "venues-kolkata",
     category: "venues",
-    title: "SuperPro Pickleball Venues & Courts in Kolkata",
+    title: "Sparvic Pickleball Venues & Courts in Kolkata",
     keywords: ["venues", "locations", "kolkata", "courts", "arena", "address", "timings", "salt lake"],
-    content: `SuperPro operates premier dedicated pickleball facilities in Kolkata, including Central Kolkata and Salt Lake venues. Courts feature professional cushioned acrylic surfaces, anti-glare tournament LED lighting, player lounges, air-conditioned changing rooms, and hydration zones. Venues are open 7 days a week from 6:00 AM to 10:00 PM. SuperPro representatives are on-site for balls, paddles, and match coordination.`,
+    content: `Sparvic operates premier dedicated pickleball facilities in Kolkata, including Central Kolkata and Salt Lake venues. Courts feature professional cushioned acrylic surfaces, anti-glare tournament LED lighting, player lounges, air-conditioned changing rooms, and hydration zones. Venues are open 7 days a week from 6:00 AM to 10:00 PM. Sparvic representatives are on-site for balls, paddles, and match coordination.`,
     action: { label: "View Venues & Slots", href: "/games" },
   },
   {
@@ -70,15 +70,15 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     category: "games",
     title: "Game Booking Cancellation & Wallet Refunds",
     keywords: ["cancellation", "refund", "reschedule", "money back", "wallet refund"],
-    content: `If you cancel or cannot make a booked slot, notify our venue team or cancel ahead of time. Fees paid via SuperPro Wallet are automatically refunded to your wallet balance instantly with zero deduction. Prepaid credits can be immediately used for any future slot, gear purchase, or tournament entry.`,
+    content: `If you cancel or cannot make a booked slot, notify our venue team or cancel ahead of time. Fees paid via Sparvic Wallet are automatically refunded to your wallet balance instantly with zero deduction. Prepaid credits can be immediately used for any future slot, gear purchase, or tournament entry.`,
     action: { label: "Manage My Wallet", href: "/dashboard?tab=wallet" },
   },
   {
     id: "shop-paddles",
     category: "shop",
-    title: "SuperPro Champion Series Carbon Fiber Paddles",
+    title: "Sparvic Champion Series Carbon Fiber Paddles",
     keywords: ["paddles", "rackets", "carbon fiber", "toray", "equipment", "shop", "champion series", "price"],
-    content: `SuperPro Champion Series paddles are crafted with Toray Japanese T700 carbon fiber faces and lightweight polypropylene honeycomb cores. Thermoformed edge walls provide high torsional stability and an enlarged sweet spot. Choose between Control paddles (soft touch, dinking, resets) and Power paddles (drives, punch volleys). Pickup available at Kolkata venues or delivery across India.`,
+    content: `Sparvic Champion Series paddles are crafted with Toray Japanese T700 carbon fiber faces and lightweight polypropylene honeycomb cores. Thermoformed edge walls provide high torsional stability and an enlarged sweet spot. Choose between Control paddles (soft touch, dinking, resets) and Power paddles (drives, punch volleys). Pickup available at Kolkata venues or delivery across India.`,
     action: { label: "Shop Paddles & Gear", href: "/products" },
   },
   {
@@ -86,7 +86,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     category: "shop",
     title: "Pickleball Balls & High-Humidity Grips",
     keywords: ["balls", "grips", "indoor", "outdoor", "humidity", "equipment", "accessories"],
-    content: `We stock official 40-hole precision-drilled outdoor balls designed for Indian wind resistance and durability, as well as 26-hole indoor balls. SuperPro replacement grips feature tacky, sweat-wicking polyurethane engineered specifically for Kolkata's humid climate.`,
+    content: `We stock official 40-hole precision-drilled outdoor balls designed for Indian wind resistance and durability, as well as 26-hole indoor balls. Sparvic replacement grips feature tacky, sweat-wicking polyurethane engineered specifically for Kolkata's humid climate.`,
     action: { label: "Explore Accessories", href: "/products" },
   },
   {
@@ -94,7 +94,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     category: "coaching",
     title: "Coaching, Clinics & Player Development",
     keywords: ["coaching", "coach", "lessons", "clinic", "training", "beginner", "intermediate", "drill"],
-    content: `SuperPro certified coaches offer private 1-on-1 sessions, doubles strategy clinics, and skill-specific masterclasses (dinks, drops, resets, attacks). No fixed dates required during checkout: once you book a coach, they reach out directly via WhatsApp to confirm convenient dates and times at your preferred Kolkata venue.`,
+    content: `Sparvic certified coaches offer private 1-on-1 sessions, doubles strategy clinics, and skill-specific masterclasses (dinks, drops, resets, attacks). No fixed dates required during checkout: once you book a coach, they reach out directly via WhatsApp to confirm convenient dates and times at your preferred Kolkata venue.`,
     action: { label: "Find a Coach", href: "/coaching" },
   },
   {
@@ -102,7 +102,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     category: "tournaments",
     title: "Pickleball Tournaments, Draws & Prize Pools",
     keywords: ["tournaments", "competition", "draw", "brackets", "cash prize", "teams", "register"],
-    content: `SuperPro hosts regular competitive tournaments with cash prize pools, official trophies, and DUPR match recording. Formats include Round-Robin pool matches followed by single-elimination finals. Divisions are separated by DUPR rating (Beginner, Intermediate, Advanced, Open) to ensure competitive parity.`,
+    content: `Sparvic hosts regular competitive tournaments with cash prize pools, official trophies, and DUPR match recording. Formats include Round-Robin pool matches followed by single-elimination finals. Divisions are separated by DUPR rating (Beginner, Intermediate, Advanced, Open) to ensure competitive parity.`,
     action: { label: "View Tournaments", href: "/tournaments" },
   },
   {
@@ -110,16 +110,16 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     category: "dupr",
     title: "DUPR Rating System Explained",
     keywords: ["dupr", "rating", "skill level", "beginner", "intermediate", "advanced", "pro", "level"],
-    content: `DUPR (Dynamic Universal Pickleball Rating) is the global gold standard rating system ranging from 2.0 to 8.0. Skill bands at SuperPro: Beginner (< 3.0), Intermediate (3.0 – 3.75), Advanced (3.75 – 4.5), Pro (4.5+). Enter your DUPR ID and rating in your SuperPro account profile to ensure fair matching in daily games and tournament divisions.`,
+    content: `DUPR (Dynamic Universal Pickleball Rating) is the global gold standard rating system ranging from 2.0 to 8.0. Skill bands at Sparvic: Beginner (< 3.0), Intermediate (3.0 – 3.75), Advanced (3.75 – 4.5), Pro (4.5+). Enter your DUPR ID and rating in your Sparvic account profile to ensure fair matching in daily games and tournament divisions.`,
     action: { label: "Update My DUPR Rating", href: "/dashboard?tab=profile" },
   },
   {
     id: "wallet-payments",
     category: "wallet",
-    title: "SuperPro Wallet & Payment Options",
+    title: "Sparvic Wallet & Payment Options",
     keywords: ["wallet", "razorpay", "upi", "card", "pay online", "venue payment", "cash"],
-    content: `SuperPro Wallet offers instant one-tap checkout with zero gateway delays. Top up your balance anytime using Razorpay (UPI, Google Pay, PhonePe, credit/debit cards) or load cash with any SuperPro rep at the venue. Your balance, transactions, and auto-refunds are visible in real time under the Wallet tab in your account.`,
-    action: { label: "Open SuperPro Wallet", href: "/dashboard?tab=wallet" },
+    content: `Sparvic Wallet offers instant one-tap checkout with zero gateway delays. Top up your balance anytime using Razorpay (UPI, Google Pay, PhonePe, credit/debit cards) or load cash with any Sparvic rep at the venue. Your balance, transactions, and auto-refunds are visible in real time under the Wallet tab in your account.`,
+    action: { label: "Open Sparvic Wallet", href: "/dashboard?tab=wallet" },
   },
   {
     id: "community-discover",
@@ -132,9 +132,9 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
   {
     id: "support-contact",
     category: "support",
-    title: "SuperPro Contact & WhatsApp Support",
+    title: "Sparvic Contact & WhatsApp Support",
     keywords: ["contact", "support", "whatsapp", "phone", "help", "number", "reach"],
-    content: `Need immediate help with a court booking, paddle query, or tournament registration? Message or call our official SuperPro WhatsApp helpline at +91 91631 32551. Our team and court managers are available 7 days a week from 6:00 AM to 10:00 PM.`,
+    content: `Need immediate help with a court booking, paddle query, or tournament registration? Message or call our official Sparvic WhatsApp helpline at +91 91631 32551. Our team and court managers are available 7 days a week from 6:00 AM to 10:00 PM.`,
     action: { label: "Chat on WhatsApp", href: "https://wa.me/919163132551" },
   },
 ];
