@@ -59,7 +59,7 @@ export function BootCover() {
         {/* Plain <img>: next/image would defer this behind the very hydration
             the cover exists to hide. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/superpro-mark-white.png" alt="" width={374} height={242} />
+        <img src="/logo/sparvic-mark-white.png" alt="" width={374} height={242} />
       </div>
       <script
         dangerouslySetInnerHTML={{

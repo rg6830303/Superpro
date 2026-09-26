@@ -12,8 +12,8 @@ type LogoProps = {
 };
 
 const SOURCES = {
-  lockup: { white: "/logo/superpro-logo-white.png", black: "/logo/superpro-logo-black.png", ratio: 672 / 381 },
-  mark: { white: "/logo/superpro-mark-white.png", black: "/logo/superpro-mark-black.png", ratio: 374 / 242 },
+  lockup: { white: "/logo/sparvic-logo-white.png", black: "/logo/sparvic-logo-black.png", ratio: 672 / 381 },
+  mark: { white: "/logo/sparvic-mark-white.png", black: "/logo/sparvic-mark-black.png", ratio: 374 / 242 },
 } as const;
 
 export function Logo({
