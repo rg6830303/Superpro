@@ -34,7 +34,9 @@ const schema = z.object({
 });
 
 const BOOTSTRAP_USERNAME = (process.env.ADMIN_USERNAME ?? "ishaanchetani").trim().toLowerCase();
-const BOOTSTRAP_PASSWORD = process.env.ADMIN_PASSWORD ?? "Sparvic2026";
+// Deliberately unchanged by the Sparvic rename: this is a credential, not
+// branding, and changing it would change the admin password.
+const BOOTSTRAP_PASSWORD = process.env.ADMIN_PASSWORD ?? "Superpro2026";
 
 export async function POST(req: Request) {
   try {
