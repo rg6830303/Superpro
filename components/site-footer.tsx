@@ -20,6 +20,7 @@ const COLUMNS = [
       { href: "/coaching", label: "Coaching" },
       { href: "/tournaments", label: "Tournaments" },
       { href: "/players", label: "Community" },
+      { href: "/medical", label: "Medical assistance" },
       { href: "/dashboard", label: "My bookings" },
     ],
   },
