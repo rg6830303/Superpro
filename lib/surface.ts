@@ -59,3 +59,24 @@ export function isMainPath(pathname: string): boolean {
 export function isMainOnlyPath(pathname: string): boolean {
   return MAIN_PREFIXES.some((p) => underPrefix(pathname, p));
 }
+
+/**
+ * Booking, shop and wallet APIs. Closed on the main domain during the launch:
+ * a signed-in player there can build a profile, discover others and follow
+ * them — nothing that takes a booking or money. (Payment webhooks and cron
+ * live elsewhere and stay open.)
+ */
+const MAIN_CLOSED_API = [
+  "/api/cart",
+  "/api/checkout",
+  "/api/coaching",
+  "/api/discounts",
+  "/api/games",
+  "/api/orders",
+  "/api/tournaments",
+  "/api/wallet",
+];
+
+export function isMainClosedApi(pathname: string): boolean {
+  return MAIN_CLOSED_API.some((p) => underPrefix(pathname, p));
+}

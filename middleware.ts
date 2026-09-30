@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
-import { DEMO_URL, MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost } from "@/lib/surface";
+import { DEMO_URL, MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost, isMainClosedApi } from "@/lib/surface";
 
 /**
  * One domain for everything: https://www.sparvic.com.
@@ -65,6 +65,12 @@ export async function middleware(req: NextRequest) {
   // API routes are shared by both faces and never redirected.
   const surface = surfaceOfHost(host);
   const isApi = pathname.startsWith("/api/");
+  if (surface === "main" && isApi && isMainClosedApi(pathname)) {
+    return NextResponse.json(
+      { error: "Bookings and the shop open at launch. For now, build your profile and find players to follow." },
+      { status: 403 },
+    );
+  }
   if (surface === "main" && !isApi) {
     if (pathname === "/launch") return NextResponse.redirect(new URL(`/${req.nextUrl.search}`, req.url), 307);
     if (!isMainPath(pathname)) return NextResponse.redirect(`${DEMO_URL}${pathname}${req.nextUrl.search}`, 307);
