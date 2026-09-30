@@ -1,24 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { Quote, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, PartyPopper, Quote, Users, X } from "lucide-react";
+import { INTRO_DONE_EVENT } from "@/components/smash-intro";
+import { introHasFinished } from "@/lib/intro-once";
 
 /**
- * A quote card, five seconds into the visit.
+ * Two cards, never both on one visit.
  *
- * It used to be a menu of five destinations, which asked the visitor to make a
- * decision before they had seen anything — the nav already answers that. What
- * is left is a single line worth reading and a way to dismiss it: no links, no
- * redirects, nothing that moves the page out from under anyone.
- *
- * It is gated on sessionStorage rather than a per-load flag, so a refresh does
- * not reopen a card the visitor has already closed, and it clears with the tab.
+ *   greeting — straight after sign-up or sign-in (the auth forms add
+ *              `?welcome=signup|login` to the redirect and stash the first
+ *              name in sessionStorage). Shown almost at once, with the next
+ *              step for a new player; the query param is then stripped so a
+ *              refresh or a shared link does not greet again.
+ *   quote    — a single line worth reading, five seconds into a visit, once
+ *              per tab session. It waits for the intro film to finish.
  */
 
 const SEEN_KEY = "superpro:welcome-seen";
+const NAME_KEY = "superpro:welcome-name";
 
-/** How long the page is left alone before the card appears. */
+/** How long the page is left alone before the quote card appears. */
 const DELAY_MS = 5000;
 
 const QUOTES = [
@@ -29,64 +32,91 @@ const QUOTES = [
   { line: "Every regular on this court was once the newest player on it.", who: "Sparvic Kolkata" },
 ];
 
-function seenThisVisit(): boolean {
+function storage(fn: (s: Storage) => string | null | void): string | null {
   try {
-    return window.sessionStorage.getItem(SEEN_KEY) === "1";
+    return fn(window.sessionStorage) ?? null;
   } catch {
-    return false;
-  }
-}
-
-function markSeen(): void {
-  try {
-    window.sessionStorage.setItem(SEEN_KEY, "1");
-  } catch {
-    /* Private mode: it opens again next load, which is the old behaviour. */
+    return null;
   }
 }
 
 /**
- * Where a motivational pop-up is an interruption rather than a welcome: the
- * coach portal is a work tool, and checkout is the one screen where nothing
- * should get between a player and the pay button.
+ * Where a pop-up is an interruption rather than a welcome: the coach portal is
+ * a work tool, and checkout is the one screen where nothing should get between
+ * a player and the pay button.
  */
 const QUIET_PATHS = ["/coach", "/checkout"];
 
+type Card =
+  | { kind: "greeting"; mode: "signup" | "login"; name: string | null }
+  | { kind: "quote"; quote: (typeof QUOTES)[number] };
+
 export function WelcomePopup() {
   const pathname = usePathname();
+  const router = useRouter();
+  const params = useSearchParams();
+  const welcome = params.get("welcome");
   const quiet = QUIET_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  const [open, setOpen] = useState(false);
-  // Chosen on the client, after mount: picking during render would have the
-  // server and the browser disagree about which line to show.
-  const [quote, setQuote] = useState<(typeof QUOTES)[number] | null>(null);
+  const [card, setCard] = useState<Card | null>(null);
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => setCard(null), []);
 
+  // Greeting: wins over everything else on this visit.
   useEffect(() => {
-    if (quiet || seenThisVisit()) return;
-    const timer = window.setTimeout(() => {
-      markSeen();
-      setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
-      setOpen(true);
-    }, DELAY_MS);
+    if (welcome !== "signup" && welcome !== "login") return;
+    const name = storage((s) => s.getItem(NAME_KEY));
+    storage((s) => {
+      s.removeItem(NAME_KEY);
+      s.setItem(SEEN_KEY, "1");
+    });
+    const timer = window.setTimeout(() => setCard({ kind: "greeting", mode: welcome, name }), 450);
+    // Strip the param without a navigation, so a refresh does not greet again.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("welcome");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
     return () => window.clearTimeout(timer);
-  }, [quiet]);
+  }, [welcome]);
+
+  // Quote: once per tab session, after the intro, never where it would be in the way.
+  useEffect(() => {
+    if (quiet || welcome || storage((s) => s.getItem(SEEN_KEY)) === "1") return;
+    let timer: number | undefined;
+    const arm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (storage((s) => s.getItem(SEEN_KEY)) === "1") return;
+        storage((s) => s.setItem(SEEN_KEY, "1"));
+        setCard({ kind: "quote", quote: QUOTES[Math.floor(Math.random() * QUOTES.length)] });
+      }, DELAY_MS);
+    };
+    if (introHasFinished() || !document.querySelector("video")) arm();
+    window.addEventListener(INTRO_DONE_EVENT, arm);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(INTRO_DONE_EVENT, arm);
+    };
+  }, [quiet, welcome]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!card) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, close]);
+  }, [card, close]);
 
-  if (quiet || !open || !quote) return null;
+  if (!card || (quiet && card.kind === "quote")) return null;
+
+  const go = (href: string) => {
+    close();
+    router.push(href);
+  };
 
   return (
     <div
       className="fixed inset-0 z-[70] grid place-items-end justify-center p-4 sm:place-items-center"
       role="dialog"
       aria-modal="true"
-      aria-label="A word before you play"
+      aria-label={card.kind === "greeting" ? "Welcome" : "A word before you play"}
     >
       <button
         type="button"
@@ -107,26 +137,54 @@ export function WelcomePopup() {
           <X size={16} />
         </button>
 
-        <div className="p-6 sm:p-8">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-volt-soft text-volt-deep">
-            <Quote size={16} />
-          </span>
-
-          <blockquote className="mt-4 font-display text-[22px] leading-[1.25] text-ink sm:text-[26px]">
-            {quote.line}
-          </blockquote>
-          <figcaption className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/45">
-            {quote.who}
-          </figcaption>
-
-          <div className="mt-6 flex items-center justify-between">
-            <button type="button" onClick={close} className="text-[12px] text-ink/45 underline hover:text-ink">
-              Dismiss
+        {card.kind === "greeting" ? (
+          <div className="p-6 sm:p-8">
+            <span className="grid h-10 w-10 place-items-center rounded-lg bg-volt-soft text-volt-deep">
+              <PartyPopper size={18} />
+            </span>
+            <h2 className="mt-4 font-display text-[26px] font-bold leading-[1.15] text-ink sm:text-[30px]">
+              {card.mode === "signup"
+                ? `Welcome to Sparvic${card.name ? `, ${card.name}` : ""}!`
+                : `Welcome back${card.name ? `, ${card.name}` : ""}.`}
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-ink/65">
+              {card.mode === "signup"
+                ? "You're registered — one of the first on court. Add a photo and your level so other players can find you, then go say hello to the community."
+                : "Good to see you. Catch up on who's new in the community, or give your profile a refresh."}
+            </p>
+            <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
+              <button type="button" onClick={() => go("/dashboard/profile")} className="btn-volt">
+                {card.mode === "signup" ? "Complete my profile" : "My profile"} <ArrowRight size={16} />
+              </button>
+              <button type="button" onClick={() => go("/players")} className="btn-outline">
+                <Users size={16} /> Discover players
+              </button>
+            </div>
+            <button type="button" onClick={close} className="mt-4 text-[12px] text-ink/45 underline hover:text-ink">
+              Maybe later
             </button>
-            <span className="font-mono text-[10px] text-ink/35">Esc to dismiss</span>
           </div>
-        </div>
+        ) : (
+          <div className="p-6 sm:p-8">
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-volt-soft text-volt-deep">
+              <Quote size={16} />
+            </span>
+            <blockquote className="mt-4 font-display text-[22px] leading-[1.25] text-ink sm:text-[26px]">
+              {card.quote.line}
+            </blockquote>
+            <figcaption className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/45">
+              {card.quote.who}
+            </figcaption>
+            <div className="mt-6 flex items-center justify-between">
+              <button type="button" onClick={close} className="text-[12px] text-ink/45 underline hover:text-ink">
+                Dismiss
+              </button>
+              <span className="font-mono text-[10px] text-ink/35">Esc to dismiss</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     });
     await recordAccountEvent({ req, actorType: "player", actorId: auth.id, email: auth.email, name, kind: "login" });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, name });
   } catch (err) {
     console.error("[login]", err);
     return NextResponse.json({ error: "Could not sign you in. Please try again." }, { status: 500 });

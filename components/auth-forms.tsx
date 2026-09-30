@@ -12,7 +12,14 @@ import { GENDERS } from "@/lib/profile";
  * Tag the destination so the welcome card knows to celebrate rather than ask
  * what you came for. Cheaper than a cookie, and it clears itself on dismiss.
  */
-function withWelcome(next: string, kind: "signup" | "login") {
+function withWelcome(next: string, kind: "signup" | "login", name?: string | null) {
+  // The greeting card addresses the player by first name; the URL stays clean.
+  try {
+    const first = (name ?? "").trim().split(/s+/)[0];
+    if (first) window.sessionStorage.setItem("superpro:welcome-name", first);
+  } catch {
+    /* storage blocked: the card just says hello without a name */
+  }
   return `${next}${next.includes("?") ? "&" : "?"}welcome=${kind}`;
 }
 export function LoginForm() {
@@ -37,7 +44,7 @@ export function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not sign you in.");
-      router.push(withWelcome(next, "login"));
+      router.push(withWelcome(next, "login", data.name));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -215,7 +222,7 @@ export function SignupForm() {
         }
       }
 
-      router.push(withWelcome(next, "signup"));
+      router.push(withWelcome(next, "signup", fullName));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
