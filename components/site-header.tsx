@@ -21,10 +21,14 @@ const MAIN_NAV = [
  * than a background pill on each — one moving object instead of six static
  * states, and the movement itself tells you where you just came from.
  */
-export function SiteHeader({ surface = "full" }: { surface?: Surface }) {
+export function SiteHeader({ surface = "full", signedIn = false }: { surface?: Surface; signedIn?: boolean }) {
   const main = surface === "main";
   const links = main ? MAIN_NAV : NAV_LINKS;
-  const cta = main ? { href: "/signup", label: "Register" } : { href: "/games", label: "Book a slot" };
+  const cta = !main
+    ? { href: "/games", label: "Book a slot" }
+    : signedIn
+      ? { href: "/players", label: "Discover players" }
+      : { href: "/signup", label: "Register" };
   const pathname = usePathname();
   const { count, ready } = useCart();
   const [open, setOpen] = useState(false);

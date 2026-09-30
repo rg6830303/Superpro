@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Camera, Trash2, Wallet } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 import { formatPaise } from "@/lib/money";
@@ -66,6 +67,7 @@ export function ProfileForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const router = useRouter();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -106,6 +108,8 @@ export function ProfileForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not save your details.");
       setSaved(true);
+      // The header, overview checklist and public page read the saved row.
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save your details.");
     } finally {
@@ -333,6 +337,7 @@ export function ProfileForm({
  */
 function PhotoCard({ profile }: { profile: Profile }) {
   const [url, setUrl] = useState(profile.avatar_url);
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -346,6 +351,7 @@ function PhotoCard({ profile }: { profile: Profile }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Could not upload that photo.");
       setUrl(data.avatar_url);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not upload that photo.");
     } finally {
@@ -358,10 +364,11 @@ function PhotoCard({ profile }: { profile: Profile }) {
     await fetch("/api/player/avatar", { method: "DELETE" }).catch(() => {});
     setUrl(null);
     setBusy(false);
+    router.refresh();
   }
 
   return (
-    <div className="card flex flex-wrap items-center gap-5 p-6">
+    <div className="card flex flex-col items-center gap-5 p-6 text-center sm:flex-row sm:items-center sm:text-left">
       <Avatar name={profile.full_name} src={url} size="lg" />
 
       <div className="min-w-0 flex-1">
@@ -380,7 +387,7 @@ function PhotoCard({ profile }: { profile: Profile }) {
           )}
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
           <label className="btn-volt btn-sm cursor-pointer">
             {busy ? <Spinner /> : <Camera size={14} />}
             {url ? "Replace photo" : "Upload photo"}

@@ -6,6 +6,8 @@ import { listWalletTransactions, reconcilePendingTopups } from "@/lib/wallet";
 import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
+import { headers } from "next/headers";
+import { surfaceOfHost } from "@/lib/surface";
 import { ageFrom } from "@/lib/profile";
 import { listUserNotifications, getUnreadNotificationCount } from "@/lib/notifications";
 import {
@@ -81,6 +83,12 @@ export default async function DashboardPage({
     ).catch(() => []),
   ]);
 
+  const launch = surfaceOfHost((await headers()).get("host")) === "main";
+  const following = await query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM follows WHERE follower_id = $1`,
+    [session.id],
+  ).catch(() => [{ n: 0 }]);
+
   const [profile, walletTx, notifications, unreadCount] = await Promise.all([
     getUserRow(session.id),
     listWalletTransactions(session.id, 25),
@@ -118,6 +126,8 @@ export default async function DashboardPage({
       unreadCount={unreadCount}
       razorpayEnabled={isRazorpayEnabled}
       razorpayKeyId={razorpayKeyId}
+      launch={launch}
+      followingCount={following[0]?.n ?? 0}
     />
   );
 }

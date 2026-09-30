@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  ArrowRight,
   Bell,
+  Check,
   CalendarDays,
   Compass,
   ExternalLink,
@@ -121,6 +123,8 @@ export function DashboardView({
   unreadCount = 0,
   razorpayEnabled,
   razorpayKeyId,
+  launch = false,
+  followingCount = 0,
 }: {
   session: { id: string; name: string; email: string };
   profile: PlayerProfileData;
@@ -134,10 +138,13 @@ export function DashboardView({
   unreadCount?: number;
   razorpayEnabled: boolean;
   razorpayKeyId: string;
+  /** Main domain during the launch: profile + community only, no bookings or wallet. */
+  launch?: boolean;
+  followingCount?: number;
 }) {
   const validTabs: TabKey[] = ["overview", "discover", "activity", "profile", "wallet"];
   const [activeTab, setActiveTab] = useState<TabKey>(
-    validTabs.includes(initialTab) ? initialTab : "overview"
+    validTabs.includes(initialTab) && !(launch && initialTab === "wallet") ? initialTab : "overview"
   );
 
   function switchTab(tab: TabKey) {
@@ -340,6 +347,7 @@ export function DashboardView({
             <span>Profile</span>
           </button>
 
+          {!launch && (
           <button
             type="button"
             onClick={() => switchTab("wallet")}
@@ -352,11 +360,16 @@ export function DashboardView({
             <Wallet size={15} className={activeTab === "wallet" ? "text-volt-deep" : "text-ink/50"} />
             <span>Wallet</span>
           </button>
+          )}
         </div>
       </div>
 
       {/* TAB 1: OVERVIEW */}
-      {activeTab === "overview" && (
+      {activeTab === "overview" && launch && (
+        <LaunchOverview profile={profile} followingCount={followingCount} switchTab={switchTab} />
+      )}
+
+      {activeTab === "overview" && !launch && (
         <div className="mt-8 space-y-10">
           {/* Quick Metrics Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -835,6 +848,135 @@ export function DashboardView({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The launch-time overview: what a new player should do next, in order, with
+ * each step ticking itself off as the profile fills in.
+ */
+function LaunchOverview({
+  profile,
+  followingCount,
+  switchTab,
+}: {
+  profile: PlayerProfileData;
+  followingCount: number;
+  switchTab: (tab: TabKey) => void;
+}) {
+  const steps = [
+    { done: true, title: "Create your account", sub: "You are in. Welcome to Sparvic.", action: null },
+    {
+      done: Boolean(profile.avatar_url),
+      title: "Add a profile photo",
+      sub: "Players recognise faces, not names.",
+      action: { label: "Add photo", tab: "profile" as TabKey },
+    },
+    {
+      done: Boolean(profile.bio && profile.bio.trim()),
+      title: "Write a short bio",
+      sub: "How long you have played, when you like to play, your favourite shot.",
+      action: { label: "Write bio", tab: "profile" as TabKey },
+    },
+    {
+      done: profile.dupr != null,
+      title: "Add your DUPR rating",
+      sub: "Optional — helps others find players at their level.",
+      action: { label: "Add rating", tab: "profile" as TabKey },
+    },
+    {
+      done: followingCount > 0,
+      title: "Follow players you know",
+      sub: "You will hear when they are on court.",
+      action: { label: "Find players", tab: "discover" as TabKey },
+    },
+  ];
+  const doneCount = steps.filter((st) => st.done).length;
+  const pct = Math.round((doneCount / steps.length) * 100);
+
+  return (
+    <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <section className="card min-w-0 p-5 sm:p-7">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="eyebrow">Get set up</p>
+            <h2 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">
+              {doneCount === steps.length ? "Your profile is complete" : "Finish your player profile"}
+            </h2>
+          </div>
+          <p className="font-mono text-sm tabular-nums text-ink/60">
+            {doneCount}/{steps.length} done
+          </p>
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-mist" aria-hidden>
+          <div className="h-full rounded-full bg-volt transition-all duration-500" style={{ width: `${pct}%` }} />
+        </div>
+
+        <ol className="mt-6 space-y-2.5">
+          {steps.map((st) => (
+            <li
+              key={st.title}
+              className={`flex items-center gap-3 rounded-xl border p-3.5 sm:gap-4 sm:p-4 ${st.done ? "border-line bg-mist/30" : "border-line bg-paper"}`}
+            >
+              <span
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${st.done ? "bg-volt text-ink" : "border-2 border-line text-ink/30"}`}
+                aria-hidden
+              >
+                {st.done ? <Check size={16} strokeWidth={3} /> : null}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[15px] font-semibold ${st.done ? "text-ink/55 line-through decoration-ink/25" : "text-ink"}`}>
+                  {st.title}
+                  <span className="sr-only">{st.done ? " (done)" : " (to do)"}</span>
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-ink/55">{st.sub}</p>
+              </div>
+              {!st.done && st.action && (
+                <button
+                  type="button"
+                  onClick={() => switchTab(st.action.tab)}
+                  className="btn-outline btn-sm shrink-0 whitespace-nowrap text-xs"
+                >
+                  {st.action.label}
+                </button>
+              )}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <div className="grid min-w-0 content-start gap-6">
+        <section className="card p-6">
+          <Compass size={18} className="text-volt-deep" />
+          <h3 className="mt-3 text-lg font-bold text-ink">Find your people</h3>
+          <p className="mt-1 text-sm leading-relaxed text-ink/60">
+            Browse everyone who has registered, see their level, and follow the ones you want to rally with.
+          </p>
+          <button type="button" onClick={() => switchTab("discover")} className="btn-volt mt-4 w-full">
+            <Users size={16} /> Discover players
+          </button>
+          <p className="mt-3 text-center text-xs text-ink/50">
+            Following {followingCount} {followingCount === 1 ? "player" : "players"}
+          </p>
+        </section>
+
+        <section className="card p-6">
+          <p className="eyebrow">Coming soon</p>
+          <h3 className="mt-2 text-lg font-bold text-ink">Courts, coaching &amp; the shop</h3>
+          <p className="mt-1 text-sm leading-relaxed text-ink/60">
+            Booking opens at launch. We will message you on WhatsApp the moment it does.
+          </p>
+          {profile.handle && (
+            <Link
+              href={`/players/${profile.handle}`}
+              className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-volt-deep hover:underline"
+            >
+              See your public page <ArrowRight size={14} />
+            </Link>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

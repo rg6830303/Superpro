@@ -15,7 +15,7 @@ import { GENDERS } from "@/lib/profile";
 function withWelcome(next: string, kind: "signup" | "login", name?: string | null) {
   // The greeting card addresses the player by first name; the URL stays clean.
   try {
-    const first = (name ?? "").trim().split(/s+/)[0];
+    const first = (name ?? "").trim().split(/\s+/)[0];
     if (first) window.sessionStorage.setItem("superpro:welcome-name", first);
   } catch {
     /* storage blocked: the card just says hello without a name */
@@ -55,12 +55,12 @@ export function LoginForm() {
   return (
     <form onSubmit={submit} className="card p-7">
       <h1 className="text-3xl">Welcome back</h1>
-      <p className="mt-2 text-sm text-ink/65">Sign in to see your bookings, orders and coaching sessions.</p>
+      <p className="mt-2 text-sm text-ink/65">Sign in to your player profile and see who you follow.</p>
 
       <div className="mt-6 space-y-4">
         <div>
           <label className="label" htmlFor="l-email">Email</label>
-          <input id="l-email" type="email" autoComplete="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input id="l-email" type="email" autoComplete="email" placeholder="you@example.com" className="field" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
         <PasswordField
           id="l-pass"
@@ -89,7 +89,7 @@ export function LoginForm() {
         </Link>
       </p>
       <p className="mt-3 text-center text-xs text-ink/45">
-        You don&apos;t need an account to book a game or shop — it just keeps everything in one place.
+        Your account is your player profile — find people to play with and follow them.
       </p>
     </form>
   );
@@ -166,6 +166,7 @@ export function SignupForm() {
     }
 
     setStep(2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -209,7 +210,14 @@ export function SignupForm() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not create your account.");
+      if (!res.ok) {
+        // A taken email belongs to step 1: send them back to it, next to the sign-in link.
+        if (/already exists/i.test(data.error ?? "")) {
+          setStep(1);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        throw new Error(data.error ?? "Could not create your account.");
+      }
 
       // If user uploaded a profile photo, upload it now with the active session
       if (avatarFile) {
@@ -264,6 +272,7 @@ export function SignupForm() {
                 id="s-email"
                 type="email"
                 autoComplete="email"
+                placeholder="you@example.com"
                 className="field"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -275,15 +284,23 @@ export function SignupForm() {
               <label className="label" htmlFor="s-phone">
                 WhatsApp Mobile Number <span className="text-signal">*</span>
               </label>
-              <input
-                id="s-phone"
-                type="tel"
-                inputMode="numeric"
-                className="field"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-medium text-ink/50">
+                  +91
+                </span>
+                <input
+                  id="s-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder="98765 43210"
+                  maxLength={14}
+                  className="field !pl-12"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
               <p className="mt-1 text-[11px] text-ink/45">Booking confirmations and court numbers are sent on WhatsApp.</p>
             </div>
 
@@ -368,10 +385,12 @@ export function SignupForm() {
             {/* Name (Compulsory) */}
             <div>
               <label className="label" htmlFor="s-name">
-                Full Name <span className="text-signal">* (Compulsory)</span>
+                Full Name <span className="text-signal">*</span>
               </label>
               <input
                 id="s-name"
+                autoComplete="name"
+                placeholder="As other players will see it"
                 className="field"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -384,11 +403,13 @@ export function SignupForm() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="s-age">
-                  Age <span className="text-signal">* (Compulsory)</span>
+                  Age <span className="text-signal">*</span>
                 </label>
                 <input
                   id="s-age"
                   type="number"
+                  inputMode="numeric"
+                  placeholder="e.g. 28"
                   min="5"
                   max="120"
                   className="field"
@@ -401,7 +422,7 @@ export function SignupForm() {
 
               <div>
                 <label className="label" htmlFor="s-gender">
-                  Sex <span className="text-signal">* (Compulsory)</span>
+                  Sex <span className="text-signal">*</span>
                 </label>
                 <select
                   id="s-gender"
@@ -437,6 +458,7 @@ export function SignupForm() {
                   </label>
                   <input
                     id="s-duprid"
+                    placeholder="Optional"
                     className="field font-mono uppercase tracking-wider"
                     value={duprId}
                     onChange={(e) => setDuprId(e.target.value.toUpperCase())}
@@ -451,6 +473,7 @@ export function SignupForm() {
                   </label>
                   <input
                     id="s-dupr"
+                    placeholder="e.g. 3.5"
                     className="field"
                     inputMode="decimal"
                     value={dupr}
@@ -503,6 +526,7 @@ export function SignupForm() {
               onClick={() => {
                 setError(null);
                 setStep(1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               disabled={busy}
               className="btn-outline flex items-center gap-1 py-3 px-4 text-xs font-semibold"

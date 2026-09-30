@@ -33,8 +33,11 @@ export async function uploadImage(
   const client = supabaseAdmin();
   const storage = client.storage.from(BUCKET);
   const key = `${pathWithoutExt}.${ext}`;
+  // A Buffer, not the raw ArrayBuffer: supabase-js on Node can send an
+  // ArrayBuffer as an empty body and store a 0-byte file.
+  const bytes = Buffer.from(await file.arrayBuffer());
 
-  let { error } = await storage.upload(key, await file.arrayBuffer(), {
+  let { error } = await storage.upload(key, bytes, {
     contentType: file.type,
     upsert: true,
   });
@@ -53,7 +56,7 @@ export async function uploadImage(
       console.error("[storage] could not create bucket:", created.error.message);
       return { ok: false, status: 502, error: "Image storage is not set up yet." };
     }
-    ({ error } = await storage.upload(key, await file.arrayBuffer(), {
+    ({ error } = await storage.upload(key, bytes, {
       contentType: file.type,
       upsert: true,
     }));

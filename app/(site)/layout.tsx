@@ -7,6 +7,7 @@ import { AmbientBackdrop } from "@/components/ambient-backdrop";
 import { Suspense } from "react";
 import { headers } from "next/headers";
 import { surfaceOfHost } from "@/lib/surface";
+import { getPlayerSession } from "@/lib/auth";
 
 /**
  * Public-site chrome. The admin console sits outside this group so it never
@@ -14,6 +15,7 @@ import { surfaceOfHost } from "@/lib/surface";
  */
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const surface = surfaceOfHost((await headers()).get("host"));
+  const signedIn = Boolean(await getPlayerSession().catch(() => null));
   return (
     <div className="flex min-h-screen flex-col">
       {/* Behind everything, and the reason the content below carries a
@@ -23,7 +25,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           the visitor could otherwise reach behind it lives inside it. */}
       <div data-site-content className="flex min-h-screen flex-col">
         <ReadProgress />
-        <SiteHeader surface={surface} />
+        <SiteHeader surface={surface} signedIn={signedIn} />
         <div data-menu-content className="flex flex-1 flex-col">
           <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
           <SiteFooter surface={surface} />

@@ -20,7 +20,7 @@ const patchSchema = z.object({
   date_of_birth: z.string().trim().max(20).optional(),
   gender: z.enum(["male", "female", "other", "undisclosed"]).optional(),
   dupr: z.number().min(2).max(8).nullable().optional(),
-  dupr_id: z.string().trim().max(24).optional(),
+  dupr_id: z.string().trim().max(24).nullable().optional(),
   whatsapp_opt_in: z.boolean().optional(),
 });
 

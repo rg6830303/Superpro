@@ -16,8 +16,8 @@
  *
  * The cover is hidden rather than removed at that point because removing it
  * pre-hydration only has React put it straight back — the server HTML contains
- * it, so React restores what it expects to find. It is taken out of the DOM
- * afterwards, once hydration has settled.
+ * it, so React restores what it expects to find. It stays in the DOM, hidden:
+ * React owns the node and must be the one to remove it.
  *
  * It clears three ways, in order of preference:
  *   1. The entrance calls `__superproBootClear()` after painting frame one.
@@ -83,12 +83,12 @@ export function BootCover() {
     timer=setTimeout(clear,budgetMs||3000);
   };
   // Decided by the gate script in <head>, which ran before this element was
-  // parsed. Hidden now, dropped from the DOM once hydration has settled —
-  // removing it any earlier only has React restore what it expects to find.
+  // parsed. Hidden, never removed: React owns this node, and deleting it behind
+  // React's back crashes the next layout change that unmounts it (the launch
+  // page -> sign-up navigation did exactly that).
   if(window.__superproSkipIntro){
     el.classList.add('is-skipped');
     done=true;
-    setTimeout(function(){el.remove();},1200);
     return;
   }
   // Failsafe: never hold the page behind the cover waiting on a scene that is
