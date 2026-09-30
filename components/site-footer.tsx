@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Instagram, Mail, MapPin, MessageCircle } from "lucide-react";
 import { Logo } from "@/components/logo";
+import type { Surface } from "@/lib/surface";
 import { SITE, WHATSAPP_GROUP_URL, WHATSAPP_NUMBER, waLink } from "@/lib/site";
 
 const COLUMNS = [
@@ -35,12 +36,31 @@ const COLUMNS = [
   },
 ];
 
+const MAIN_COLUMNS = [
+  {
+    title: "Join",
+    links: [
+      { href: "/signup", label: "Register" },
+      { href: "/login", label: "Sign in" },
+      { href: "/dashboard", label: "My profile" },
+    ],
+  },
+  {
+    title: "Community",
+    links: [
+      { href: "/players", label: "Discover players" },
+      { href: "/coach/login", label: "Coach sign in" },
+    ],
+  },
+];
+
 /**
  * The one deliberately dark block on the site. It closes the page the way a
  * back cover closes a book, and gives the volt accent somewhere to sit at full
  * strength without competing with the content above it.
  */
-export function SiteFooter() {
+export function SiteFooter({ surface = "full" }: { surface?: Surface }) {
+  const columns = surface === "main" ? MAIN_COLUMNS : COLUMNS;
   return (
     <footer className="band-ink relative mt-28 overflow-hidden">
       {/* Decorative: the volt light the dark panels carry, at page scale. */}
@@ -70,7 +90,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {COLUMNS.map((col) => (
+        {columns.map((col) => (
           <div key={col.title}>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-volt">{col.title}</p>
             <ul className="mt-5 space-y-3">

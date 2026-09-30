@@ -1,22 +1,21 @@
-import { BootCover } from "@/components/boot-cover";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { FloatingActions } from "@/components/floating-actions";
 import { ReadProgress } from "@/components/motion";
 import { WelcomePopup } from "@/components/welcome-popup";
-import { SmashIntro } from "@/components/smash-intro";
 import { AmbientBackdrop } from "@/components/ambient-backdrop";
 import { Suspense } from "react";
+import { headers } from "next/headers";
+import { surfaceOfHost } from "@/lib/surface";
 
 /**
  * Public-site chrome. The admin console sits outside this group so it never
  * inherits the customer header, footer or WhatsApp launcher.
  */
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  const surface = surfaceOfHost((await headers()).get("host"));
   return (
     <div className="flex min-h-screen flex-col">
-      {/* First in the group so it is painted before anything it covers. */}
-      <BootCover />
       {/* Behind everything, and the reason the content below carries a
           stacking context of its own. */}
       <AmbientBackdrop />
@@ -24,16 +23,15 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           the visitor could otherwise reach behind it lives inside it. */}
       <div data-site-content className="flex min-h-screen flex-col">
         <ReadProgress />
-        <SiteHeader />
+        <SiteHeader surface={surface} />
         <div data-menu-content className="flex flex-1 flex-col">
           <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
-          <SiteFooter />
+          <SiteFooter surface={surface} />
           <FloatingActions />
         </div>
       </div>
-      {/* Both read the `welcome` query param, so both need a suspense boundary. */}
+      {/* Reads the `welcome` query param, so it needs a suspense boundary. */}
       <Suspense fallback={null}>
-        <SmashIntro />
         <WelcomePopup />
       </Suspense>
     </div>

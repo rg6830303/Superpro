@@ -15,7 +15,7 @@
  */
 export const INTRO_SEEN_KEY = "superpro:intro-seen";
 /** Set, in localStorage, the first time the entrance actually plays: once per device, ever. */
-export const INTRO_LAST_KEY = "superpro:intro-last";
+export const INTRO_LAST_KEY = "superpro:intro-launch";
 
 /**
  * The same visit, in memory: sessionStorage answers "has this tab seen it",

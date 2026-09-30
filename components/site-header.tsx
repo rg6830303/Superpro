@@ -8,13 +8,23 @@ import { Logo } from "@/components/logo";
 import { useCart } from "@/components/cart-provider";
 import { NAV_LINKS } from "@/lib/site";
 import { lockScroll } from "@/lib/scroll-lock";
+import type { Surface } from "@/lib/surface";
+
+/** The main domain is the launch: only what a player needs to register and find others. */
+const MAIN_NAV = [
+  { href: "/players", label: "Community" },
+  { href: "/dashboard", label: "My profile" },
+] as const;
 
 /**
  * The active section is marked by a volt rail that slides between items rather
  * than a background pill on each — one moving object instead of six static
  * states, and the movement itself tells you where you just came from.
  */
-export function SiteHeader() {
+export function SiteHeader({ surface = "full" }: { surface?: Surface }) {
+  const main = surface === "main";
+  const links = main ? MAIN_NAV : NAV_LINKS;
+  const cta = main ? { href: "/signup", label: "Register" } : { href: "/games", label: "Book a slot" };
   const pathname = usePathname();
   const { count, ready } = useCart();
   const [open, setOpen] = useState(false);
@@ -89,7 +99,7 @@ export function SiteHeader() {
         <Logo height={30} priority />
 
         <nav aria-label="Main navigation" ref={navRef} className="relative hidden items-center gap-0.5 lg:flex xl:gap-1">
-          {NAV_LINKS.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -112,7 +122,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-1.5">
-          <Link
+          {!main && <Link
             href="/cart"
             aria-label={`Cart${ready && count ? `, ${count} items` : ""}`}
             className="relative grid h-11 w-11 place-items-center rounded-full text-ink/65 transition-colors hover:bg-mist hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-volt"
@@ -123,7 +133,7 @@ export function SiteHeader() {
                 {count}
               </span>
             )}
-          </Link>
+          </Link>}
 
           <Link
             href="/dashboard"
@@ -133,8 +143,8 @@ export function SiteHeader() {
             <User size={19} />
           </Link>
 
-          <Link href="/games" className="btn-volt btn-sm ml-1 hidden sm:inline-flex">
-            Book a slot
+          <Link href={cta.href} className="btn-volt btn-sm ml-1 hidden sm:inline-flex">
+            {cta.label}
           </Link>
 
           <button
@@ -163,7 +173,7 @@ export function SiteHeader() {
           className="absolute inset-x-0 top-full max-h-[68dvh] overflow-y-auto overscroll-contain rounded-b-2xl border-b border-t border-line bg-paper shadow-[0_28px_60px_-28px_rgba(6,38,61,0.55)] lg:hidden"
         >
           <nav aria-label="Mobile navigation" className="wrap flex flex-col pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -176,11 +186,11 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
-            <Link href="/dashboard" className="py-3.5 text-[15px] font-medium text-ink/75">
+            {!main && <Link href="/dashboard" className="py-3.5 text-[15px] font-medium text-ink/75">
               My account
-            </Link>
-            <Link href="/games" className="btn-volt my-3">
-              Book a slot
+            </Link>}
+            <Link href={cta.href} className="btn-volt my-3">
+              {cta.label}
             </Link>
           </nav>
         </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
+import { DEMO_URL, MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost } from "@/lib/surface";
 
 /**
  * One domain for everything: https://www.sparvic.com.
@@ -10,6 +11,14 @@ import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
  *     superproadmin.vercel.app → www.sparvic.com/admin. (The bare sparvic.com
  *     already redirects to www in the Vercel domain settings.) Preview
  *     deployments on other *.vercel.app addresses are left alone.
+ *
+ *   - Two faces, one deployment (see lib/surface.ts). www.sparvic.com is the
+ *     launch: "/" is the intro film and the coming-soon page, plus sign-up,
+ *     sign-in, the community, profiles and the player dashboard. Everything
+ *     else redirects to the demo, sparvicdemo.vercel.app, which in turn sends
+ *     the main-only paths back. Redirects are 307 (temporary) so browsers do
+ *     not cache them for good while the launch plan may still change. The
+ *     demo is kept out of search results.
  *
  *   - The admin console lives at /admin on the main domain. It is not linked
  *     from anywhere on the site, every admin response carries a noindex
@@ -52,6 +61,26 @@ export async function middleware(req: NextRequest) {
     return toCanonical(req, pathname);
   }
 
+  // ── Main domain / demo split ───────────────────────────────────────────
+  // API routes are shared by both faces and never redirected.
+  const surface = surfaceOfHost(host);
+  const isApi = pathname.startsWith("/api/");
+  if (surface === "main" && !isApi) {
+    if (pathname === "/launch") return NextResponse.redirect(new URL(`/${req.nextUrl.search}`, req.url), 307);
+    if (!isMainPath(pathname)) return NextResponse.redirect(`${DEMO_URL}${pathname}${req.nextUrl.search}`, 307);
+    if (pathname === "/") return NextResponse.rewrite(new URL(`/launch${req.nextUrl.search}`, req.url));
+  }
+  if (surface === "demo" && !isApi && isMainOnlyPath(pathname)) {
+    return NextResponse.redirect(`${MAIN_URL}${pathname}${req.nextUrl.search}`, 307);
+  }
+
+  const res = await gate(req, pathname);
+  if (surface === "demo") res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return res;
+}
+
+/** Admin console and player dashboard sign-in gates. */
+async function gate(req: NextRequest, pathname: string): Promise<NextResponse> {
   // ── Admin console ──────────────────────────────────────────────────────
   const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAdminApi = pathname.startsWith("/api/admin");

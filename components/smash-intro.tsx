@@ -57,7 +57,7 @@ export function SmashIntro() {
       }
       markIntroPlayed(true);
       const portrait = window.matchMedia("(orientation: portrait)").matches;
-      setSource(`/intro/kolkata-smash-${portrait ? "mobile" : "desktop"}.mp4`);
+      setSource(`/intro/sparvic-intro-${portrait ? "mobile" : "desktop"}.mp4`);
     }, 0);
     return () => {
       clearTimeout(start);
@@ -77,7 +77,8 @@ export function SmashIntro() {
     skip.current?.focus({ preventScroll: true });
     let disposed = false;
     // Mobile data or blocked autoplay must never leave a blank screen waiting.
-    guard.current = setTimeout(finish, 1800);
+    // 3.5s to start: the film is the launch announcement, worth a short wait.
+    guard.current = setTimeout(finish, 3500);
     player.muted = true;
     player.defaultMuted = true;
     player.play()?.catch(() => { if (!disposed) finish(); });
@@ -96,7 +97,7 @@ export function SmashIntro() {
   return (
     <div
       data-intro
-      className={`fixed inset-0 z-[2147483600] overflow-hidden bg-[#031622] transition-opacity duration-200 ${leaving ? "pointer-events-none opacity-0" : "opacity-100"}`}
+      className={`fixed inset-0 z-[2147483600] overflow-hidden bg-[#05223c] transition-opacity duration-300 ${leaving ? "pointer-events-none opacity-0" : "opacity-100"}`}
       role="dialog"
       aria-label="Sparvic opening animation"
       aria-modal="true"
@@ -108,7 +109,8 @@ export function SmashIntro() {
       <video
         ref={video}
         src={source}
-        className="h-full w-full object-contain"
+        // Full-bleed on the film's own navy, so no letterbox bars frame it.
+        className="h-full w-full object-cover"
         aria-hidden="true"
         tabIndex={-1}
         autoPlay muted playsInline preload="auto" disablePictureInPicture
@@ -116,7 +118,11 @@ export function SmashIntro() {
           if (finished.current) return;
           clearBootCover();
           clearTimeout(guard.current);
-          guard.current = setTimeout(finish, 4600);
+          // A backstop in case "ended" never fires, sized to the film itself —
+          // a fixed 4.6s here would cut a 10-second film off halfway through.
+          const player = video.current;
+          const ms = player && Number.isFinite(player.duration) && player.duration > 0 ? player.duration * 1000 + 1500 : 12000;
+          guard.current = setTimeout(finish, ms);
         }}
         onEnded={finish}
         onError={finish}
