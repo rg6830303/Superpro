@@ -18,7 +18,7 @@ function announceDone() {
 }
 
 /**
- * One entrance per device, and only for a visit that lands on the home page.
+ * One entrance per browser session, and only for a visit that lands on the home page.
  */
 export function SmashIntro() {
   const params = useSearchParams();
@@ -48,7 +48,7 @@ export function SmashIntro() {
     // A discarded setup must not consume the first visit or remove its timers.
     const start = setTimeout(() => {
       const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-      // Once per device: a sign-in or sign-up no longer earns a replay.
+      // Once per browser session: refreshes and in-site navigation do not replay it.
       if (introAlreadyPlayed() || window.matchMedia("(prefers-reduced-motion: reduce)").matches || connection?.saveData) {
         markIntroPlayed();
         clearBootCover();

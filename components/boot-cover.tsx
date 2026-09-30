@@ -116,9 +116,8 @@ export function IntroGate() {
       dangerouslySetInnerHTML={{
         __html: `(function(){
   var seen=false;
-  // Must match INTRO_SEEN_KEY and INTRO_LAST_KEY in lib/intro-once.ts.
+  // Must match INTRO_SEEN_KEY in lib/intro-once.ts.
   try{seen=sessionStorage.getItem('superpro:intro-seen')==='1';}catch(e){}
-  try{if(localStorage.getItem('superpro:intro-launch'))seen=true;}catch(e){}
   // Only a visit that lands on the home page gets the entrance. Someone who
   // arrives on a deep link - a WhatsApp link to /games, a shared product - came
   // for that page, and a full-screen film in front of it is in their way.
@@ -126,7 +125,7 @@ export function IntroGate() {
   var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // A plain global, not an attribute on <html> or <body>: React reconciles
   // those during hydration and strips anything it did not itself render.
-  // Once per device, full stop - signing in no longer replays it.
+  // Once per browser session: a new visit (new tab or window) plays it again.
   window.__superproSkipIntro=!(!seen&&home&&!reduced);
 })();`,
       }}

@@ -14,8 +14,6 @@
  * runs before this module is parsed — keep the string in step with it.
  */
 export const INTRO_SEEN_KEY = "superpro:intro-seen";
-/** Set, in localStorage, the first time the entrance actually plays: once per device, ever. */
-export const INTRO_LAST_KEY = "superpro:intro-launch";
 
 /**
  * The same visit, in memory: sessionStorage answers "has this tab seen it",
@@ -30,7 +28,7 @@ export function markIntroFinished(): void { finishedInMemory = true; }
 
 /** Storage access throws in some privacy modes; a failure must never gate the site. */
 /**
- * True when the entrance should NOT play: already shown on this device,
+ * True when the entrance should NOT play: already shown in this browser session,
  * or the visit did not land on the home page — deep links go straight to the
  * page asked for. Mirrors the gate script in components/boot-cover.tsx.
  */
@@ -42,20 +40,14 @@ export function introAlreadyPlayed(): boolean {
   } catch {
     /* storage blocked */
   }
-  try {
-    if (window.localStorage.getItem(INTRO_LAST_KEY)) return true;
-  } catch {
-    /* storage blocked */
-  }
   return false;
 }
 
-/** `shown` records the one showing for this device; only a real showing should. */
+/** `shown` is kept for callers; the session flag is set either way. */
 export function markIntroPlayed(shown = false): void {
   playedInMemory = true;
   try {
     window.sessionStorage.setItem(INTRO_SEEN_KEY, "1");
-    if (shown) window.localStorage.setItem(INTRO_LAST_KEY, String(Date.now()));
   } catch {
     /* Private mode: the entrance simply plays again next load. */
   }
