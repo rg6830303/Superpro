@@ -22,7 +22,7 @@ const SEEN_KEY = "superpro:welcome-seen";
 const NAME_KEY = "superpro:welcome-name";
 
 /** How long the page is left alone before the quote card appears. */
-const DELAY_MS = 5000;
+const DELAY_MS = 2500;
 
 const QUOTES = [
   { line: "The ball does not care how you felt about the last point.", who: "Court wisdom" },
@@ -89,7 +89,10 @@ export function WelcomePopup() {
         setCard({ kind: "quote", quote: QUOTES[Math.floor(Math.random() * QUOTES.length)] });
       }, DELAY_MS);
     };
-    if (introHasFinished() || !document.querySelector("video")) arm();
+    // Pages under this layout never carry the intro, so start the timer now;
+    // the event only matters if an intro is actually on screen.
+    const introOnScreen = !introHasFinished() && Boolean(document.querySelector("video"));
+    if (!introOnScreen) arm();
     window.addEventListener(INTRO_DONE_EVENT, arm);
     return () => {
       window.clearTimeout(timer);
@@ -113,7 +116,7 @@ export function WelcomePopup() {
 
   return (
     <div
-      className="fixed inset-0 z-[70] grid place-items-end justify-center p-4 sm:place-items-center"
+      className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto p-4"
       role="dialog"
       aria-modal="true"
       aria-label={card.kind === "greeting" ? "Welcome" : "A word before you play"}
@@ -125,7 +128,7 @@ export function WelcomePopup() {
         className="absolute inset-0 cursor-default bg-ink/35 backdrop-blur-[2px] animate-fade-in"
       />
 
-      <div className="animate-pop-in relative w-full max-w-lg overflow-hidden rounded-2xl border border-line bg-paper shadow-[0_30px_80px_-30px_rgba(6,38,61,0.5)]">
+      <div className="animate-pop-in relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-paper shadow-[0_30px_80px_-30px_rgba(6,38,61,0.5)]">
         <div className="h-1.5 w-full bg-volt" />
 
         <button

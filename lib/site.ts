@@ -10,8 +10,9 @@ export const SITE = {
   description:
     "Sparvic is Kolkata's pickleball house — Champion Series paddles, balls and grips, daily open games, coaching with certified pros, and the tournaments we run and sponsor.",
   city: "Kolkata",
-  email: "hello@superpro.in",
-  instagram: "https://instagram.com/superpro.pickleball",
+  email: "info@sparvic.com",
+  // The existing Superpro account (to be renamed); keep the handle, not a tracking link.
+  instagram: "https://www.instagram.com/superprosports_official/",
   // The live domain. An env value still pointing at an old Vercel address is
   // ignored, so links in messages and metadata never send people back there.
   url: (() => {

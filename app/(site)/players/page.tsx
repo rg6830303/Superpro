@@ -122,12 +122,12 @@ export default async function CommunityPage() {
           <p className="eyebrow">Community</p>
           <h1 className="mt-3 headline-page">Find your people</h1>
           <p className="lede mt-4 max-w-2xl">
-            Everyone who plays with Sparvic has a page. Find the person you rallied with last week, see what level
-            they play at, and follow them to hear when they book a court.
+            Everyone who registers with Sparvic gets a player page. Find people you know, see what level they play
+            at, and follow them so you are on court together when we open.
           </p>
           {stats && (
             <p className="mt-5 font-mono text-[11px] uppercase tracking-wide text-ink/45">
-              {stats.players} players · {stats.this_week} game{stats.this_week === 1 ? "" : "s"} booked this week
+              {stats.players} {stats.players === 1 ? "player" : "players"} registered
             </p>
           )}
         </div>
@@ -171,9 +171,6 @@ export default async function CommunityPage() {
             <h2 id="on-court" className="headline-section flex items-center gap-2">
               <CalendarDays size={20} className="text-volt-deep" /> On court this week
             </h2>
-            <Link href="/games" className="hidden items-center gap-1 text-sm font-semibold text-ink/70 hover:text-ink sm:inline-flex">
-              Book the same slot <ArrowRight size={14} />
-            </Link>
           </div>
           {/* Scrolls sideways on a phone instead of stacking twelve tall cards. */}
           <ul className="-mx-4 mt-5 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">

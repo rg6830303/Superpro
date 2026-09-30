@@ -195,11 +195,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         </h2>
         {upcoming.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-line px-5 py-8 text-sm text-ink/55">
-            Nothing coming up right now.{" "}
-            <Link href="/games" className="underline">
-              Find a slot
-            </Link>{" "}
-            and you might end up on the same court.
+            Nothing booked yet — courts open at launch.
           </p>
         ) : (
           <ul className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -227,18 +223,6 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      <section className="mt-12 rounded-xl border border-line bg-mist p-6">
-        <h2 className="flex items-center gap-2 font-display text-2xl text-ink">
-          <Trophy size={18} className="text-volt-deep" /> Want to play them?
-        </h2>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/70">
-          Book a slot at the same venue and time — rosters are public so you can see who else is coming before you
-          pay.
-        </p>
-        <Link href="/games" className="btn-volt mt-5">
-          Browse daily games
-        </Link>
-      </section>
     </div>
   );
 }

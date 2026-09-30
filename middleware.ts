@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
-import { DEMO_URL, MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost, isMainClosedApi } from "@/lib/surface";
+import { MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost, isMainClosedApi } from "@/lib/surface";
 
 /**
  * One domain for everything: https://www.sparvic.com.
@@ -15,8 +15,9 @@ import { DEMO_URL, MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost, isMainCl
  *   - Two faces, one deployment (see lib/surface.ts). www.sparvic.com is the
  *     launch: "/" is the intro film and the coming-soon page, plus sign-up,
  *     sign-in, the community, profiles and the player dashboard. Everything
- *     else redirects to the demo, sparvicdemo.vercel.app, which in turn sends
- *     the main-only paths back. Redirects are 307 (temporary) so browsers do
+ *     else goes back to "/" — nothing on the main domain leads to the demo,
+ *     sparvicdemo.vercel.app, which is reachable only by its own link (and
+ *     sends the main-only paths back). Redirects are 307 (temporary) so browsers do
  *     not cache them for good while the launch plan may still change. The
  *     demo is kept out of search results.
  *
@@ -73,7 +74,8 @@ export async function middleware(req: NextRequest) {
   }
   if (surface === "main" && !isApi) {
     if (pathname === "/launch") return NextResponse.redirect(new URL(`/${req.nextUrl.search}`, req.url), 307);
-    if (!isMainPath(pathname)) return NextResponse.redirect(`${DEMO_URL}${pathname}${req.nextUrl.search}`, 307);
+    // Hidden sections are not reachable from here at all: no hop to the demo host.
+    if (!isMainPath(pathname)) return NextResponse.redirect(new URL("/", req.url), 307);
     if (pathname === "/") return NextResponse.rewrite(new URL(`/launch${req.nextUrl.search}`, req.url));
   }
   if (surface === "demo" && !isApi && isMainOnlyPath(pathname)) {
