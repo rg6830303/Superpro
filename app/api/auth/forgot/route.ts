@@ -10,9 +10,10 @@ export const runtime = "nodejs";
 const schema = z.object({ email: emailSchema });
 
 /**
- * Forgot password: emails a one-hour reset link. The answer is the same whether
- * or not the address has an account, so this cannot be used to probe who has
- * registered.
+ * Forgot password: emails a one-hour, single-use reset link — only to an email
+ * that is registered (users row + Supabase Auth account). Unregistered emails
+ * get a clear "no account" answer and no email. Rate limited per IP and per
+ * address, which also caps how fast anyone could probe for registered emails.
  */
 export async function POST(req: Request) {
   const ip = getClientIp(req);
@@ -34,9 +35,28 @@ export async function POST(req: Request) {
   try {
     // Per-address limit as well, so one inbox cannot be flooded from many IPs.
     const perEmail = await checkRateLimit(`forgot-email:${parsed.data.email}`, 3, 60 * 60 * 1000);
-    if (perEmail.ok) await requestPasswordReset(parsed.data.email, origin);
+    if (!perEmail.ok) {
+      return NextResponse.json(
+        { error: "A reset link was sent to this email recently. Check your inbox (and spam), or try again in an hour." },
+        { status: 429 },
+      );
+    }
+    const result = await requestPasswordReset(parsed.data.email, origin);
+    if (result === "not_registered") {
+      return NextResponse.json(
+        { error: "We couldn't find a Sparvic account with that email. Check the spelling, or register a new account.", code: "not_registered" },
+        { status: 404 },
+      );
+    }
+    if (result === "send_failed") {
+      return NextResponse.json(
+        { error: "We couldn't send the email just now. Please try again in a minute, or message us on WhatsApp." },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[forgot] failed:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
 }

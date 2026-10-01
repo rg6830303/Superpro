@@ -13,10 +13,12 @@ export function ForgotPasswordForm() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notRegistered, setNotRegistered] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotRegistered(false);
     setBusy(true);
     try {
       const res = await fetch("/api/auth/forgot", {
@@ -25,7 +27,10 @@ export function ForgotPasswordForm() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Could not send the reset link.");
+      if (!res.ok) {
+        setNotRegistered(data.code === "not_registered");
+        throw new Error(data.error ?? "Could not send the reset link.");
+      }
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send the reset link.");
@@ -42,8 +47,9 @@ export function ForgotPasswordForm() {
         </span>
         <h1 className="mt-4 text-2xl font-bold text-ink">Check your inbox</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink/65">
-          If <strong className="text-ink">{email.trim()}</strong> has a Sparvic account, a link to reset your password
-          is on its way. It works for one hour. Check spam if you don&apos;t see it in a minute or two.
+          We&apos;ve sent a password reset link to <strong className="text-ink">{email.trim()}</strong>. It works once
+          and expires in one hour. If it isn&apos;t in your inbox within a couple of minutes, check your spam or
+          promotions folder.
         </p>
         <button type="button" onClick={() => setSent(false)} className="btn-outline mt-6 w-full">
           Use a different email
@@ -59,7 +65,8 @@ export function ForgotPasswordForm() {
     <form onSubmit={submit} className="card p-7">
       <h1 className="text-2xl font-bold text-ink sm:text-3xl">Forgot your password?</h1>
       <p className="mt-2 text-sm text-ink/65">
-        Enter the email you registered with and we&apos;ll send you a link to choose a new one.
+        Enter the email you registered with. If it matches a Sparvic account, we&apos;ll email you a secure link to
+        choose a new password.
       </p>
       <div className="mt-6">
         <label className="label" htmlFor="f-email">Email</label>
@@ -77,6 +84,11 @@ export function ForgotPasswordForm() {
       {error && (
         <div className="mt-5">
           <Alert>{error}</Alert>
+          {notRegistered && (
+            <Link href="/signup" className="btn-outline mt-3 w-full">
+              Create an account
+            </Link>
+          )}
         </div>
       )}
       <button type="submit" disabled={busy} className="btn-volt mt-6 w-full">
