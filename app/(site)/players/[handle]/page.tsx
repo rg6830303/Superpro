@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { CalendarDays, MapPin, Trophy } from "lucide-react";
 import { Avatar, FollowButton } from "@/components/player-directory";
 import { Reveal } from "@/components/motion";
-import { getPlayerSession } from "@/lib/auth";
+import { getAdminSession, getCoachSession, getPlayerSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { signInToView } from "@/lib/safe-next";
 import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { formatDate } from "@/lib/dates";
@@ -72,6 +74,9 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   const { handle } = await params;
   await ensureSchema();
   const session = await getPlayerSession();
+  // Profiles are for members: signed-out visitors sign in or register first and
+  // come straight back here. Coaches and admins keep access from their portals.
+  if (!session && !(await getCoachSession()) && !(await getAdminSession())) redirect(signInToView(handle));
   const profile = await load(handle, session?.id ?? null);
   if (!profile) notFound();
 

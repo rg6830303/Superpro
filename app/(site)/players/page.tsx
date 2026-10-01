@@ -7,6 +7,7 @@ import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { formatDate } from "@/lib/dates";
 import { LEVEL_LABEL } from "@/lib/levels";
+import { signInToView } from "@/lib/safe-next";
 
 export const dynamic = "force-dynamic";
 
@@ -177,7 +178,7 @@ export default async function CommunityPage() {
             {upcoming.map((p) => (
               <li key={p.handle} className="w-[15rem] shrink-0 snap-start sm:w-auto">
                 <Link
-                  href={`/players/${p.handle}`}
+                  href={me ? `/players/${p.handle}` : signInToView(p.handle)}
                   className="flex h-full flex-col gap-3 rounded-xl border border-line bg-paper p-4 transition-colors hover:border-ink/30"
                 >
                   <div className="flex items-center gap-3">

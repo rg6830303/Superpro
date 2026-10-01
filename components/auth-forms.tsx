@@ -3,10 +3,30 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Camera, ChevronLeft, ArrowRight, User } from "lucide-react";
+import { Camera, ChevronLeft, ArrowRight, Lock, User } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 import { PasswordField } from "@/components/password-field";
 import { GENDERS } from "@/lib/profile";
+import { safeNext } from "@/lib/safe-next";
+
+/** Shown when someone was sent here from a player profile or a Follow button. */
+function MembersOnlyNote({ next }: { next: string }) {
+  if (!next.startsWith("/players/")) return null;
+  return (
+    <div className="mb-5 flex items-start gap-3 rounded-xl border border-volt-deep/25 bg-volt-soft px-4 py-3 text-sm text-ink/80">
+      <Lock size={16} className="mt-0.5 shrink-0 text-volt-deep" />
+      <p>
+        Player profiles and following are for members. <strong className="text-ink">Sign in or create a free
+        account</strong> and we&apos;ll take you straight back to that player.
+      </p>
+    </div>
+  );
+}
+
+/** Keeps the return path when switching between sign-in and register. */
+function withNext(path: string, next: string) {
+  return next === "/dashboard" ? path : `${path}?next=${encodeURIComponent(next)}`;
+}
 
 /**
  * Tag the destination so the welcome card knows to celebrate rather than ask
@@ -25,7 +45,7 @@ function withWelcome(next: string, kind: "signup" | "login", name?: string | nul
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
+  const next = safeNext(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +74,7 @@ export function LoginForm() {
 
   return (
     <form onSubmit={submit} className="card p-7">
+      <MembersOnlyNote next={next} />
       <h1 className="text-3xl">Welcome back</h1>
       <p className="mt-2 text-sm text-ink/65">Sign in to your player profile and see who you follow.</p>
 
@@ -89,7 +110,7 @@ export function LoginForm() {
 
       <p className="mt-5 text-center text-sm text-ink/55">
         New here?{" "}
-        <Link href="/signup" className="font-semibold text-volt-deep hover:underline">
+        <Link href={withNext("/signup", next)} className="font-semibold text-volt-deep hover:underline">
           Create an account
         </Link>
       </p>
@@ -103,7 +124,7 @@ export function LoginForm() {
 export function SignupForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
+  const next = safeNext(params.get("next"));
 
   // Step 1: Credentials | Step 2: Profiling Questions
   const [step, setStep] = useState<1 | 2>(1);
@@ -245,6 +266,7 @@ export function SignupForm() {
 
   return (
     <div className="card p-7">
+      {step === 1 && <MembersOnlyNote next={next} />}
       {/* Progress tracker */}
       <div className="mb-6 flex items-center justify-between border-b border-line pb-4">
         <div>
@@ -348,7 +370,7 @@ export function SignupForm() {
 
           <p className="mt-5 text-center text-sm text-ink/55">
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-volt-deep hover:underline">
+            <Link href={withNext("/login", next)} className="font-semibold text-volt-deep hover:underline">
               Sign in
             </Link>
           </p>

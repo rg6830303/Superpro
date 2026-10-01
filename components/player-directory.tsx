@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, Search, UserPlus, Users } from "lucide-react";
 import { Spinner } from "@/components/ui";
 import { initials } from "@/lib/profile";
+import { signInToView } from "@/lib/safe-next";
 import { LEVEL_LABEL } from "@/lib/levels";
 
 export type DirectoryPlayer = {
@@ -87,7 +88,7 @@ export function FollowButton({
 
   if (!signedIn) {
     return (
-      <Link href={`/login?next=/players/${handle}`} className={`btn-outline ${cls}`}>
+      <Link href={signInToView(handle)} className={`btn-outline ${cls}`}>
         <UserPlus size={14} /> Follow
       </Link>
     );
@@ -327,7 +328,7 @@ function PlayerRow({
           {/* The name is the link, stretched over the row, so the whole card is
               a target without nesting the follow button inside an anchor. */}
           <Link
-            href={`/players/${p.handle}`}
+            href={signedIn ? `/players/${p.handle}` : signInToView(p.handle)}
             className="truncate font-semibold text-ink after:absolute after:inset-0 after:rounded-xl group-hover:underline"
           >
             {p.full_name}
