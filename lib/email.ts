@@ -4,7 +4,7 @@
  * Configure in Vercel (and .env.local):
  *   RESEND_API_KEY  — from resend.com → API Keys
  *   RESEND_FROM     — a sender on a domain verified in Resend,
- *                     e.g. "Sparvic <no-reply@sparvic.com>"
+ *                     e.g. "Sparvic <info@sparvic.com>"
  *
  * Without a key nothing is sent: the caller gets { ok: false, reason:
  * "not-configured" } and decides what to do (the reset flow logs the link in
@@ -13,7 +13,7 @@
 
 export const isEmailConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
 
-const FROM = process.env.RESEND_FROM?.trim() || "Sparvic <no-reply@sparvic.com>";
+const FROM = process.env.RESEND_FROM?.trim() || "Sparvic <info@sparvic.com>";
 
 export type SendResult = { ok: true; id: string } | { ok: false; reason: "not-configured" | "failed"; detail?: string };
 
