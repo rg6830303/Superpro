@@ -12,9 +12,19 @@ import type { Surface } from "@/lib/surface";
 
 /** The main domain is the launch: only what a player needs to register and find others. */
 const MAIN_NAV = [
-  { href: "/players", label: "Community" },
-  { href: "/dashboard", label: "My profile" },
+  // A full page load, not a client navigation: the intro and its boot cover
+  // are set up by scripts that only run on a real load.
+  { href: "/?intro=1", label: "Intro", hard: true },
+  { href: "/players", label: "Discover", hard: false },
+  { href: "/dashboard", label: "My profile", hard: false },
 ] as const;
+
+/** A nav item; `hard` ones do a full page load instead of a client navigation. */
+function NavAnchor({ hard, ...props }: { hard?: boolean } & React.ComponentProps<typeof Link>) {
+  if (!hard) return <Link {...props} />;
+  const { href, prefetch: _prefetch, replace: _replace, scroll: _scroll, ...rest } = props;
+  return <a {...(rest as React.AnchorHTMLAttributes<HTMLAnchorElement>)} href={String(href)} />;
+}
 
 /**
  * The active section is marked by a volt rail that slides between items rather
@@ -104,7 +114,8 @@ export function SiteHeader({ surface = "full", signedIn = false }: { surface?: S
 
         <nav aria-label="Main navigation" ref={navRef} className="relative hidden items-center gap-0.5 lg:flex xl:gap-1">
           {links.map((link) => (
-            <Link
+            <NavAnchor
+              hard={"hard" in link && link.hard}
               key={link.href}
               href={link.href}
               data-active={isActive(link.href)}
@@ -114,7 +125,7 @@ export function SiteHeader({ surface = "full", signedIn = false }: { surface?: S
               }`}
             >
               {link.label}
-            </Link>
+            </NavAnchor>
           ))}
           {rail && (
             <span
@@ -178,7 +189,8 @@ export function SiteHeader({ surface = "full", signedIn = false }: { surface?: S
         >
           <nav aria-label="Mobile navigation" className="wrap flex flex-col pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
             {links.map((link) => (
-              <Link
+              <NavAnchor
+                hard={"hard" in link && link.hard}
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
@@ -188,7 +200,7 @@ export function SiteHeader({ surface = "full", signedIn = false }: { surface?: S
                 }`}
               >
                 {link.label}
-              </Link>
+              </NavAnchor>
             ))}
             {!main && <Link href="/dashboard" className="py-3.5 text-[15px] font-medium text-ink/75">
               My account

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { introAlreadyPlayed, markIntroPlayed, markIntroFinished } from "@/lib/intro-once";
+import { introAlreadyPlayed, introRequested, markIntroPlayed, markIntroFinished } from "@/lib/intro-once";
 import { lockScroll } from "@/lib/scroll-lock";
 
 export const INTRO_DONE_EVENT = "superpro:intro-done";
@@ -49,7 +49,15 @@ export function SmashIntro() {
     const start = setTimeout(() => {
       const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
       // Once per browser session: refreshes and in-site navigation do not replay it.
-      if (introAlreadyPlayed() || window.matchMedia("(prefers-reduced-motion: reduce)").matches || connection?.saveData) {
+      const asked = introRequested();
+      if (asked) {
+        // One replay per click: a refresh after it should not play it again.
+        const url = new URL(window.location.href);
+        url.searchParams.delete("intro");
+        window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+      }
+      const declined = window.matchMedia("(prefers-reduced-motion: reduce)").matches || connection?.saveData;
+      if (!asked && (introAlreadyPlayed() || declined)) {
         markIntroPlayed();
         clearBootCover();
         announceDone();

@@ -12,13 +12,14 @@ import { WhatsAppFab } from "@/components/whatsapp-fab";
  */
 const QUIET = ["/login", "/signup", "/checkout", "/coach"];
 
-export function FloatingActions() {
+/** On the main (launch) domain only WhatsApp stays: the AI caddy talks bookings and gear that are not open yet. */
+export function FloatingActions({ hideChatbot = false }: { hideChatbot?: boolean }) {
   const pathname = usePathname();
   if (QUIET.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
   return (
     <>
       <WhatsAppFab />
-      <AIChatbot />
+      {!hideChatbot && <AIChatbot />}
     </>
   );
 }

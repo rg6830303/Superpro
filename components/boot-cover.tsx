@@ -123,10 +123,12 @@ export function IntroGate() {
   // for that page, and a full-screen film in front of it is in their way.
   var home=location.pathname==='/';
   var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // The Intro tab asks for a replay with ?intro=1, which overrides both.
+  var asked=/[?&]intro=1(&|$)/.test(location.search);
   // A plain global, not an attribute on <html> or <body>: React reconciles
   // those during hydration and strips anything it did not itself render.
   // Once per browser session: a new visit (new tab or window) plays it again.
-  window.__superproSkipIntro=!(!seen&&home&&!reduced);
+  window.__superproSkipIntro=!(home&&(asked||(!seen&&!reduced)));
 })();`,
       }}
     />

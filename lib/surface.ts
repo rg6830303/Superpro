@@ -39,6 +39,8 @@ const MAIN_PREFIXES = [
   "/launch",
   "/signup",
   "/login",
+  "/forgot-password",
+  "/reset-password",
   "/players",
   "/dashboard",
   "/assessment",

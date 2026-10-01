@@ -7,7 +7,6 @@ import { Camera, ChevronLeft, ArrowRight, User } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 import { PasswordField } from "@/components/password-field";
 import { GENDERS } from "@/lib/profile";
-import { waLink } from "@/lib/site";
 
 /**
  * Tag the destination so the welcome card knows to celebrate rather than ask
@@ -72,16 +71,9 @@ export function LoginForm() {
           required
         />
         <div className="-mt-1 text-right">
-          <a
-            href={waLink(
-              `Hi Sparvic! I have forgotten my password. Please reset it for my account: ${email.trim() || "(my email)"}`,
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-semibold text-volt-deep hover:underline"
-          >
+          <Link href="/forgot-password" className="text-xs font-semibold text-volt-deep hover:underline">
             Forgot password?
-          </a>
+          </Link>
         </div>
       </div>
 

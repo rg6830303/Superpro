@@ -335,6 +335,17 @@ export const SCHEMA_TABLES: string[] = [
     CHECK (follower_id <> following_id)
   )`,
 
+  // Forgot-password links. Only a SHA-256 of the token is stored, so a leaked
+  // table cannot be turned back into working reset links.
+  `CREATE TABLE IF NOT EXISTS password_resets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
   `CREATE TABLE IF NOT EXISTS user_notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

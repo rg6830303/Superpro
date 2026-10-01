@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Heart, Instagram, MessageCircle, Search, UserPlus, Users } from "lucide-react";
+import { ArrowRight, Heart, Play, Instagram, MessageCircle, Search, UserPlus, Users } from "lucide-react";
 import { getPlayerSession } from "@/lib/auth";
 import { queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
@@ -87,18 +87,18 @@ export default async function LaunchPage() {
       <Waves flip />
       <Waves />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 py-24 text-center">
+      <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pb-12 pt-10 text-center sm:py-24">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo/sparvic-logo-white.png"
           alt="Sparvic"
           width={220}
           height={145}
-          className="launch-rise h-auto w-[150px] drop-shadow-[0_0_28px_rgba(222,230,114,0.25)] sm:w-[190px]"
+          className="launch-rise h-auto w-[118px] drop-shadow-[0_0_28px_rgba(222,230,114,0.25)] sm:w-[190px]"
         />
 
         <h1
-          className="launch-rise launch-title mt-8 font-display text-[clamp(3.2rem,13vw,7.8rem)] font-black uppercase leading-[0.88] tracking-tight"
+          className="launch-rise launch-title mt-5 font-display text-[clamp(2.9rem,13vw,7.8rem)] sm:mt-8 font-black uppercase leading-[0.88] tracking-tight"
           style={{ animationDelay: ".15s" }}
         >
           Coming
@@ -106,7 +106,7 @@ export default async function LaunchPage() {
           Soon
         </h1>
 
-        <p className="launch-rise mt-6 text-xl font-semibold text-[#a2c36d] sm:text-2xl" style={{ animationDelay: ".3s" }}>
+        <p className="launch-rise mt-4 text-xl sm:mt-6 font-semibold text-[#a2c36d] sm:text-2xl" style={{ animationDelay: ".3s" }}>
           Register &amp; Stay Tuned
         </p>
         <p
@@ -117,7 +117,7 @@ export default async function LaunchPage() {
         </p>
 
         <ul
-          className="launch-rise mt-7 flex flex-wrap items-center justify-center gap-2"
+          className="launch-rise mt-7 flex flex-wrap items-center justify-center gap-2 max-sm:order-1"
           style={{ animationDelay: ".4s" }}
         >
           {PERKS.map(({ icon: Icon, label }) => (
@@ -130,7 +130,7 @@ export default async function LaunchPage() {
           ))}
         </ul>
 
-        <div aria-hidden className="mt-8 flex h-9 items-end gap-3">
+        <div aria-hidden className="mt-8 flex h-9 items-end gap-3 max-sm:order-1">
           {[0, 0.15, 0.3, 0.45, 0.6].map((d, i) => (
             <span
               key={i}
@@ -141,7 +141,7 @@ export default async function LaunchPage() {
         </div>
 
         <div
-          className="launch-rise mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row"
+          className="launch-rise mt-6 flex w-full sm:mt-8 flex-col items-center justify-center gap-3 sm:flex-row"
           style={{ animationDelay: ".45s" }}
         >
           {session ? (
@@ -187,7 +187,11 @@ export default async function LaunchPage() {
         <p>
           © {new Date().getFullYear()} {SITE.legalName} · {SITE.city}
         </p>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap justify-center gap-4">
+          {/* Full page load on purpose: the intro is set up by scripts that only run on a real load. */}
+          <a href="/?intro=1" className="inline-flex items-center gap-1.5 hover:text-white">
+            <Play size={12} /> Watch the intro
+          </a>
           <a
             href={waLink("Hi Sparvic! I'd like to know more about the launch.")}
             target="_blank"

@@ -32,9 +32,15 @@ export function markIntroFinished(): void { finishedInMemory = true; }
  * or the visit did not land on the home page — deep links go straight to the
  * page asked for. Mirrors the gate script in components/boot-cover.tsx.
  */
+/** The Intro tab links to /?intro=1: an explicit replay. */
+export function introRequested(): boolean {
+  return window.location.pathname === "/" && new URLSearchParams(window.location.search).get("intro") === "1";
+}
+
 export function introAlreadyPlayed(): boolean {
   if (playedInMemory) return true;
   if (window.location.pathname !== "/") return true;
+  if (introRequested()) return false;
   try {
     if (window.sessionStorage.getItem(INTRO_SEEN_KEY) === "1") return true;
   } catch {
