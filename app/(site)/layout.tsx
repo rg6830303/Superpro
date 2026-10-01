@@ -29,7 +29,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <div data-menu-content className="flex flex-1 flex-col">
           <main id="main-content" tabIndex={-1} className="flex-1">{children}</main>
           <SiteFooter surface={surface} />
-          <FloatingActions hideChatbot={surface === "main"} />
+          {/* The main (launch) domain gets neither launcher: both offer bookings,
+              coaching and orders, which are not open yet. */}
+          {surface !== "main" && <FloatingActions />}
         </div>
       </div>
       {/* Reads the `welcome` query param, so it needs a suspense boundary. */}
