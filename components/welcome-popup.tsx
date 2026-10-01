@@ -21,8 +21,8 @@ import { introHasFinished } from "@/lib/intro-once";
 const SEEN_KEY = "superpro:welcome-seen";
 const NAME_KEY = "superpro:welcome-name";
 
-/** How long the page is left alone before the quote card appears. */
-const DELAY_MS = 2500;
+/** Just long enough for the page to paint first, so the card lands on a finished page. */
+const DELAY_MS = 600;
 
 const QUOTES = [
   { line: "The ball does not care how you felt about the last point.", who: "Court wisdom" },
@@ -45,7 +45,7 @@ function storage(fn: (s: Storage) => string | null | void): string | null {
  * a work tool, and checkout is the one screen where nothing should get between
  * a player and the pay button.
  */
-const QUIET_PATHS = ["/coach", "/checkout"];
+const QUIET_PATHS = ["/coach", "/checkout", "/login", "/signup", "/forgot-password", "/reset-password"];
 
 type Card =
   | { kind: "greeting"; mode: "signup" | "login"; name: string | null }
