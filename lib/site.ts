@@ -8,7 +8,7 @@ export const SITE = {
   legalName: "Sparvic Sports",
   tagline: "Pickleball, played properly.",
   description:
-    "Sparvic is Kolkata's pickleball house — Champion Series paddles, balls and grips, daily open games, coaching with certified pros, and the tournaments we run and sponsor.",
+    "Sparvic is Kolkata's pickleball house — Champion Series paddles, balls and other pickleball gear and equipment, daily open games, coaching and tournaments.",
   city: "Kolkata",
   email: "info@sparvic.com",
   // The existing Superpro account (to be renamed); keep the handle, not a tracking link.
