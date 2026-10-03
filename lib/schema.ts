@@ -506,6 +506,21 @@ export const SCHEMA_TABLES: string[] = [
 
 /** Additive migrations for databases created by an earlier version. */
 export const SCHEMA_MIGRATIONS: string[] = [
+  // Keep every table closed to Supabase's public REST API. The anon key ships
+  // to every browser, so a table without RLS (and with the default grants) is
+  // readable and writable by anyone. The app connects as the owner and bypasses
+  // RLS, so this changes nothing for the site. Re-runs on any schema change,
+  // which also covers tables added later.
+  `DO $$ DECLARE r record; BEGIN
+     FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+       EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', r.tablename);
+     END LOOP;
+     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+       REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+       REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+     END IF;
+   END $$`,
+
   // The email a coach signs up with. Set by an admin, so only a real coach
   // on the roster can claim a coach login.
   `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS email TEXT`,
