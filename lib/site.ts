@@ -21,6 +21,16 @@ export const SITE = {
   })(),
 } as const;
 
+/**
+ * When the doors open: 00:00 on 15 October 2026, India Standard Time.
+ *
+ * Written as an absolute instant (IST is a fixed +05:30, with no daylight
+ * saving to get wrong), so every visitor counts down to the same moment
+ * whatever timezone their device is set to. The coming-soon page reads this;
+ * change the date here and nowhere else.
+ */
+export const LAUNCH_AT = Date.parse("2026-10-15T00:00:00+05:30");
+
 /** Sales/support rep — powers every "Chat with a rep" WhatsApp button. */
 export const WHATSAPP_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919163132551").replace(
   /\D/g,

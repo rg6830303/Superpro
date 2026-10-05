@@ -4,7 +4,8 @@ import { ArrowRight, Heart, Play, Instagram, MessageCircle, Search, UserPlus, Us
 import { getPlayerSession } from "@/lib/auth";
 import { queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
-import { SITE, waLink } from "@/lib/site";
+import { LaunchCountdown } from "@/components/launch-countdown";
+import { LAUNCH_AT, SITE, waLink } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,9 @@ export default async function LaunchPage() {
         @keyframes launch-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
         .launch-waves path{animation:launch-drift 9s ease-in-out infinite alternate}
         @keyframes launch-drift{to{transform:translateX(-40px)}}
+        /* On a short laptop screen the generous top padding is what pushes the
+           register button below the fold; there is nothing above it to earn it. */
+        @media (min-width:640px) and (max-height:960px){.launch-body.launch-body{padding-top:2.5rem}.launch-body.launch-body img{width:150px}}
         @media (prefers-reduced-motion: reduce){
           .launch-stars span,.launch-ball,.launch-rise,.launch-waves path{animation:none}
         }
@@ -87,7 +91,7 @@ export default async function LaunchPage() {
       <Waves flip />
       <Waves />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pb-12 pt-10 text-center sm:py-24">
+      <div className="launch-body relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pb-12 pt-10 text-center sm:py-24">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo/sparvic-logo-white.png"
@@ -106,7 +110,13 @@ export default async function LaunchPage() {
           Soon
         </h1>
 
-        <p className="launch-rise mt-4 text-xl sm:mt-6 font-semibold text-[#a2c36d] sm:text-2xl" style={{ animationDelay: ".3s" }}>
+        {/* serverNow is read here, per request (the page is force-dynamic), so
+            the countdown starts from the server's clock rather than the device's. */}
+        <div className="launch-rise mt-6 sm:mt-7" style={{ animationDelay: ".25s" }}>
+          <LaunchCountdown target={LAUNCH_AT} serverNow={Date.now()} />
+        </div>
+
+        <p className="launch-rise mt-6 text-xl sm:mt-7 font-semibold text-[#a2c36d] sm:text-2xl" style={{ animationDelay: ".3s" }}>
           Register &amp; Stay Tuned
         </p>
         <p
