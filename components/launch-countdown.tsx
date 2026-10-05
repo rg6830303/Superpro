@@ -60,7 +60,7 @@ export function LaunchCountdown({ target, serverNow }: { target: number; serverN
   return (
     <section aria-label="Launch countdown" className="text-center">
       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#dee672]">
-        {done ? "Launch day" : "Launching in"}
+        {done ? "Launch day" : "Launching on"}
         {/* A deliberate second line on a phone, inline from `sm` up — left to
             wrap on its own it strands "IST" alone on the next line at 360px. */}
         <span className="mt-1.5 block text-white/45 sm:mt-0 sm:inline">
