@@ -11,6 +11,7 @@ const EDITABLE = [
   "headline",
   "bio",
   "specialties",
+  "achievements",
   "dupr",
   "experience_years",
   "rate_paise",
@@ -37,7 +38,11 @@ export async function GET() {
       `SELECT c.*,
               COALESCE((SELECT COUNT(*) FROM coaching_bookings b
                         WHERE b.coach_id = c.id AND b.status <> 'cancelled'), 0)::int AS bookings,
-              EXISTS (SELECT 1 FROM coach_accounts a WHERE a.coach_id = c.id) AS has_login
+              EXISTS (SELECT 1 FROM coach_accounts a WHERE a.coach_id = c.id) AS has_login,
+              (SELECT a.email FROM coach_accounts a WHERE a.coach_id = c.id) AS login_email,
+              (SELECT a.last_login_at FROM coach_accounts a WHERE a.coach_id = c.id) AS last_login_at,
+              c.invite_code_hash IS NOT NULL AS has_code,
+              (SELECT COUNT(*) FROM coaching_registrations r WHERE r.coach_id = c.id AND r.status <> 'cancelled')::int AS registrations
        FROM coaches c ORDER BY c.sort_order, c.name`,
     );
     return NextResponse.json({ coaches });
@@ -54,8 +59,8 @@ export async function POST(req: Request) {
     if (!body.name || !body.slug) return badRequest("Name and slug are required.");
     const rows = await query<{ id: string }>(
       `INSERT INTO coaches (slug, name, headline, bio, specialties, dupr, experience_years, rate_paise,
-         languages, image_url, whatsapp, available_days, active, sort_order, email)
-       VALUES ($1,$2,$3,$4,COALESCE($5,'[]')::jsonb,$6,$7,$8,$9,$10,$11,COALESCE($12,'[]')::jsonb,$13,$14,$15)
+         languages, image_url, whatsapp, available_days, active, sort_order, email, achievements)
+       VALUES ($1,$2,$3,$4,COALESCE($5,'[]')::jsonb,$6,$7,$8,$9,$10,$11,COALESCE($12,'[]')::jsonb,$13,$14,$15,COALESCE($16,'[]')::jsonb)
        RETURNING id`,
       [
         body.slug,
@@ -73,6 +78,7 @@ export async function POST(req: Request) {
         body.active === false ? false : true,
         Number(body.sort_order ?? 0),
         coachEmail(body.email),
+        body.achievements ? JSON.stringify(body.achievements) : null,
       ],
     );
     await audit(gate, "coach.create", "coaches", rows[0].id, { name: body.name });
@@ -89,6 +95,7 @@ export async function PATCH(req: Request) {
     const body = jsonbFields((await req.json().catch(() => ({}))) as Record<string, unknown>, [
       "specialties",
       "available_days",
+      "achievements",
     ]);
     if (!body.id) return badRequest("Missing coach id.");
     if ("email" in body) body.email = coachEmail(body.email);

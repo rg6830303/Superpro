@@ -22,6 +22,7 @@ type Coach = {
   headline: string | null;
   bio: string | null;
   specialties: string[];
+  achievements?: string[];
   dupr: number | null;
   experience_years: number;
   rate_paise: number;
@@ -76,6 +77,7 @@ const COACH_FIELDS: FieldDef[] = [
     hint: "Shown on the coach card. Portrait or square works best.",
   },
   { name: "specialties", label: "Specialties", type: "list", placeholder: "One per line" },
+  { name: "achievements", label: "Achievements", type: "list", placeholder: "One per line" },
   { name: "available_days", label: "Available days", type: "list" },
   { name: "dupr", label: "DUPR rating", type: "number" },
   { name: "experience_years", label: "Years coaching", type: "number" },
@@ -85,7 +87,7 @@ const COACH_FIELDS: FieldDef[] = [
   {
     name: "email",
     label: "Coach login email",
-    hint: "The coach signs up at /coach/signup with exactly this email. Leave blank to keep them off the coach portal.",
+    hint: "Optional. Manage portal logins (codes, passwords) under Group coaching → Coach logins.",
   },
   { name: "sort_order", label: "Sort order", type: "number" },
   { name: "active", label: "Listed on the site", type: "checkbox" },
@@ -134,7 +136,7 @@ export default function AdminCoachingPage() {
     <div>
       <AdminHeader
         title="Coaching"
-        sub="Coach roster and session requests."
+        sub="Coach roster and one-on-one session requests. Batch registrations, groups and coach logins are under Group coaching."
         action={
           tab === "availability" ? (
             <AddButton label="Add availability" onClick={() => setAddingSlot(true)} />
@@ -377,6 +379,7 @@ export default function AdminCoachingPage() {
                   bio: editing.bio ?? "",
                   image_url: editing.image_url ?? "",
                   specialties: editing.specialties ?? [],
+                  achievements: editing.achievements ?? [],
                   available_days: editing.available_days ?? [],
                   dupr: editing.dupr != null ? Number(editing.dupr) : null,
                   experience_years: editing.experience_years,
