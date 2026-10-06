@@ -8,6 +8,9 @@ import { Avatar } from "@/components/player-directory";
 import { liveCoachSession } from "@/lib/coach-auth";
 import { ensureSchema } from "@/lib/schema";
 import { coachSummary } from "@/lib/coach-data";
+import { CoachProgramBoard } from "@/components/coach-program-board";
+import { classDates, listGroups, listRegistrations } from "@/lib/coach-program-data";
+import { COACH } from "@/lib/coaching-program";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Coach dashboard", robots: { index: false } };
@@ -20,6 +23,11 @@ export default async function CoachDashboardPage() {
   const summary = await coachSummary(session.coach_id).catch(() => null);
   // A session for a coach who has since been removed is no session at all.
   if (!summary) redirect("/coach/login");
+  const [registrations, groupRows] = await Promise.all([
+    listRegistrations(session.coach_id).catch(() => []),
+    listGroups(session.coach_id).catch(() => []),
+  ]);
+  const groups = groupRows.map((g) => ({ ...g, dates: classDates(g) }));
 
   const tiles = [
     { icon: CalendarCheck, label: "This week", value: summary.this_week, hint: "Dated sessions in the next 7 days" },
@@ -40,14 +48,23 @@ export default async function CoachDashboardPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/coaching#${summary.slug}`} className="btn-outline btn-sm">
+          <Link href={summary.slug === COACH.slug ? `/coaching/${COACH.slug}` : `/coaching#${summary.slug}`} className="btn-outline btn-sm">
             <ExternalLink size={14} /> Public profile
           </Link>
           <CoachSignOut />
         </div>
       </header>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-8">
+        <h2 className="headline-section">Group coaching</h2>
+        <p className="mt-1 text-sm text-ink/60">Registrations from the batch form, your groups and the class calendar.</p>
+        <div className="mt-5">
+          <CoachProgramBoard registrations={registrations} groups={groups} />
+        </div>
+      </div>
+
+      <h2 className="headline-section mt-14">Private sessions</h2>
+      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map((t) => (
           <div key={t.label} className="card p-4 sm:p-5" title={t.hint}>
             <t.icon size={16} className="text-volt-deep" />

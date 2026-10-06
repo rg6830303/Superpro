@@ -24,6 +24,7 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
   const [reduced, setReduced] = useState(false);
   const hovering = useRef(false);
   const focused = useRef(false);
+  const touchX = useRef<number | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -53,10 +54,22 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
   return (
     <div
       className="group relative overflow-hidden rounded-card border border-line bg-mist"
-      onMouseEnter={() => (hovering.current = true)}
-      onMouseLeave={() => (hovering.current = false)}
-      onFocus={() => (focused.current = true)}
+      // Only a real mouse pauses on hover: a tap on a phone fires "enter" with no
+      // matching "leave", which used to stop autoplay for good.
+      onPointerEnter={(e) => { if (e.pointerType === "mouse") hovering.current = true; }}
+      onPointerLeave={(e) => { if (e.pointerType === "mouse") hovering.current = false; }}
+      // Only keyboard focus pauses: clicking an arrow leaves the button focused,
+      // which used to freeze the slideshow until you clicked somewhere else.
+      onFocus={(e) => { focused.current = (e.target as HTMLElement).matches(":focus-visible"); }}
       onBlur={() => (focused.current = false)}
+      onTouchStart={(e) => (touchX.current = e.touches[0]?.clientX ?? null)}
+      onTouchEnd={(e) => {
+        const start = touchX.current;
+        touchX.current = null;
+        const end = e.changedTouches[0]?.clientX;
+        if (start == null || end == null || Math.abs(end - start) < 40) return;
+        advance(end < start ? 1 : -1);
+      }}
       role="region"
       aria-label="On-court medical assistance photos"
     >
@@ -87,7 +100,7 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
               type="button"
               onClick={() => advance(-1)}
               aria-label="Previous photo"
-              className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-ink/50 text-paper opacity-0 transition-opacity duration-200 hover:bg-ink/70 focus-visible:opacity-100 group-hover:opacity-100"
+              className="absolute left-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-ink/50 text-paper opacity-0 transition-opacity duration-200 hover:bg-ink/70 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
             >
               <ChevronLeft size={18} />
             </button>
@@ -95,7 +108,7 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
               type="button"
               onClick={() => advance(1)}
               aria-label="Next photo"
-              className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-ink/50 text-paper opacity-0 transition-opacity duration-200 hover:bg-ink/70 focus-visible:opacity-100 group-hover:opacity-100"
+              className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-ink/50 text-paper opacity-0 transition-opacity duration-200 hover:bg-ink/70 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
             >
               <ChevronRight size={18} />
             </button>
@@ -105,7 +118,7 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
               onClick={() => setPlaying((p) => !p)}
               aria-label={playing ? "Pause slideshow" : "Play slideshow"}
               aria-pressed={playing}
-              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-ink/50 text-paper transition-colors hover:bg-ink/70"
+              className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-ink/50 text-paper transition-colors hover:bg-ink/70"
             >
               {playing && !reduced ? <Pause size={14} /> : <Play size={14} />}
             </button>
@@ -114,7 +127,7 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
       </div>
 
       {images.length > 1 && (
-        <div className="flex items-center justify-center gap-1.5 border-t border-line bg-paper py-3">
+        <div className="flex items-center justify-center border-t border-line bg-paper py-1.5">
           {images.map((img, i) => (
             <button
               key={img.src}
@@ -122,10 +135,14 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
               onClick={() => setIndex(i)}
               aria-label={`Go to photo ${i + 1} of ${images.length}`}
               aria-current={i === index}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === index ? "w-6 bg-volt-deep" : "w-1.5 bg-line hover:bg-ink/30"
-              }`}
-            />
+              className="group/dot grid h-9 min-w-7 place-items-center px-1"
+            >
+              <span
+                className={`block h-1.5 rounded-full transition-all duration-300 ${
+                  i === index ? "w-6 bg-volt-deep" : "w-1.5 bg-line group-hover/dot:bg-ink/30"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

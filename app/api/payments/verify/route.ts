@@ -9,11 +9,13 @@ import { announceSlots } from "@/lib/booking";
 import { verifyRazorpaySignature } from "@/lib/razorpay";
 import { adjustWallet } from "@/lib/wallet";
 import { bookingReceiptMessage, orderReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
+import { markPaid } from "@/lib/coaching-registrations";
+import { sendRegistrationEmail } from "@/lib/coaching-emails";
 
 export const runtime = "nodejs";
 
 const schema = z.object({
-  kind: z.enum(["order", "checkout", "game", "coaching", "tournament", "wallet_topup"]),
+  kind: z.enum(["order", "checkout", "game", "coaching", "coaching_registration", "tournament", "wallet_topup"]),
   id: z.string().uuid().optional(),
   reference: z.string().min(3).max(40).optional(),
   razorpay_order_id: z.string().min(3),
@@ -58,6 +60,8 @@ export async function POST(req: Request) {
         return await settleGame(p);
       case "coaching":
         return await settleCoaching(p);
+      case "coaching_registration":
+        return await settleCoachingRegistration(p, new URL(req.url).origin);
       case "tournament":
         return await settleTournament(p);
       case "wallet_topup":
@@ -217,6 +221,23 @@ async function settleCoaching(p: Payload) {
   });
 
   return NextResponse.json({ ok: true, booking_no: p.reference });
+}
+
+async function settleCoachingRegistration(p: Payload, origin: string) {
+  if (!p.reference) return NextResponse.json({ error: "Missing registration reference." }, { status: 400 });
+  // markPaid only matches when the order id is the one we created for this registration.
+  const reg = await markPaid(p.reference, p.razorpay_order_id, p.razorpay_payment_id);
+  if (!reg) return NextResponse.json({ error: "That payment does not match this registration." }, { status: 409 });
+  await sendRegistrationEmail(reg, origin, "paid");
+  await sendWhatsApp({
+    kind: "coaching_paid",
+    target: "number",
+    phone: `91${reg.phone}`,
+    message: `🎾 SuperPro by Sparvic — payment received for the ${reg.batch} batch. Ref ${reg.reference}. Coach will confirm your group and timing on WhatsApp.`,
+    refTable: "coaching_registrations",
+    refId: reg.id,
+  }).catch(() => {});
+  return NextResponse.json({ ok: true, reference: reg.reference });
 }
 
 async function settleTournament(p: Payload) {

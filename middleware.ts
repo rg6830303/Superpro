@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
-import { MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost, isMainClosedApi } from "@/lib/surface";
+import { isMainPath, surfaceOfHost, isMainClosedApi } from "@/lib/surface";
 
 /**
  * One domain for everything: https://www.sparvic.com.
@@ -16,8 +16,8 @@ import { MAIN_URL, isMainOnlyPath, isMainPath, surfaceOfHost, isMainClosedApi } 
  *     launch: "/" is the intro film and the coming-soon page, plus sign-up,
  *     sign-in, the community, profiles and the player dashboard. Everything
  *     else goes back to "/" — nothing on the main domain leads to the demo,
- *     sparvicdemo.vercel.app, which is reachable only by its own link (and
- *     sends the main-only paths back). Redirects are 307 (temporary) so browsers do
+ *     sparvicdemo.vercel.app, a standalone copy reachable only by its own link
+ *     (it never sends visitors to the main domain). Redirects are 307 (temporary) so browsers do
  *     not cache them for good while the launch plan may still change. The
  *     demo is kept out of search results.
  *
@@ -78,8 +78,13 @@ export async function middleware(req: NextRequest) {
     if (!isMainPath(pathname)) return NextResponse.redirect(new URL("/", req.url), 307);
     if (pathname === "/") return NextResponse.rewrite(new URL(`/launch${req.nextUrl.search}`, req.url));
   }
-  if (surface === "demo" && !isApi && isMainOnlyPath(pathname)) {
-    return NextResponse.redirect(`${MAIN_URL}${pathname}${req.nextUrl.search}`, 307);
+  // The demo stands alone: it serves its own sign-up, community, profiles and
+  // account pages and never hands visitors to the main domain. The one
+  // exception is the admin console, which lives on the main domain only.
+  if (surface === "demo" && (pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin/"))) {
+    return isApi
+      ? NextResponse.json({ error: "Not found." }, { status: 404 })
+      : NextResponse.redirect(new URL("/", req.url), 307);
   }
 
   const res = await gate(req, pathname);

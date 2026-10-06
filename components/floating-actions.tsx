@@ -10,7 +10,7 @@ import { WhatsAppFab } from "@/components/whatsapp-fab";
  * "Already have an account?" link on a phone; checkout, where nothing should
  * compete with the pay button; and the coach portal, which is a work tool.
  */
-const QUIET = ["/login", "/signup", "/checkout", "/coach"];
+const QUIET = ["/login", "/signup", "/checkout", "/coach", "/coaching/register", "/coaching/registration"];
 
 export function FloatingActions() {
   const pathname = usePathname();

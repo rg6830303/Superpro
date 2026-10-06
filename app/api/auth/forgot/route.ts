@@ -3,7 +3,7 @@ import { z } from "zod";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { emailSchema, formatZodError } from "@/lib/validation";
 import { requestPasswordReset } from "@/lib/password-reset";
-import { MAIN_URL } from "@/lib/surface";
+import { DEMO_URL, MAIN_URL, surfaceOfHost } from "@/lib/surface";
 
 export const runtime = "nodejs";
 
@@ -28,9 +28,10 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
 
-  // Links always point at the live domain in production; locally, at whatever
-  // origin is being tested.
-  const origin = process.env.VERCEL ? MAIN_URL : new URL(req.url).origin;
+  // The link goes back to the site the player asked from — the demo and the
+  // main domain are separate — and never to an arbitrary Host header.
+  const surface = surfaceOfHost(req.headers.get("host"));
+  const origin = !process.env.VERCEL ? new URL(req.url).origin : surface === "demo" ? DEMO_URL : MAIN_URL;
 
   try {
     // Per-address limit as well, so one inbox cannot be flooded from many IPs.

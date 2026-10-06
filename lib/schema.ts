@@ -335,6 +335,53 @@ export const SCHEMA_TABLES: string[] = [
     CHECK (follower_id <> following_id)
   )`,
 
+  // Monthly group-coaching batches a coach runs: a venue, days of the week and
+  // a time, starting on a date, for a number of sessions (8 a month by default).
+  `CREATE TABLE IF NOT EXISTS coaching_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    venue TEXT NOT NULL,
+    days JSONB NOT NULL DEFAULT '[]'::jsonb,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    starts_on DATE NOT NULL,
+    sessions INTEGER NOT NULL DEFAULT 8 CHECK (sessions BETWEEN 1 AND 40),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
+  // Group-coaching sign-ups (the old Google Form), with payment.
+  `CREATE TABLE IF NOT EXISTS coaching_registrations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reference TEXT UNIQUE NOT NULL,
+    coach_id UUID REFERENCES coaches(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    group_id UUID REFERENCES coaching_groups(id) ON DELETE SET NULL,
+    batch TEXT NOT NULL,
+    name TEXT NOT NULL,
+    gender TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    age INTEGER NOT NULL,
+    skill TEXT NOT NULL,
+    days JSONB NOT NULL DEFAULT '[]'::jsonb,
+    venues JSONB NOT NULL DEFAULT '[]'::jsonb,
+    timings JSONB NOT NULL DEFAULT '[]'::jsonb,
+    emergency_phone TEXT NOT NULL,
+    emergency_relation TEXT NOT NULL,
+    medical TEXT,
+    pay_venue TEXT NOT NULL,
+    amount_paise INTEGER NOT NULL,
+    payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','pending','paid','refunded')),
+    razorpay_order_id TEXT,
+    razorpay_payment_id TEXT,
+    paid_at TIMESTAMPTZ,
+    status TEXT NOT NULL DEFAULT 'registered' CHECK (status IN ('registered','grouped','confirmed','cancelled')),
+    coach_note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
   // Forgot-password links. Only a SHA-256 of the token is stored, so a leaked
   // table cannot be turned back into working reset links.
   `CREATE TABLE IF NOT EXISTS password_resets (
@@ -524,6 +571,9 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // The email a coach signs up with. Set by an admin, so only a real coach
   // on the roster can claim a coach login.
   `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS email TEXT`,
+  // One-time code a coach uses to create their portal login (SHA-256 only).
+  `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS invite_code_hash TEXT`,
+  `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS achievements JSONB NOT NULL DEFAULT '[]'::jsonb`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_opt_in BOOLEAN NOT NULL DEFAULT true`,
   `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS whatsapp_posted_at TIMESTAMPTZ`,
   `ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS partner_name TEXT`,
@@ -712,6 +762,9 @@ export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_redemptions_code ON discount_redemptions(code_id, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_redemptions_user ON discount_redemptions(user_id, code_id)`,
   `CREATE INDEX IF NOT EXISTS idx_tourn_regs_user ON tournament_registrations(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_coach_regs_coach ON coaching_registrations(coach_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_coach_regs_group ON coaching_registrations(group_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_coach_groups_coach ON coaching_groups(coach_id, starts_on)`,
 ];
 
 let ensured = false;

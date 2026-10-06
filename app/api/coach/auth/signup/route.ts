@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash } from "node:crypto";
+import { queryOne } from "@/lib/db";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { hasSigningSecret } from "@/lib/auth";
@@ -12,7 +14,10 @@ export const runtime = "nodejs";
 const body = z.object({
   email: z.string().trim().email("Enter a valid email."),
   password: z.string().min(8, "Use at least 8 characters.").max(128),
+  code: z.string().trim().max(40).optional(),
 });
+
+const codeHash = (code: string) => createHash("sha256").update(code.trim().toUpperCase()).digest("hex");
 
 /**
  * Coach sign-up.
@@ -38,6 +43,18 @@ export async function POST(req: Request) {
   const email = normaliseEmail(parsed.data.email);
 
   await ensureSchema();
+  // A one-time coach code from the club claims that coach profile for this email.
+  if (parsed.data.code) {
+    const claimed = await queryOne<{ id: string }>(
+      `UPDATE coaches SET email = $1, invite_code_hash = NULL
+       WHERE invite_code_hash = $2 AND active AND NOT EXISTS (SELECT 1 FROM coach_accounts a WHERE a.coach_id = coaches.id)
+       RETURNING id`,
+      [email, codeHash(parsed.data.code)],
+    );
+    if (!claimed) {
+      return NextResponse.json({ error: "That coach code isn't valid or has already been used." }, { status: 403 });
+    }
+  }
   const coach = await findRosterCoach(email);
   if (!coach || !coach.active) {
     return NextResponse.json(

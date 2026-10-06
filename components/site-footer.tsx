@@ -49,7 +49,6 @@ const MAIN_COLUMNS = [
     title: "Community",
     links: [
       { href: "/players", label: "Discover players" },
-      { href: "/coach/login", label: "Coach sign in" },
     ],
   },
 ];

@@ -17,6 +17,7 @@ export function CoachAuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +33,7 @@ export function CoachAuthForm({ mode }: { mode: "login" | "signup" }) {
       const res = await fetch(`/api/coach/auth/${signup ? "signup" : "login"}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(signup ? { email, password, code } : { email, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
@@ -53,11 +54,29 @@ export function CoachAuthForm({ mode }: { mode: "login" | "signup" }) {
       <h1 className="mt-2 text-3xl">{signup ? "Set up your coach login" : "Coach sign in"}</h1>
       <p className="mt-2 text-sm text-ink/65">
         {signup
-          ? "Use the email the club has on your coach profile. You choose the password."
-          : "Your bookings calendar and the players who booked you."}
+          ? "Enter the coach code the club gave you, then your email and a password of your choice."
+          : "Your registrations, groups and class calendar."}
       </p>
 
       <div className="mt-6 space-y-4">
+        {signup && (
+          <div>
+            <label className="label" htmlFor="c-code">
+              Coach code
+            </label>
+            <input
+              id="c-code"
+              className="field font-mono uppercase tracking-[0.18em]"
+              autoComplete="one-time-code"
+              autoCapitalize="characters"
+              spellCheck={false}
+              placeholder="XXXX-XXXX-XXXX"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              required
+            />
+          </div>
+        )}
         <div>
           <label className="label" htmlFor="c-email">
             Email

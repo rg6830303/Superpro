@@ -7,10 +7,10 @@
  *          following, and their own dashboard. The admin and coach portals
  *          live here too; they are staff tools, not site content.
  *
- *   demo — sparvicdemo.vercel.app. The full site as built so far: homepage,
- *          shop, daily games, coaching, tournaments, medical, about. Its
- *          sign-up, community and profile links send people to the main
- *          domain, so registrations only ever happen there.
+ *   demo — sparvicdemo.vercel.app. The full site, standalone and unlinked:
+ *          homepage, shop, daily games, coaching, tournaments, medical,
+ *          about, plus its own sign-up, community and profiles. It never
+ *          sends anyone to the main domain (the admin console stays there).
  *
  *   full — anything else (localhost, preview deployments): everything served,
  *          nothing redirected, so work in progress can be looked at whole.
@@ -44,7 +44,6 @@ const MAIN_PREFIXES = [
   "/players",
   "/dashboard",
   "/assessment",
-  "/coach",
   "/admin",
 ];
 
@@ -57,10 +56,6 @@ export function isMainPath(pathname: string): boolean {
   return pathname === "/" || MAIN_PREFIXES.some((p) => underPrefix(pathname, p));
 }
 
-/** Only on the main domain: the demo sends these across. ("/" is the demo's own homepage.) */
-export function isMainOnlyPath(pathname: string): boolean {
-  return MAIN_PREFIXES.some((p) => underPrefix(pathname, p));
-}
 
 /**
  * Booking, shop and wallet APIs. Closed on the main domain during the launch:
@@ -69,6 +64,7 @@ export function isMainOnlyPath(pathname: string): boolean {
  * live elsewhere and stay open.)
  */
 const MAIN_CLOSED_API = [
+  "/api/coach",
   "/api/cart",
   "/api/checkout",
   "/api/coaching",

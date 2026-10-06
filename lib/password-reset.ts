@@ -52,9 +52,9 @@ export async function requestPasswordReset(email: string, origin: string): Promi
       "",
       "See you on court,",
       "Team Sparvic",
-      SITE.url,
+      origin,
     ].join("\n"),
-    html: resetEmailHtml(escapeHtml(first), escapeHtml(user.email), link),
+    html: resetEmailHtml(escapeHtml(first), escapeHtml(user.email), link, origin),
   });
   if (sent.ok) return "sent";
 
@@ -113,7 +113,7 @@ export async function completePasswordReset(token: string, password: string): Pr
  * Branded, table-based email (the only layout every client renders). Colours
  * are the site's: navy #05223c, volt green #1fdc6c, lime accent #dee672.
  */
-function resetEmailHtml(first: string, email: string, link: string): string {
+function resetEmailHtml(first: string, email: string, link: string, origin: string): string {
   const logo = `${SITE.url}/logo/sparvic-logo-white.png`;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -147,7 +147,7 @@ function resetEmailHtml(first: string, email: string, link: string): string {
     </td></tr>
     <tr><td style="background:#05223c;padding:22px 28px;text-align:center">
       <p style="margin:0 0 10px;font-size:13px">
-        <a href="${SITE.url}" style="color:#ffffff;text-decoration:none;font-weight:600">sparvic.com</a>
+        <a href="${origin}" style="color:#ffffff;text-decoration:none;font-weight:600">${new URL(origin).hostname.replace(/^www\./, "")}</a>
         <span style="color:#3f6a86">&nbsp;&middot;&nbsp;</span>
         <a href="${SITE.instagram}" style="color:#ffffff;text-decoration:none;font-weight:600">Instagram</a>
         <span style="color:#3f6a86">&nbsp;&middot;&nbsp;</span>
