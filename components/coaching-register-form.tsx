@@ -186,7 +186,7 @@ export function CoachingRegisterForm({ prefill, razorpayEnabled }: { prefill: Pr
         </div>
       </Section>
 
-      <Section icon={CalendarDays} step={3} title="When can you play?" hint={`Pick as many as suit you — at least ${MIN_DAYS} days and ${MIN_TIMINGS} timings. More options = faster grouping (minimum ${PROGRAM.minGroupSize} players).`}>
+      <Section icon={CalendarDays} step={3} title="When can you learn?" hint={`Pick as many as suit you — at least ${MIN_DAYS} days and ${MIN_TIMINGS} timings. More options = faster grouping (minimum ${PROGRAM.minGroupSize} players).`}>
         <div>
           <p className="label">Preferred days <span className="text-signal">*</span> <span className="font-normal normal-case tracking-normal text-ink/45">({days.length}/{MIN_DAYS}+ picked)</span></p>
           <div className="flex flex-wrap gap-2">
