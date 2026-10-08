@@ -64,6 +64,7 @@ export function isMainPath(pathname: string): boolean {
  * live elsewhere and stay open.)
  */
 const MAIN_CLOSED_API = [
+  "/api/medical",
   "/api/coach",
   "/api/cart",
   "/api/checkout",

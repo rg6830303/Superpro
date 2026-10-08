@@ -10,12 +10,14 @@ import { verifyRazorpaySignature } from "@/lib/razorpay";
 import { adjustWallet } from "@/lib/wallet";
 import { bookingReceiptMessage, orderReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
 import { markPaid } from "@/lib/coaching-registrations";
+import { DOCTOR, markAppointmentPaid } from "@/lib/doctor";
+import { sendAppointmentEmail } from "@/lib/doctor-emails";
 import { sendRegistrationEmail } from "@/lib/coaching-emails";
 
 export const runtime = "nodejs";
 
 const schema = z.object({
-  kind: z.enum(["order", "checkout", "game", "coaching", "coaching_registration", "tournament", "wallet_topup"]),
+  kind: z.enum(["order", "checkout", "game", "coaching", "coaching_registration", "doctor_appointment", "tournament", "wallet_topup"]),
   id: z.string().uuid().optional(),
   reference: z.string().min(3).max(40).optional(),
   razorpay_order_id: z.string().min(3),
@@ -60,6 +62,8 @@ export async function POST(req: Request) {
         return await settleGame(p);
       case "coaching":
         return await settleCoaching(p);
+      case "doctor_appointment":
+        return await settleDoctorAppointment(p, new URL(req.url).origin);
       case "coaching_registration":
         return await settleCoachingRegistration(p, new URL(req.url).origin);
       case "tournament":
@@ -221,6 +225,30 @@ async function settleCoaching(p: Payload) {
   });
 
   return NextResponse.json({ ok: true, booking_no: p.reference });
+}
+
+async function settleDoctorAppointment(p: Payload, origin: string) {
+  if (!p.reference) return NextResponse.json({ error: "Missing appointment reference." }, { status: 400 });
+  const appt = await markAppointmentPaid(p.reference, p.razorpay_order_id, p.razorpay_payment_id);
+  if (!appt) return NextResponse.json({ error: "That payment does not match this appointment." }, { status: 409 });
+  await sendAppointmentEmail(appt, origin, "paid");
+  await sendWhatsApp({
+    kind: "doctor_paid",
+    target: "number",
+    phone: `91${appt.phone}`,
+    message: `🩺 Sparvic — your consultation with ${DOCTOR.handle} is booked (ref ${appt.reference}). He will confirm the exact time and clinic location on WhatsApp.`,
+    refTable: "doctor_appointments",
+    refId: appt.id,
+  }).catch(() => {});
+  await sendWhatsApp({
+    kind: "doctor_new_booking",
+    target: "number",
+    phone: DOCTOR.phoneDigits,
+    message: `🩺 New paid consultation ${appt.reference}: ${appt.name} (${appt.age}, ${appt.phone}) · ${appt.concern} · prefers ${appt.preferred_date} ${appt.preferred_slot}.`,
+    refTable: "doctor_appointments",
+    refId: appt.id,
+  }).catch(() => {});
+  return NextResponse.json({ ok: true, reference: appt.reference });
 }
 
 async function settleCoachingRegistration(p: Payload, origin: string) {

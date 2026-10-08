@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Activity, Banknote, BellRing, CalendarDays, GraduationCap, LayoutDashboard, Menu, MessageSquare, Package, Settings, ShoppingCart, TicketPercent, Trophy, Users, X } from "lucide-react";
+import { Activity, Banknote, BellRing, CalendarDays, GraduationCap, LayoutDashboard, Menu, MessageSquare, Package, Settings, ShoppingCart, TicketPercent, Trophy, Users, X, Stethoscope } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { AmbientBackdrop } from "@/components/ambient-backdrop";
@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/coaching", label: "Coaching", icon: GraduationCap },
   { href: "/admin/group-coaching", label: "Group coaching", icon: Users },
+  { href: "/admin/doctor", label: "Doctor appointments", icon: Stethoscope },
   { href: "/admin/tournaments", label: "Tournaments", icon: Trophy },
   { href: "/admin/players", label: "Players", icon: Users },
   { href: "/admin/discounts", label: "Discounts", icon: TicketPercent },

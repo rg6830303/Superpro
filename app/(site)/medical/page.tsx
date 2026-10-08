@@ -3,108 +3,116 @@ import {
   Activity,
   AlertTriangle,
   Bone,
-  Clock,
+  CalendarCheck,
+  ClipboardList,
+  CreditCard,
   Dumbbell,
   HeartPulse,
   MessageCircle,
   Phone,
   ShieldCheck,
-  Snowflake,
   Stethoscope,
 } from "lucide-react";
 import { Reveal } from "@/components/motion";
 import { MedicalSlideshow, type SlideshowImage } from "@/components/medical-slideshow";
-import { SITE, waLink } from "@/lib/site";
+import { DoctorBookingForm } from "@/components/doctor-booking-form";
+import { getPlayerSession } from "@/lib/auth";
+import { getUserRow } from "@/lib/accounts";
+import { ageFrom } from "@/lib/profile";
+import { isRazorpayEnabled } from "@/lib/razorpay";
+import { CONCERNS, DOCTOR, SLOTS } from "@/lib/doctor";
+import { waLink } from "@/lib/site";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Medical Assistance",
-  description:
-    "On-court injury support, stretching and recovery at Sparvic sessions — Doctor Pickle, Avishek Kar. Call or WhatsApp +91 91631 12544.",
-};
-
-const DOCTOR = {
-  handle: "Doctor Pickle",
-  name: "Avishek Kar",
-  phoneDisplay: "+91 91631 12544",
-  phoneDigits: "919163112544",
+  description: `Book a clinic consultation with ${DOCTOR.handle} (${DOCTOR.name}) for pickleball injuries, pain and recovery — ₹${DOCTOR.fee}, booked and paid online.`,
 };
 
 const IMAGES: SlideshowImage[] = [
-  { src: "/medical/medical-01.jpg", alt: "On-court assessment after a fall" },
-  { src: "/medical/medical-02.jpg", alt: "Leg stretch and recovery session courtside" },
-  { src: "/medical/medical-05.jpg", alt: "Hamstring stretch during a break in play" },
+  { src: "/medical/medical-01.jpg", alt: "Assessment after a fall" },
+  { src: "/medical/medical-02.jpg", alt: "Leg stretch and recovery work" },
+  { src: "/medical/medical-05.jpg", alt: "Hamstring stretch" },
   { src: "/medical/medical-03.jpg", alt: "Cool-down stretch after a long rally" },
-  { src: "/medical/medical-04.jpg", alt: "Shoulder and back mobility work between games" },
-  { src: "/medical/medical-06.jpg", alt: "Back on the court after treatment" },
+  { src: "/medical/medical-04.jpg", alt: "Shoulder and back mobility work" },
+  { src: "/medical/medical-06.jpg", alt: "Back to playing after treatment" },
 ];
 
 const SERVICES = [
-  { icon: Stethoscope, title: "On-court first response", body: "Assessed where it happened — falls, knocks and anything that stops play mid-rally." },
+  { icon: Stethoscope, title: "Injury assessment", body: "A proper look at what's hurting — how it happened, what's affected and what to do next." },
   { icon: Bone, title: "Sprains & strains", body: "Ankles, wrists, calves and knees: the injuries pickleball's quick lateral steps tend to cause." },
-  { icon: Snowflake, title: "Immediate care", body: "Ice, compression and support straight away, so a minor tweak stays minor." },
-  { icon: Activity, title: "Stretch & mobility", body: "Guided stretching for tight hamstrings, hips, shoulders and lower back between games." },
-  { icon: HeartPulse, title: "Recovery after play", body: "Cool-down and recovery advice after long sessions or back-to-back games." },
-  { icon: ShieldCheck, title: "Injury prevention", body: "Advice before you play if you're returning from an injury or carrying a niggle." },
+  { icon: Activity, title: "Pain & mobility", body: "Knee, shoulder, elbow and back pain, plus stiffness that limits your movement." },
+  { icon: HeartPulse, title: "Recovery plans", body: "A step-by-step plan to get you back to playing safely after an injury." },
+  { icon: Dumbbell, title: "Stretching & strength", body: "Exercises for tight hamstrings, hips, shoulders and lower back that you can do at home." },
+  { icon: ShieldCheck, title: "Injury prevention", body: "A check before you play if you're returning from an injury or carrying a niggle." },
+];
+
+const STEPS = [
+  { icon: ClipboardList, title: "Book online", body: "Tell us what's wrong and pick a preferred day and time." },
+  { icon: CreditCard, title: `Pay ₹${DOCTOR.fee}`, body: "Securely through Razorpay — UPI, cards or netbanking." },
+  { icon: CalendarCheck, title: "Get confirmed", body: `${DOCTOR.handle} confirms your exact time and the clinic location on WhatsApp.` },
 ];
 
 const URGENT = [
   "You can't put weight on a foot or ankle",
-  "Visible swelling or a joint looks out of place",
-  "A fall onto the head, wrist or elbow",
-  "Dizziness, chest pain or trouble breathing",
+  "A joint looks out of place, or there's severe swelling",
+  "You hit your head, or have dizziness or chest pain",
+  "Trouble breathing",
 ];
 
-const AHEAD = [
-  "An old injury you want checked before playing",
+const BOOK_FOR = [
+  "An injury or pain that isn't going away",
   "Persistent stiffness or soreness after games",
-  "Help with a warm-up or stretching routine",
-  "Coming back after time off or recent surgery",
+  "Returning after time off or recent surgery",
+  "A stretching or strengthening routine for your game",
 ];
 
 const WARMUP = [
-  { step: "Light cardio", time: "3 min", body: "Brisk walk or easy jog around the court to raise your heart rate." },
+  { step: "Light cardio", time: "3 min", body: "Brisk walk or easy jog to raise your heart rate." },
   { step: "Dynamic stretches", time: "3 min", body: "Leg swings, hip circles, arm circles and walking lunges." },
   { step: "Footwork", time: "2 min", body: "Side shuffles and split steps — the movements you'll make in play." },
   { step: "Easy dinks", time: "2 min", body: "Soft rallies at the kitchen line before any hard shots." },
 ];
 
 const FAQ = [
-  {
-    q: "When is Doctor Pickle at the courts?",
-    a: `On site during ${SITE.name} sessions for on-court injury support. For anything planned, message ahead so he knows to expect you.`,
-  },
-  {
-    q: "Does he replace a hospital or my own doctor?",
-    a: "No. He provides first response and on-court care. For a serious injury, he'll help you get to the right medical care quickly — in an emergency, call 112.",
-  },
-  {
-    q: "Can I get a stretch or warm-up check even if I'm not injured?",
-    a: "Yes — prevention is a big part of it. Ask for a quick check before you play, especially if something feels tight.",
-  },
-  {
-    q: "How do I reach him?",
-    a: `Call or WhatsApp ${DOCTOR.phoneDisplay}. WhatsApp is best for anything that isn't urgent.`,
-  },
+  { q: "How much does a consultation cost?", a: `₹${DOCTOR.fee} per clinic visit, paid online when you book.` },
+  { q: "Where is the clinic and what time is my appointment?", a: `After you book, ${DOCTOR.handle} confirms your exact time and shares the clinic location on WhatsApp.` },
+  { q: "Can I book without paying straight away?", a: `Yes — choose "Request now, pay later". Your request is saved and you can pay from your booking link. The appointment is confirmed once paid.` },
+  { q: "Is this for emergencies?", a: "No. For a serious injury or a medical emergency, call 112 or go to the nearest hospital." },
 ];
 
-export default function MedicalAssistancePage() {
-  const whatsapp = waLink("Hi Avishek, I'd like some help with an injury / a stretch check before I play.", DOCTOR.phoneDigits);
+export default async function MedicalAssistancePage() {
+  const session = await getPlayerSession();
+  const profile = session ? await getUserRow(session.id).catch(() => null) : null;
+  const age = profile?.date_of_birth ? ageFrom(profile.date_of_birth) : null;
+  const prefill = profile
+    ? {
+        name: profile.full_name ?? "",
+        phone: profile.phone ?? "",
+        email: profile.email ?? "",
+        age: age != null ? String(age) : "",
+        gender: profile.gender === "male" ? "Male" : profile.gender === "female" ? "Female" : "",
+      }
+    : null;
+  const whatsapp = waLink(`Hi ${DOCTOR.name}, I'd like to book a consultation.`, DOCTOR.phoneDigits);
+
   return (
     <>
       <section className="border-b border-line">
         <div className="wrap section">
           <p className="eyebrow">Medical Assistance</p>
-          <h1 className="mt-6 max-w-3xl headline-page">Doctor Pickle is on the court.</h1>
+          <h1 className="mt-6 max-w-3xl headline-page">Get back to playing, properly.</h1>
           <p className="lede mt-8 max-w-2xl">
-            Twisted an ankle mid-rally, pulled up short on a lunge, or just need a stretch talked through before you play
-            — Avishek is the person to call. On site at {SITE.name} sessions for exactly this.
+            Twisted an ankle, a knee that won&apos;t settle, or a shoulder that aches after every game? Book a clinic consultation
+            with {DOCTOR.handle} — {DOCTOR.name} — for pickleball injuries, pain and recovery.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href={`tel:+${DOCTOR.phoneDigits}`} className="btn-volt">
-              <Phone size={16} /> Call {DOCTOR.phoneDisplay}
+            <a href="#book" className="btn-volt">
+              <CalendarCheck size={16} /> Book a consultation · ₹{DOCTOR.fee}
             </a>
-            <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn-outline">
-              <MessageCircle size={16} /> WhatsApp
+            <a href={`tel:+${DOCTOR.phoneDigits}`} className="btn-outline">
+              <Phone size={16} /> {DOCTOR.phoneDisplay}
             </a>
           </div>
         </div>
@@ -115,28 +123,23 @@ export default function MedicalAssistancePage() {
           <Reveal>
             <MedicalSlideshow images={IMAGES} />
           </Reveal>
-
           <Reveal delay={80}>
             <div className="card p-6 sm:p-8">
-              <p className="eyebrow">Your on-court physio</p>
+              <p className="eyebrow">Sports physio</p>
               <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/45">{DOCTOR.handle}</p>
               <h2 className="mt-1 font-display text-3xl text-ink">{DOCTOR.name}</h2>
               <p className="mt-4 font-mono text-lg tabular-nums text-ink">{DOCTOR.phoneDisplay}</p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <a href={`tel:+${DOCTOR.phoneDigits}`} className="btn-volt">
-                  <Phone size={16} /> Call now
-                </a>
-                <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn-outline">
-                  <MessageCircle size={16} /> WhatsApp
-                </a>
+              <div className="mt-5 rounded-xl bg-volt-soft px-4 py-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-volt-deep">Clinic visit</p>
+                <p className="font-display text-2xl text-ink">₹{DOCTOR.fee} <span className="text-sm font-normal text-ink/60">per consultation</span></p>
               </div>
-
-              <ul className="mt-6 space-y-2 border-t border-line pt-5 text-sm text-ink/70">
-                <li className="flex items-start gap-2"><Clock size={15} className="mt-0.5 shrink-0 text-volt-deep" /> On site during {SITE.name} sessions</li>
-                <li className="flex items-start gap-2"><MessageCircle size={15} className="mt-0.5 shrink-0 text-volt-deep" /> Message ahead for anything that isn&apos;t urgent</li>
-                <li className="flex items-start gap-2"><AlertTriangle size={15} className="mt-0.5 shrink-0 text-signal" /> Emergency? Call 112 first</li>
-              </ul>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a href="#book" className="btn-volt"><CalendarCheck size={16} /> Book now</a>
+                <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn-outline"><MessageCircle size={16} /> WhatsApp</a>
+              </div>
+              <p className="mt-6 flex items-start gap-2 border-t border-line pt-5 text-sm text-ink/70">
+                <AlertTriangle size={15} className="mt-0.5 shrink-0 text-signal" /> Emergency? Call 112 — don&apos;t wait for an appointment.
+              </p>
             </div>
           </Reveal>
         </div>
@@ -162,22 +165,45 @@ export default function MedicalAssistancePage() {
         </div>
       </section>
 
+      <section id="book" className="wrap section scroll-mt-24 border-t border-line">
+        <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,36rem)] lg:items-start">
+          <div>
+            <p className="eyebrow">Book a consultation</p>
+            <h2 className="mt-3 headline-section">₹{DOCTOR.fee} clinic visit</h2>
+            <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink/70">
+              Book and pay here. No calls needed — you&apos;ll get a confirmation by email and WhatsApp.
+            </p>
+            <ol className="mt-8 space-y-5">
+              {STEPS.map((s, i) => (
+                <li key={s.title} className="flex gap-4">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-volt text-ink"><s.icon size={18} /></span>
+                  <div>
+                    <p className="font-semibold text-ink"><span className="font-mono text-xs text-ink/45">{i + 1}.</span> {s.title}</p>
+                    <p className="text-sm text-ink/65">{s.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <DoctorBookingForm fee={DOCTOR.fee} doctorHandle={DOCTOR.handle} concerns={CONCERNS} slots={SLOTS} razorpayEnabled={isRazorpayEnabled} prefill={prefill} />
+        </div>
+      </section>
+
       <section className="wrap section border-t border-line">
-        <h2 className="headline-section">When to reach out</h2>
+        <h2 className="headline-section">Book, or get urgent help?</h2>
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-signal/30 bg-signal/5 p-6">
-            <p className="flex items-center gap-2 font-semibold text-signal"><AlertTriangle size={17} /> Stop playing and call right away</p>
+            <p className="flex items-center gap-2 font-semibold text-signal"><AlertTriangle size={17} /> Don&apos;t wait — call 112 or go to a hospital</p>
             <ul className="mt-4 space-y-2.5 text-sm text-ink/80">
               {URGENT.map((u) => <li key={u} className="flex gap-2"><span className="text-signal">•</span>{u}</li>)}
             </ul>
-            <a href={`tel:+${DOCTOR.phoneDigits}`} className="btn-volt mt-5 w-full sm:w-auto"><Phone size={15} /> Call Avishek</a>
           </div>
           <div className="rounded-2xl border border-line bg-paper p-6">
-            <p className="flex items-center gap-2 font-semibold text-ink"><MessageCircle size={17} className="text-volt-deep" /> Message ahead</p>
+            <p className="flex items-center gap-2 font-semibold text-ink"><CalendarCheck size={17} className="text-volt-deep" /> Book a consultation for</p>
             <ul className="mt-4 space-y-2.5 text-sm text-ink/80">
-              {AHEAD.map((u) => <li key={u} className="flex gap-2"><span className="text-volt-deep">•</span>{u}</li>)}
+              {BOOK_FOR.map((u) => <li key={u} className="flex gap-2"><span className="text-volt-deep">•</span>{u}</li>)}
             </ul>
-            <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="btn-outline mt-5 w-full sm:w-auto"><MessageCircle size={15} /> WhatsApp</a>
+            <a href="#book" className="btn-volt mt-5 w-full sm:w-auto"><CalendarCheck size={15} /> Book · ₹{DOCTOR.fee}</a>
           </div>
         </div>
       </section>
@@ -215,11 +241,11 @@ export default function MedicalAssistancePage() {
         </div>
       </section>
 
-      {/* Phones: the number is always one tap away. */}
+      {/* Phones: booking is always one tap away. */}
       <div className="sticky bottom-0 z-30 border-t border-line bg-paper/95 px-4 py-3 backdrop-blur sm:hidden">
         <div className="flex gap-2">
-          <a href={`tel:+${DOCTOR.phoneDigits}`} className="btn-volt flex-1"><Phone size={15} /> Call Doctor Pickle</a>
-          <a href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Doctor Pickle" className="btn-outline px-4"><MessageCircle size={16} /></a>
+          <a href="#book" className="btn-volt flex-1"><CalendarCheck size={15} /> Book consultation · ₹{DOCTOR.fee}</a>
+          <a href={`tel:+${DOCTOR.phoneDigits}`} aria-label={`Call ${DOCTOR.handle}`} className="btn-outline px-4"><Phone size={16} /></a>
         </div>
       </div>
     </>

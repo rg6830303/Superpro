@@ -14,15 +14,19 @@ export type PayStart = {
  * Open Razorpay for a registration and confirm it server-side. Resolves to
  * "paid", "dismissed" or "failed" — the registration exists either way.
  */
-export function payForRegistration(start: PayStart): Promise<"paid" | "dismissed" | "failed"> {
+export function payForRegistration(
+  start: PayStart,
+  opts: { kind?: "coaching_registration" | "doctor_appointment"; name?: string; description?: string } = {},
+): Promise<"paid" | "dismissed" | "failed"> {
+  const kind = opts.kind ?? "coaching_registration";
   return new Promise((resolve) => {
     if (!start.order || !start.key_id) return resolve("failed");
     void openRazorpay({
       keyId: start.key_id,
       orderId: start.order.id,
       amountPaise: start.order.amount,
-      name: PROGRAM.name,
-      description: `Group coaching · ${start.reference}`,
+      name: opts.name ?? PROGRAM.name,
+      description: opts.description ?? `Group coaching · ${start.reference}`,
       prefill: start.prefill,
       notes: { reference: start.reference },
       onDismiss: () => resolve("dismissed"),
@@ -31,7 +35,7 @@ export function payForRegistration(start: PayStart): Promise<"paid" | "dismissed
           const r = await fetch("/api/payments/verify", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ kind: "coaching_registration", reference: start.reference, ...res }),
+            body: JSON.stringify({ kind, reference: start.reference, ...res }),
           });
           resolve(r.ok ? "paid" : "failed");
         } catch {

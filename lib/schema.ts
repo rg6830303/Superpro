@@ -382,6 +382,32 @@ export const SCHEMA_TABLES: string[] = [
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
 
+  // Paid clinic consultations with the club's doctor, booked and paid on the site.
+  `CREATE TABLE IF NOT EXISTS doctor_appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reference TEXT UNIQUE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    age INTEGER NOT NULL,
+    gender TEXT NOT NULL,
+    concern TEXT NOT NULL,
+    details TEXT,
+    preferred_date DATE NOT NULL,
+    preferred_slot TEXT NOT NULL,
+    confirmed_at TIMESTAMPTZ,
+    amount_paise INTEGER NOT NULL,
+    payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','pending','paid','refunded')),
+    razorpay_order_id TEXT,
+    razorpay_payment_id TEXT,
+    paid_at TIMESTAMPTZ,
+    status TEXT NOT NULL DEFAULT 'requested' CHECK (status IN ('requested','confirmed','completed','cancelled')),
+    admin_note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+
   // Forgot-password links. Only a SHA-256 of the token is stored, so a leaked
   // table cannot be turned back into working reset links.
   `CREATE TABLE IF NOT EXISTS password_resets (
