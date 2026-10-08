@@ -45,7 +45,7 @@ function storage(fn: (s: Storage) => string | null | void): string | null {
  * a work tool, and checkout is the one screen where nothing should get between
  * a player and the pay button.
  */
-const QUIET_PATHS = ["/coach", "/checkout", "/login", "/signup", "/forgot-password", "/reset-password"];
+const QUIET_PATHS = ["/coach", "/checkout", "/login", "/signup", "/forgot-password", "/reset-password", "/coaching/register", "/coaching/registration", "/medical/appointment"];
 
 type Card =
   | { kind: "greeting"; mode: "signup" | "login"; name: string | null }

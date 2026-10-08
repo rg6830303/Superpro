@@ -71,7 +71,7 @@ export function MedicalSlideshow({ images }: { images: SlideshowImage[] }) {
         advance(end < start ? 1 : -1);
       }}
       role="region"
-      aria-label="On-court medical assistance photos"
+      aria-label="Medical assistance photos"
     >
       <div className="relative aspect-[4/3] w-full sm:aspect-[16/10]">
         {images.map((img, i) => (
