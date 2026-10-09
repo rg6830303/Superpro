@@ -21,7 +21,12 @@ export type GameBooking = {
   mixed_doubles?: boolean | null;
   waitlist_position?: number | null;
   started?: boolean | null;
+  hours_to_start?: number | string | null;
 };
+
+/** Mirrors lib/slot-rules.ts (kept here so this client file stays free of server imports). */
+const FEE = 7500;
+const CUTOFF_HOURS = 4;
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   confirmed: { label: "Booked", cls: "chip-volt" },
@@ -32,16 +37,29 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 const LEVEL: Record<string, string> = { all: "Open to all", beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" };
 
-/** A player's daily-games bookings: court, tags, status, and leaving a slot or its waitlist. */
+/** A player's daily-games bookings: court, tags, status, and cancelling a slot or leaving its waitlist. */
 export function GameBookings({ games }: { games: GameBooking[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  function disclaimer(g: GameBooking): string {
+    const slot = `${formatDate(g.session_date)} ${formatTime(g.start_time)} at ${g.venue_name}`;
+    if (g.status === "waitlist") return `Leave the waitlist for ${slot}?\n\nNo charge — nothing was paid.`;
+    const paid = g.payment_status === "paid" ? g.amount_paise : 0;
+    const money =
+      paid >= FEE
+        ? `${formatPaise(paid - FEE)} goes back to your wallet (${formatPaise(paid)} paid, less ${formatPaise(FEE)}).`
+        : `${formatPaise(FEE - paid)} will be deducted from your wallet.`;
+    const late =
+      Number(g.hours_to_start) < CUTOFF_HOURS
+        ? `\n\nThe slot starts in under ${CUTOFF_HOURS} hours, so this only goes through if someone on the waitlist can take your spot.`
+        : "";
+    return `Cancel your place on ${slot}?\n\nA ${formatPaise(FEE)} cancellation charge applies per slot. ${money}${late}`;
+  }
+
   async function leave(g: GameBooking) {
-    const what = g.status === "waitlist" ? "leave the waitlist for" : "cancel your place on";
-    const refund = g.payment_status === "paid" && g.status !== "waitlist" ? ` ${formatPaise(g.amount_paise)} will go back to your wallet.` : "";
-    if (!confirm(`Do you want to ${what} ${formatDate(g.session_date)} ${formatTime(g.start_time)} at ${g.venue_name}?${refund}`)) return;
+    if (!confirm(disclaimer(g))) return;
     setBusy(g.id);
     setMsg(null);
     try {
@@ -65,6 +83,8 @@ export function GameBookings({ games }: { games: GameBooking[] }) {
           const st = STATUS[g.status] ?? { label: g.status, cls: "chip" };
           const active = ["confirmed", "pending_approval", "waitlist"].includes(g.status);
           const canLeave = active && !g.started;
+          const waiting = g.status === "waitlist";
+          const late = Number(g.hours_to_start) < CUTOFF_HOURS;
           return (
             <li key={g.id} className={`card p-4 ${active ? "" : "opacity-60"}`}>
               <div className="flex items-start justify-between gap-3">
@@ -77,20 +97,39 @@ export function GameBookings({ games }: { games: GameBooking[] }) {
                 </div>
                 <span className={`shrink-0 ${st.cls}`}>
                   {st.label}
-                  {g.status === "waitlist" && g.waitlist_position ? ` #${g.waitlist_position}` : ""}
+                  {waiting && g.waitlist_position ? ` #${g.waitlist_position}` : ""}
                 </span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 {g.level && <span className="chip py-0 text-[10px]">{LEVEL[g.level] ?? g.level}</span>}
-                {g.mixed_doubles && <span className="chip py-0 text-[10px] border-fuchsia-300 bg-fuchsia-50 text-fuchsia-900">Mixed doubles</span>}
+                {g.mixed_doubles && <span className="chip border-fuchsia-300 bg-fuchsia-50 py-0 text-[10px] text-fuchsia-900">Mixed doubles</span>}
                 <span className="ml-auto text-xs text-ink/60">
-                  {g.status === "waitlist" ? "Not charged" : g.payment_status === "paid" ? `Paid ${formatPaise(g.amount_paise)}` : g.payment_status === "refunded" ? "Refunded" : `${formatPaise(g.amount_paise)} · pay at venue`}
+                  {waiting
+                    ? `${formatPaise(g.amount_paise)} from wallet if you get a spot`
+                    : g.payment_status === "paid"
+                      ? `Paid ${formatPaise(g.amount_paise)}`
+                      : g.payment_status === "refunded"
+                        ? "Refunded"
+                        : `${formatPaise(g.amount_paise)} · pay at venue`}
                 </span>
               </div>
-              {g.status === "waitlist" && <p className="mt-2 text-[11px] text-ink/55">You&apos;ll be moved up automatically and messaged if a spot opens.</p>}
+              {waiting && (
+                <p className="mt-2 text-[11px] text-ink/55">
+                  You&apos;ll be moved up automatically if a spot opens, and the slot price is taken from your wallet then — keep it topped up. Leaving the waitlist is free.
+                </p>
+              )}
+              {canLeave && !waiting && (
+                <p className="mt-2 text-[11px] text-ink/50">
+                  Cancelling costs {formatPaise(FEE)} per slot.{" "}
+                  {late
+                    ? `It starts in under ${CUTOFF_HOURS} hours, so you can only cancel if the waitlist can take your spot.`
+                    : `Not possible within ${CUTOFF_HOURS} hours of the start unless the waitlist can take your spot.`}
+                </p>
+              )}
               {canLeave && (
-                <button type="button" onClick={() => leave(g)} disabled={busy === g.id} className="mt-3 text-xs font-semibold text-signal hover:underline disabled:opacity-50">
-                  {busy === g.id ? <Spinner size={12} /> : null} {g.status === "waitlist" ? "Leave waitlist" : "Leave slot"}
+                <button type="button" onClick={() => leave(g)} disabled={busy === g.id} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-signal hover:underline disabled:opacity-50">
+                  {busy === g.id ? <Spinner size={12} /> : null}
+                  {waiting ? "Leave waitlist (free)" : `Cancel slot · ${formatPaise(FEE)} charge`}
                 </button>
               )}
             </li>

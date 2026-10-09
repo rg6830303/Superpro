@@ -141,6 +141,28 @@ export async function POST(req: Request) {
     const total = seated.reduce((sum, s) => sum + priceOf(s) * input.players_count, 0);
     const reference = newRef("SPG");
 
+    // A waitlist place costs nothing now, but the seat is paid from the wallet
+    // the moment it's offered — so the amount has to be there already (on top of
+    // anything this booking takes from the wallet right now).
+    const waitlistPaise = sessions
+      .filter((s) => decision.get(s.id) === "waitlist")
+      .reduce((sum, s) => sum + priceOf(s) * input.players_count, 0);
+    if (waitlistPaise > 0) {
+      const takenNow = input.payment_method === "wallet" ? total : 0;
+      if (balanceNow - takenNow < waitlistPaise) {
+        const need = waitlistPaise + takenNow - Math.max(0, balanceNow);
+        return NextResponse.json(
+          {
+            error: `Joining the waitlist needs ₹${(waitlistPaise / 100).toLocaleString("en-IN")} available in your Sparvic wallet — it's only taken if you get the spot. Top up ₹${(need / 100).toLocaleString("en-IN")} and try again.`,
+            code: "waitlist_wallet",
+            wallet_balance_paise: balanceNow,
+            needed_paise: need,
+          },
+          { status: 402 },
+        );
+      }
+    }
+
     // Wallet is only offered to signed-in players, and the debit happens BEFORE
     // the rows are written so an insufficient balance never leaves a half-paid
     // booking behind.
@@ -191,7 +213,7 @@ export async function POST(req: Request) {
           input.players_count,
           s.court_number,
           priceOf(s) * input.players_count,
-          decision.get(s.id) === "waitlist" ? "venue" : method,
+          decision.get(s.id) === "waitlist" ? "wallet" : method,
           input.notes ?? null,
           decision.get(s.id) === "waitlist" ? "pending" : paymentStatus,
           decision.get(s.id),

@@ -51,12 +51,14 @@ const VENUE_FIELDS: FieldDef[] = [
   { name: "active", label: "Listed on the site", type: "checkbox" },
 ];
 
-const SESSION_FIELDS: FieldDef[] = [
+const sessionFields = (venues: Venue[]): FieldDef[] => [
+  { name: "venue_id", label: "Venue", type: "select", options: venues.map((v) => ({ value: v.id, label: v.name })), hint: "Moving a slot tells everyone booked or waiting." },
+  { name: "session_date", label: "Date", type: "date", required: true },
   { name: "start_time", label: "Start time", type: "time", required: true },
   { name: "end_time", label: "End time", type: "time", required: true },
   { name: "court_number", label: "Court number", type: "number", hint: "Shown to players on their booking." },
   { name: "capacity", label: "Players (max 5)", type: "number" },
-  { name: "level", label: "Level tag", type: "select", options: LEVEL_OPTS },
+  { name: "level", label: "Category", type: "select", options: LEVEL_OPTS },
   { name: "mixed_doubles", label: "Mixed doubles (max 3 men or 3 women)", type: "checkbox" },
   { name: "pricing_mode", label: "Pricing", type: "select", options: [{ value: "fixed", label: "Fixed price per player" }, { value: "split", label: "Split the court fee" }] },
   { name: "price_rupees", label: "Price per player (₹)", type: "number", hint: "Used when pricing is fixed." },
@@ -318,8 +320,10 @@ export default function AdminGamesPage() {
         <RecordEditor
           title={`${formatDate(editing.session_date)} · ${formatTime(editing.start_time)}`}
           sub={`${editing.venue_name} · Court ${editing.court_number} · ${editing.booked}/${Math.min(MAX, editing.capacity)} booked${editing.waitlist ? ` · ${editing.waitlist} waiting` : ""}`}
-          fields={SESSION_FIELDS}
+          fields={sessionFields(venues)}
           initial={{
+            venue_id: editing.venue_id,
+            session_date: editing.session_date,
             start_time: editing.start_time,
             end_time: editing.end_time,
             court_number: editing.court_number,
@@ -339,6 +343,8 @@ export default function AdminGamesPage() {
             if (!Number.isFinite(cap) || cap < 1 || cap > MAX) return `Players must be between 1 and ${MAX}.`;
             const err = await submitResource("/api/admin/sessions", "PATCH", {
               id: editing.id,
+              venue_id: v.venue_id,
+              session_date: v.session_date,
               start_time: v.start_time,
               end_time: v.end_time,
               court_number: Number(v.court_number),
@@ -616,7 +622,7 @@ function SlotPlanner({ venues, onDone }: { venues: Venue[]; onDone: (msg: string
       <aside className="card space-y-4 p-5 lg:sticky lg:top-6">
         <p className="font-semibold text-ink">3 · Tags &amp; price</p>
         <label className="block">
-          <span className="label">Level tag</span>
+          <span className="label">Category</span>
           <select className="field" value={level} onChange={(e) => setLevel(e.target.value)}>
             {LEVEL_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>

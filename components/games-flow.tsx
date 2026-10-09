@@ -196,6 +196,13 @@ export function GamesFlow({
   async function joinWaitlist(s: GameSession) {
     setError(null);
     setJoinedMsg(null);
+    const price = perPlayerPaise(s);
+    if (walletPaise < price) {
+      setError(
+        `Joining the waitlist needs ${formatPaise(price)} available in your Sparvic wallet (you have ${formatPaise(Math.max(0, walletPaise))}). It's only taken if you get the spot. Top up from My account → Wallet.`,
+      );
+      return;
+    }
     setJoining(s.id);
     try {
       const res = await fetch("/api/games/register", {
@@ -216,7 +223,7 @@ export function GamesFlow({
       const wl = (data.waitlisted ?? []).length > 0;
       setJoinedMsg(
         wl
-          ? `You're on the waitlist for ${formatDate(s.session_date)} ${formatTime(s.start_time)}. We'll move you up and message you if a spot opens — nothing is charged until then.`
+          ? `You're on the waitlist for ${formatDate(s.session_date)} ${formatTime(s.start_time)}. If a spot opens you'll be moved up automatically, ${formatPaise(perPlayerPaise(s))} will be taken from your wallet, and we'll message you. Leaving the waitlist is free.`
           : `A spot just opened — you're booked on ${formatDate(s.session_date)} ${formatTime(s.start_time)}. Pay at the venue or from your wallet.`,
       );
       router.refresh();
@@ -661,8 +668,9 @@ export function GamesFlow({
                         )}
                       </button>
                       {canWaitlist && (
-                        <button type="button" onClick={() => joinWaitlist(s)} disabled={joining === s.id} className="btn-outline btn-sm w-full">
-                          {joining === s.id ? "Joining…" : `Join waitlist${(s.waitlist ?? 0) > 0 ? ` (${s.waitlist} ahead)` : ""} · free`}
+                        <button type="button" onClick={() => joinWaitlist(s)} disabled={joining === s.id} className="btn-outline btn-sm h-auto w-full flex-col py-2">
+                          {joining === s.id ? "Joining…" : `Join waitlist${(s.waitlist ?? 0) > 0 ? ` (${s.waitlist} ahead)` : ""}`}
+                          <span className="block text-[10px] font-normal text-ink/55">Needs {formatPaise(perPlayerPaise(s))} in your wallet · only taken if you get the spot</span>
                         </button>
                       )}
                       {mine && (

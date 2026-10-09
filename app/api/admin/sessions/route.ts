@@ -4,11 +4,27 @@ import { query } from "@/lib/db";
 import { addDays, istToday } from "@/lib/dates";
 import { MAX_OCCUPANCY, promoteWaitlist } from "@/lib/slot-rules";
 import { ensureSchema } from "@/lib/schema";
+import { formatDate, formatTimeRange } from "@/lib/dates";
+import { createNotification } from "@/lib/notifications";
+import { sendWhatsApp } from "@/lib/whatsapp";
+
+type SlotWhere = { venue_id: string; venue_name: string; session_date: string; start_time: string; end_time: string; court_number: number };
+async function slotWhere(id: string): Promise<SlotWhere | null> {
+  const rows = await query<SlotWhere>(
+    `SELECT s.venue_id, v.name AS venue_name, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number
+     FROM game_sessions s JOIN venues v ON v.id = s.venue_id WHERE s.id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+const describe = (w: SlotWhere) => `${formatDate(w.session_date)} · ${formatTimeRange(w.start_time, w.end_time)} · ${w.venue_name} Court ${w.court_number}`;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const EDITABLE = [
+  "venue_id",
+  "session_date",
   "start_time",
   "end_time",
   "court_number",
@@ -206,6 +222,16 @@ export async function PATCH(req: Request) {
     }
     if ("level" in body && !["all", "beginner", "intermediate", "advanced"].includes(String(body.level))) return badRequest("Unknown level.");
     if ("mixed_doubles" in body) body.mixed_doubles = body.mixed_doubles === true || body.mixed_doubles === "true";
+    if ("session_date" in body && !/^\d{4}-\d{2}-\d{2}$/.test(String(body.session_date))) return badRequest("Pick a valid date.");
+    for (const k of ["start_time", "end_time"]) {
+      if (k in body && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(body[k]))) return badRequest("Times must be HH:MM.");
+    }
+    if ("start_time" in body && "end_time" in body && String(body.end_time) <= String(body.start_time)) return badRequest("The end time must be after the start time.");
+    if ("venue_id" in body) {
+      const v = await query<{ id: string }>(`SELECT id FROM venues WHERE id = $1`, [body.venue_id]);
+      if (v.length === 0) return badRequest("That venue no longer exists.");
+    }
+    const before = await slotWhere(String(body.id));
     const update = buildUpdate("game_sessions", EDITABLE, body);
     if (!update) return badRequest("Nothing to update.");
     let rows;
@@ -216,12 +242,39 @@ export async function PATCH(req: Request) {
       throw err;
     }
     await audit(gate, "session.update", "game_sessions", String(body.id), body);
+
+    // Venue, date, time or court moved: tell everyone booked or waiting.
+    const after = await slotWhere(String(body.id));
+    let notified = 0;
+    if (before && after && (["venue_id", "session_date", "start_time", "end_time", "court_number"] as const).some((k) => String(before[k]) !== String(after[k]))) {
+      const people = await query<{ id: string; user_id: string | null; player_phone: string | null }>(
+        `SELECT id, user_id, player_phone FROM game_registrations WHERE session_id = $1 AND status IN ('confirmed','pending_approval','waitlist')`,
+        [body.id],
+      );
+      const msg = `Your slot has changed. Now: ${describe(after)} (was ${describe(before)}).`;
+      for (const p of people) {
+        if (p.user_id) await createNotification({ userId: p.user_id, kind: "system", title: "Slot details changed", message: msg, linkUrl: "/dashboard" }).catch(() => {});
+        if (p.player_phone) await sendWhatsApp({ kind: "slot_changed", target: "number", phone: `91${p.player_phone}`, message: `🎾 Sparvic — ${msg}`, refTable: "game_registrations", refId: p.id }).catch(() => {});
+        // Per-player court overrides follow the slot's new court.
+        if (before.court_number !== after.court_number || before.venue_id !== after.venue_id) {
+          await query(`UPDATE game_registrations SET court_number = $1 WHERE id = $2`, [after.court_number, p.id]);
+        }
+      }
+      notified = people.length;
+    }
+
     // More room, or rules loosened: let the waitlist move up.
     const promoted = await promoteWaitlist(String(body.id)).catch(() => 0);
     return NextResponse.json({
       ok: true,
       session: rows[0] ?? null,
-      message: promoted ? `${promoted} player${promoted > 1 ? "s" : ""} moved up from the waitlist and notified.` : undefined,
+      message:
+        [
+          notified ? `${notified} player${notified > 1 ? "s" : ""} told about the change.` : "",
+          promoted ? `${promoted} moved up from the waitlist.` : "",
+        ]
+          .filter(Boolean)
+          .join(" ") || undefined,
     });
   } catch (err) {
     return serverError("sessions:update", err);

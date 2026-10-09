@@ -3,6 +3,8 @@ import { formatDate, formatTimeRange } from "@/lib/dates";
 import { needsApproval } from "@/lib/levels";
 import { createNotification } from "@/lib/notifications";
 import { sendWhatsApp } from "@/lib/whatsapp";
+import { chargeWallet, adjustWallet, getWalletBalance } from "@/lib/wallet";
+import { perPlayerPaise } from "@/lib/money";
 
 /**
  * Court-slot occupancy rules, in one place so every booking path and the
@@ -22,6 +24,10 @@ import { sendWhatsApp } from "@/lib/whatsapp";
  */
 export const MAX_OCCUPANCY = 5;
 export const MIXED_MAX_PER_GENDER = 3;
+/** Charged when a player cancels a slot they hold a seat on (waitlist exits are free). */
+export const CANCEL_FEE_PAISE = 7500;
+/** Inside this window a seat can only be given up if the waitlist can fill it. */
+export const CANCEL_CUTOFF_HOURS = 4;
 
 const SEAT_STATUSES = "('confirmed','pending_approval')";
 
@@ -96,42 +102,120 @@ export function waitlistReason(slot: SeatSlot, occ: Occupancy, gender: SlotGende
  * the rules (a cancellation, a deletion, a capacity or tag change).
  */
 export async function promoteWaitlist(sessionId: string): Promise<number> {
-  const slot = await queryOne<SeatSlot & { status: string; session_date: string; start_time: string; end_time: string; court_number: number; venue_name: string }>(
+  const slot = await queryOne<
+    SeatSlot & {
+      status: string; session_date: string; start_time: string; end_time: string; court_number: number; venue_name: string;
+      price_paise: number; pricing_mode: string; court_fee_paise: number;
+    }
+  >(
     `SELECT s.id, s.capacity, s.mixed_doubles, s.level, s.status, s.session_date::text AS session_date, s.start_time,
-            s.end_time, s.court_number, v.name AS venue_name
+            s.end_time, s.court_number, s.price_paise, s.pricing_mode, s.court_fee_paise, v.name AS venue_name
      FROM game_sessions s JOIN venues v ON v.id = s.venue_id WHERE s.id = $1`,
     [sessionId],
   );
   if (!slot || slot.status !== "open") return 0;
-  const waiting = await query<{ id: string; user_id: string | null; player_name: string; player_phone: string | null; players_count: number; skill_level: string; gender: string | null }>(
-    `SELECT r.id, r.user_id, r.player_name, r.player_phone, r.players_count, r.skill_level,
+  const waiting = await query<{ id: string; user_id: string | null; player_name: string; player_phone: string | null; players_count: number; skill_level: string; gender: string | null; reference: string | null }>(
+    `SELECT r.id, r.user_id, r.player_name, r.player_phone, r.players_count, r.skill_level, r.reference,
             COALESCE(r.player_gender, u.gender) AS gender
      FROM game_registrations r LEFT JOIN users u ON u.id = r.user_id
      WHERE r.session_id = $1 AND r.status = 'waitlist' ORDER BY r.created_at`,
     [sessionId],
   );
+  const when = `${formatDate(slot.session_date)} · ${formatTimeRange(slot.start_time, slot.end_time)} · ${slot.venue_name} Court ${slot.court_number}`;
+  const tell = async (w: (typeof waiting)[number], title: string, msg: string) => {
+    if (w.user_id) await createNotification({ userId: w.user_id, kind: "system", title, message: msg, linkUrl: "/dashboard" }).catch(() => {});
+    if (w.player_phone) {
+      await sendWhatsApp({ kind: "waitlist_update", target: "number", phone: `91${w.player_phone}`, message: `🎾 Sparvic — ${msg}`, refTable: "game_registrations", refId: w.id }).catch(() => {});
+    }
+  };
+
   let promoted = 0;
   for (const w of waiting) {
     const occ = (await occupancyOf([sessionId])).get(sessionId)!;
     const d = decideSeat(slot, occ, { gender: slotGender(w.gender), skill: w.skill_level, players: w.players_count });
     if ("error" in d || d.status === "waitlist") continue;
+
+    // The seat is paid from the wallet the moment it's taken. Waitlisting needed
+    // the amount available; if it has since dropped below, they keep their place
+    // in line and are asked to top up, and the next player is tried.
+    const price = perPlayerPaise(slot) * w.players_count;
+    if (w.user_id && price > 0) {
+      const balance = await getWalletBalance(w.user_id);
+      if (balance < price) {
+        await tell(w, "Top up to take your spot", `A spot opened on ${when}, but your wallet has ₹${Math.max(0, balance) / 100} and the slot is ₹${price / 100}. Top up to stay first in line for the next opening.`);
+        continue;
+      }
+      const charge = await chargeWallet({
+        userId: w.user_id,
+        amountPaise: price,
+        kind: "booking",
+        reason: `Off the waitlist — ${when}${w.reference ? ` (${w.reference})` : ""}`,
+        refTable: "game_registrations",
+        refId: w.id,
+      });
+      if (!charge.ok) continue;
+    }
     const moved = await queryOne<{ id: string }>(
-      `UPDATE game_registrations SET status = $2, promoted_at = now() WHERE id = $1 AND status = 'waitlist' RETURNING id`,
-      [w.id, d.status],
+      `UPDATE game_registrations
+       SET status = $2, promoted_at = now(), amount_paise = $3,
+           payment_method = CASE WHEN $3 > 0 THEN 'wallet' ELSE payment_method END,
+           payment_status = CASE WHEN $3 > 0 THEN 'paid' ELSE payment_status END
+       WHERE id = $1 AND status = 'waitlist' RETURNING id`,
+      [w.id, d.status, price],
     );
-    if (!moved) continue;
+    if (!moved) {
+      // Someone else changed this row in the meantime: give the money back.
+      if (w.user_id && price > 0) {
+        await adjustWallet({ userId: w.user_id, deltaPaise: price, kind: "refund", reason: "Waitlist promotion did not complete", refTable: "game_registrations", refId: w.id }).catch(() => {});
+      }
+      continue;
+    }
     promoted++;
-    const when = `${formatDate(slot.session_date)} · ${formatTimeRange(slot.start_time, slot.end_time)} · ${slot.venue_name} Court ${slot.court_number}`;
-    const msg =
+    const paid = price > 0 ? ` ₹${price / 100} was taken from your Sparvic wallet.` : "";
+    await tell(
+      w,
+      "You're off the waitlist",
       d.status === "confirmed"
-        ? `A spot opened up — you're off the waitlist and on court: ${when}. Pay at the venue or from your Sparvic wallet.`
-        : `A spot opened up on ${when}. You're off the waitlist; the club will confirm your level shortly.`;
-    if (w.user_id) {
-      await createNotification({ userId: w.user_id, kind: "system", title: "You're off the waitlist", message: msg, linkUrl: "/dashboard" }).catch(() => {});
-    }
-    if (w.player_phone) {
-      await sendWhatsApp({ kind: "waitlist_promoted", target: "number", phone: `91${w.player_phone}`, message: `🎾 Sparvic — ${msg}`, refTable: "game_registrations", refId: w.id }).catch(() => {});
-    }
+        ? `A spot opened up — you're on court: ${when}.${paid}`
+        : `A spot opened up on ${when}.${paid} The club will confirm your level shortly.`,
+    );
   }
   return promoted;
+}
+
+/**
+ * Could the waitlist fill this seat if its holder left? Used for the late-cancel
+ * rule: inside the cut-off a seat can only be given up when someone waiting
+ * fits it (gender quota) and has the money in their wallet.
+ */
+export async function waitlistCanFill(sessionId: string, leavingRegId: string): Promise<boolean> {
+  const slot = await queryOne<SeatSlot & { price_paise: number; pricing_mode: string; court_fee_paise: number }>(
+    `SELECT id, capacity, mixed_doubles, level, price_paise, pricing_mode, court_fee_paise FROM game_sessions WHERE id = $1`,
+    [sessionId],
+  );
+  if (!slot) return false;
+  const leaving = await queryOne<{ players_count: number; gender: string | null }>(
+    `SELECT r.players_count, COALESCE(r.player_gender, u.gender) AS gender
+     FROM game_registrations r LEFT JOIN users u ON u.id = r.user_id WHERE r.id = $1`,
+    [leavingRegId],
+  );
+  const occ = { ...(await occupancyOf([sessionId])).get(sessionId)! };
+  if (leaving) {
+    occ.seats -= leaving.players_count;
+    const g = slotGender(leaving.gender);
+    if (g) occ[g] -= leaving.players_count;
+  }
+  const waiting = await query<{ user_id: string | null; players_count: number; skill_level: string; gender: string | null }>(
+    `SELECT r.user_id, r.players_count, r.skill_level, COALESCE(r.player_gender, u.gender) AS gender
+     FROM game_registrations r LEFT JOIN users u ON u.id = r.user_id
+     WHERE r.session_id = $1 AND r.status = 'waitlist' ORDER BY r.created_at`,
+    [sessionId],
+  );
+  for (const w of waiting) {
+    const d = decideSeat(slot, occ, { gender: slotGender(w.gender), skill: w.skill_level, players: w.players_count });
+    if ("error" in d || d.status === "waitlist") continue;
+    const price = perPlayerPaise(slot) * w.players_count;
+    if (!w.user_id || price === 0 || (await getWalletBalance(w.user_id)) >= price) return true;
+  }
+  return false;
 }

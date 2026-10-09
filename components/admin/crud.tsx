@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 
@@ -57,7 +58,13 @@ export function Drawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  // Rendered at <body>: the console's page-fade wrapper is its own stacking
+  // context, which otherwise traps the drawer under the sticky phone header.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60" role="dialog" aria-modal="true">
       <div className="flex h-full w-full max-w-lg flex-col border-l border-line bg-paper">
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line p-5 sm:p-6">
@@ -72,7 +79,8 @@ export function Drawer({
         <div className="min-w-0 flex-1 overflow-y-auto p-5 sm:p-6">{children}</div>
         {footer && <div className="shrink-0 border-t border-line p-5 sm:p-6">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

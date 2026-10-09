@@ -44,6 +44,7 @@ export default async function DashboardPage({
               COALESCE(r.court_number, s.court_number) AS court_number,
               r.status, r.payment_status, r.amount_paise, s.level, s.mixed_doubles,
               ((s.session_date + s.start_time::time) AT TIME ZONE 'Asia/Kolkata') <= now() AS started,
+              EXTRACT(EPOCH FROM (((s.session_date + s.start_time::time) AT TIME ZONE 'Asia/Kolkata') - now())) / 3600 AS hours_to_start,
               CASE WHEN r.status = 'waitlist' THEN (SELECT COUNT(*) FROM game_registrations w
                 WHERE w.session_id = r.session_id AND w.status = 'waitlist' AND w.created_at <= r.created_at)::int END AS waitlist_position
        FROM game_registrations r
