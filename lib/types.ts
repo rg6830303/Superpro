@@ -2,6 +2,8 @@ export type SkillLevel = "beginner" | "intermediate" | "advanced" | "pro";
 export type PaymentMethod = "razorpay" | "cod" | "venue";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
+export type ProductMedia = { type: "image" | "video"; url: string; alt?: string | null };
+
 export type Product = {
   id: string;
   slug: string;

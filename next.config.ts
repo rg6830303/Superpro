@@ -26,6 +26,8 @@ const CSP = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "img-src 'self' data: blob: https:",
+  // Product videos are served from Supabase Storage.
+  "media-src 'self' blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   scriptSrc,

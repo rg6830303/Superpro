@@ -597,6 +597,19 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // The email a coach signs up with. Set by an admin, so only a real coach
   // on the roster can claim a coach login.
   `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS email TEXT`,
+  // Ordered product media (photos and videos). Back-filled once from the old
+  // cover + gallery columns, which are still kept in sync for older readers.
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS media JSONB NOT NULL DEFAULT '[]'::jsonb`,
+  `UPDATE products SET media = (
+       SELECT COALESCE(jsonb_agg(jsonb_build_object('type', 'image', 'url', u) ORDER BY o), '[]'::jsonb)
+       FROM (
+         SELECT image_url AS u, 0 AS o WHERE image_url IS NOT NULL AND image_url <> ''
+         UNION ALL
+         SELECT g, n FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(gallery) = 'array' THEN gallery ELSE '[]'::jsonb END) WITH ORDINALITY AS t(g, n)
+         WHERE g <> '' AND g IS DISTINCT FROM image_url
+       ) x
+     )
+     WHERE media = '[]'::jsonb AND (image_url IS NOT NULL OR gallery <> '[]'::jsonb)`,
   // Mixed-doubles tag on a court slot, and the player gender snapshot it is enforced on.
   `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS mixed_doubles BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS player_gender TEXT`,

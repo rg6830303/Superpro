@@ -3,21 +3,19 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check, Minus, MessageCircle, Plus, ShoppingBag } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Minus, MessageCircle, Play, Plus, ShoppingBag } from "lucide-react";
+import { productMedia } from "@/lib/product-media";
 import { useCart } from "@/components/cart-provider";
 import { formatPaise } from "@/lib/money";
 import { waLink } from "@/lib/site";
 import type { Product } from "@/lib/types";
 
 export function ProductGallery({ product }: { product: Product }) {
-  // Only ever spread a real list: spreading a string yields one "image" per
-  // character, which is what the gallery did with badly stored rows.
-  const gallery = Array.isArray(product.gallery) ? product.gallery : [];
-  const images = [product.image_url, ...gallery].filter((x): x is string => typeof x === "string" && x.length > 0);
-  const unique = [...new Set(images)];
+  const items = productMedia(product);
   const [active, setActive] = useState(0);
+  const current = items[Math.min(active, items.length - 1)];
 
-  if (unique.length === 0) {
+  if (!current) {
     return (
       <div className="flex aspect-square items-center justify-center rounded-2xl bg-mist font-display text-3xl uppercase text-ink/25">
         {product.name}
@@ -28,28 +26,51 @@ export function ProductGallery({ product }: { product: Product }) {
   return (
     <div>
       <div className="relative aspect-square overflow-hidden rounded-2xl bg-mist">
-        <Image
-          src={unique[active]}
-          alt={product.name}
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          className="object-contain p-6"
-        />
+        {current.type === "video" ? (
+          <video
+            key={current.url}
+            src={current.url}
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-contain"
+            aria-label={`${product.name} video`}
+          />
+        ) : (
+          <Image src={current.url} alt={current.alt || product.name} fill priority={active === 0} sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain p-6" />
+        )}
+        {items.length > 1 && (
+          <>
+            <button type="button" aria-label="Previous" onClick={() => setActive((i) => (i - 1 + items.length) % items.length)} className="absolute left-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-paper/85 text-ink shadow hover:bg-paper">
+              <ChevronLeft size={18} />
+            </button>
+            <button type="button" aria-label="Next" onClick={() => setActive((i) => (i + 1) % items.length)} className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-paper/85 text-ink shadow hover:bg-paper">
+              <ChevronRight size={18} />
+            </button>
+          </>
+        )}
       </div>
-      {unique.length > 1 && (
-        <div className="mt-3 flex gap-3">
-          {unique.map((src, i) => (
+      {items.length > 1 && (
+        <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+          {items.map((m, i) => (
             <button
-              key={src}
+              key={m.url}
               type="button"
               onClick={() => setActive(i)}
-              aria-label={`View image ${i + 1}`}
-              className={`relative h-20 w-20 overflow-hidden rounded-xl bg-mist transition-all ${
-                i === active ? "ring-2 ring-ink" : "opacity-60 hover:opacity-100"
-              }`}
+              aria-label={`View ${m.type === "video" ? "video" : "photo"} ${i + 1}`}
+              className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-mist transition-all ${i === active ? "ring-2 ring-ink" : "opacity-60 hover:opacity-100"}`}
             >
-              <Image src={src} alt="" fill sizes="80px" className="object-contain p-1.5" />
+              {m.type === "video" ? (
+                <>
+                  <video src={m.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                  <span className="absolute inset-0 grid place-items-center bg-ink/25 text-paper"><Play size={18} fill="currentColor" /></span>
+                </>
+              ) : (
+                <Image src={m.url} alt="" fill sizes="80px" className="object-contain p-1.5" />
+              )}
             </button>
           ))}
         </div>

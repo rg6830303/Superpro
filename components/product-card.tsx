@@ -9,12 +9,14 @@ import { useCart } from "@/components/cart-provider";
 import { TiltCard } from "@/components/motion";
 import { formatPaise } from "@/lib/money";
 import type { Product } from "@/lib/types";
+import { productMedia } from "@/lib/product-media";
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
   const router = useRouter();
   const [added, setAdded] = useState(false);
   const outOfStock = product.stock <= 0;
+  const cover = productMedia(product)[0];
 
   const addToCart = () => {
     add({
@@ -43,9 +45,11 @@ export function ProductCard({ product }: { product: Product }) {
     <TiltCard max={6} className="h-full">
       <article className="card-hover group flex h-full flex-col overflow-hidden">
       <Link href={`/products/${product.slug}`} className="lift-media media-plate relative block aspect-[4/3] overflow-hidden bg-mist">
-        {product.image_url ? (
+        {cover?.type === "video" ? (
+          <video src={cover.url} muted loop autoPlay playsInline preload="metadata" className="h-full w-full object-cover" aria-label={product.name} />
+        ) : cover ? (
           <Image
-            src={product.image_url}
+            src={cover.url}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
