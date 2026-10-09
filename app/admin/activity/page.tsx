@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useUrlTab } from "@/components/admin/use-url-tab";
 import Link from "next/link";
 import { AlertTriangle, RefreshCw, Search } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
@@ -8,6 +9,7 @@ import { ListState, submitResource } from "@/components/admin/crud";
 import { formatPaise } from "@/lib/money";
 
 type Tab = "feed" | "players" | "coaches";
+const TAB_KEYS: readonly Tab[] = ["feed", "players", "coaches"];
 
 type Event = {
   at: string;
@@ -97,7 +99,7 @@ function stamp(iso: string): string {
 }
 
 export default function AdminActivityPage() {
-  const [tab, setTab] = useState<Tab>("feed");
+  const [tab, setTab] = useUrlTab<Tab>("feed", TAB_KEYS);
   return (
     <div>
       <AdminHeader title="Activity" sub="Who is signing in, what they are doing, and every change made in this console." />

@@ -37,6 +37,8 @@ const patchSchema = z.object({
   dupr_id: z.string().trim().max(24).nullable().optional(),
   city: z.string().trim().max(60).optional(),
   role: z.enum(["player", "staff", "admin"]).optional(),
+  /** Manual category override: wins over the DUPR-derived level. */
+  skill_level: z.enum(["beginner", "intermediate", "advanced", "pro"]).optional(),
   whatsapp_opt_in: z.boolean().optional(),
   /** Setting this resets the Supabase Auth password for the account. */
   password: z.string().min(8, "Password must be at least 8 characters").max(128).optional(),
@@ -141,7 +143,7 @@ export async function PATCH(req: Request) {
     if (!current) return badRequest("That account no longer exists.");
 
     // Category is always derived from the rating, never set directly.
-    const skillLevel = patch.dupr !== undefined ? skillFromDupr(patch.dupr) : null;
+    const skillLevel = patch.skill_level ?? (patch.dupr !== undefined ? skillFromDupr(patch.dupr) : null);
 
     await query(
       `UPDATE users SET

@@ -1,4 +1,5 @@
 import { query, isDbConfigured } from "@/lib/db";
+import { ensureSchema } from "@/lib/schema";
 import { istToday, addDays } from "@/lib/dates";
 import type { Coach, GameSession, Product, Tournament, Venue } from "@/lib/types";
 
@@ -120,16 +121,43 @@ export async function getWeekSessions(days = 21, viewerId: string | null = null)
   const to = addDays(from, days - 1);
   return safe(
     "getWeekSessions",
-    async () =>
-      query<GameSession>(
+    async () => {
+      await ensureSchema();
+      return query<GameSession>(
         // The roster is public on purpose: players pick a slot partly by who is
         // already in it. Only confirmed names are listed — a pending request is
         // not a booking, and showing it would misrepresent who is on court.
         `SELECT s.*, s.session_date::text AS session_date, v.name AS venue_name, v.area AS venue_area,
-                COALESCE(r.booked, 0)::int AS booked,
+                COALESCE(occ.seats, 0)::int AS booked,
+                COALESCE(occ.waitlist, 0)::int AS waitlist,
+                COALESCE(occ.male, 0)::int AS male,
+                COALESCE(occ.female, 0)::int AS female,
+                mine.status AS my_status,
+                mine.id AS my_registration_id,
+                mine.position AS my_waitlist_position,
                 COALESCE(r.roster, '[]'::json) AS roster,
                 COALESCE(r.following_count, 0)::int AS following_count
          FROM game_sessions s
+         LEFT JOIN (
+           SELECT g.session_id,
+                  SUM(g.players_count) FILTER (WHERE g.status IN ('confirmed','pending_approval')) AS seats,
+                  COUNT(*) FILTER (WHERE g.status = 'waitlist') AS waitlist,
+                  SUM(g.players_count) FILTER (WHERE g.status IN ('confirmed','pending_approval')
+                    AND lower(COALESCE(g.player_gender, gu.gender)) = 'male') AS male,
+                  SUM(g.players_count) FILTER (WHERE g.status IN ('confirmed','pending_approval')
+                    AND lower(COALESCE(g.player_gender, gu.gender)) = 'female') AS female
+           FROM game_registrations g LEFT JOIN users gu ON gu.id = g.user_id
+           GROUP BY g.session_id
+         ) occ ON occ.session_id = s.id
+         LEFT JOIN LATERAL (
+           SELECT m.id, m.status,
+                  CASE WHEN m.status = 'waitlist' THEN
+                    (SELECT COUNT(*) FROM game_registrations w WHERE w.session_id = m.session_id
+                       AND w.status = 'waitlist' AND w.created_at <= m.created_at)::int END AS position
+           FROM game_registrations m
+           WHERE m.session_id = s.id AND m.user_id = $3::uuid AND m.status IN ('confirmed','pending_approval','waitlist')
+           LIMIT 1
+         ) mine ON true
          JOIN venues v ON v.id = s.venue_id
          LEFT JOIN (
            SELECT gr.session_id,
@@ -171,7 +199,8 @@ export async function getWeekSessions(days = 21, viewerId: string | null = null)
          WHERE s.session_date BETWEEN $1 AND $2 AND s.status = 'open' AND v.active
          ORDER BY s.session_date, s.start_time, v.sort_order, s.court_number`,
         [from, to, viewerId],
-      ),
+      );
+    },
     [],
   );
 }

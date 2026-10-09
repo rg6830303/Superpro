@@ -31,7 +31,7 @@ export function needsApproval(slotLevel: string | null | undefined, playerLevel:
 }
 
 export const LEVEL_LABEL: Record<string, string> = {
-  all: "All levels",
+  all: "Open to all",
   beginner: "Beginner",
   intermediate: "Intermediate",
   advanced: "Advanced",

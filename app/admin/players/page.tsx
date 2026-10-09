@@ -109,7 +109,7 @@ export default function AdminPlayersPage() {
     <div>
       <AdminHeader
         title="Player accounts"
-        sub="Create, edit and remove accounts, and manage wallet balances."
+        sub="Create, edit and remove accounts, change a player's category, and add or deduct wallet balance."
         action={<AddButton label="New account" onClick={() => setCreating(true)} />}
       />
 
@@ -230,6 +230,7 @@ export default function AdminPlayersPage() {
             dupr_id: editing.dupr_id ?? "",
             dupr: editing.dupr != null ? Number(editing.dupr) : null,
             role: editing.role,
+            skill_level: editing.skill_level,
             password: "",
             whatsapp_opt_in: editing.whatsapp_opt_in,
           }}
@@ -237,10 +238,13 @@ export default function AdminPlayersPage() {
           deleteLabel="Delete account"
           onClose={() => setEditing(null)}
           onSubmit={async (values) => {
-            const err = await submitResource("/api/admin/users", "PATCH", {
-              id: editing.id,
-              ...cleanUser(values),
-            });
+            const v = cleanUser(values);
+            // Only send what changed: an untouched rating must not reset a manual category,
+            // and an untouched category lets a new rating set it.
+            const before = editing.dupr != null ? Number(editing.dupr) : null;
+            if ((v.dupr ?? null) === before) delete v.dupr;
+            if (v.skill_level === editing.skill_level) delete v.skill_level;
+            const err = await submitResource("/api/admin/users", "PATCH", { id: editing.id, ...v });
             if (!err) await load(q);
             return err;
           }}
@@ -349,7 +353,7 @@ function WalletDrawer({
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Current balance</p>
         <p className="mt-1 font-display text-5xl text-volt-deep">{formatPaise(user.wallet_balance_paise)}</p>
         <p className="mt-2 text-xs text-ink/55">
-          {DUPR_BANDS.find((b) => b.level === skillFromDupr(user.dupr))?.label} ·{" "}
+          <span className="capitalize">{user.skill_level}</span> ·{" "}
           {user.dupr != null ? `DUPR ${Number(user.dupr).toFixed(2)}` : "unrated"}
         </p>
       </div>
@@ -378,10 +382,10 @@ function WalletDrawer({
 
         <div className="flex gap-3">
           <button type="button" onClick={() => submit(1)} disabled={busy} className="btn-volt flex-1">
-            {busy ? <Spinner /> : null} Credit
+            {busy ? <Spinner /> : null} Add to wallet
           </button>
           <button type="button" onClick={() => submit(-1)} disabled={busy} className="btn-danger flex-1">
-            Debit
+            Deduct
           </button>
         </div>
       </div>

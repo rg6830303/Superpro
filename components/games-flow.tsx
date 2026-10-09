@@ -40,6 +40,8 @@ export type BookingPlayer = {
   skill: string;
   dupr?: number | null;
   dupr_id?: string | null;
+  /** From the profile; mixed-doubles slots count it. */
+  gender?: string | null;
 };
 
 /**
@@ -89,7 +91,7 @@ export function GamesFlow({
         area: s.venue_area,
         open: 0,
       };
-      if (s.capacity - (s.booked ?? 0) > 0 && !isPast(s.session_date, s.start_time)) entry.open += 1;
+      if (Math.min(5, s.capacity) - (s.booked ?? 0) > 0 && !isPast(s.session_date, s.start_time)) entry.open += 1;
       map.set(s.venue_id, entry);
     }
     return [...map.values()];
@@ -177,10 +179,56 @@ export function GamesFlow({
   const totalPaise = pickedSessions.reduce((sum, s) => sum + perPlayerPaise(s), 0);
   const gatedPicks = pickedSessions.filter((s) => needsApproval(s.level, player.skill));
 
-  const spotsLeft = (s: GameSession) => s.capacity - (s.booked ?? 0);
+  const myGender = player.gender === "male" || player.gender === "female" ? player.gender : null;
+  const cap = (s: GameSession) => Math.max(1, Math.min(5, s.capacity));
+  const spotsLeft = (s: GameSession) => cap(s) - (s.booked ?? 0);
+  /** Why this player can't take a seat here right now (null = they can). */
+  const blockedReason = (s: GameSession): "full" | "quota" | "gender" | null => {
+    if (s.mixed_doubles && !myGender) return "gender";
+    if (spotsLeft(s) < 1) return "full";
+    if (s.mixed_doubles && myGender && (s[myGender] ?? 0) >= 3) return "quota";
+    return null;
+  };
+  const [joining, setJoining] = useState<string | null>(null);
+  const [joinedMsg, setJoinedMsg] = useState<string | null>(null);
+
+  /** Joining a waitlist is free and skips the cart: nothing is charged until a seat opens. */
+  async function joinWaitlist(s: GameSession) {
+    setError(null);
+    setJoinedMsg(null);
+    setJoining(s.id);
+    try {
+      const res = await fetch("/api/games/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          player_name: player.name,
+          player_phone: player.phone,
+          player_email: player.email,
+          skill_level: player.skill,
+          session_ids: [s.id],
+          players_count: 1,
+          payment_method: "venue",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not join the waitlist.");
+      const wl = (data.waitlisted ?? []).length > 0;
+      setJoinedMsg(
+        wl
+          ? `You're on the waitlist for ${formatDate(s.session_date)} ${formatTime(s.start_time)}. We'll move you up and message you if a spot opens — nothing is charged until then.`
+          : `A spot just opened — you're booked on ${formatDate(s.session_date)} ${formatTime(s.start_time)}. Pay at the venue or from your wallet.`,
+      );
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not join the waitlist.");
+    } finally {
+      setJoining(null);
+    }
+  }
 
   function toggle(session: GameSession) {
-    if (spotsLeft(session) < 1) return;
+    if (blockedReason(session) || session.my_status) return;
     setPicked((prev) =>
       prev.includes(session.id) ? prev.filter((id) => id !== session.id) : [...prev, session.id],
     );
@@ -273,6 +321,11 @@ export function GamesFlow({
           <Alert>{error}</Alert>
         </div>
       )}
+      {joinedMsg && (
+        <div className="mb-5">
+          <Alert tone="ok">{joinedMsg}</Alert>
+        </div>
+      )}
 
       <div key={step} className="step-in">
         {/* ── Step 1 — venue, date, slots ───────────────────────────────── */}
@@ -317,7 +370,7 @@ export function GamesFlow({
                 {calendarDates.map((d) => {
                   const sessionList = byDate.get(d) ?? [];
                   const open = sessionList.filter(
-                    (s) => spotsLeft(s) > 0 && !isPast(s.session_date, s.start_time),
+                    (s) => !blockedReason(s) && !isPast(s.session_date, s.start_time),
                   ).length;
                   const hasSlots = sessionList.length > 0;
                   const isActive = d === shownDate;
@@ -439,19 +492,22 @@ export function GamesFlow({
                     .map((s) => {
                     const left = spotsLeft(s);
                     const past = isPast(s.session_date, s.start_time);
-                    const disabled = past || left < 1;
+                    const blocked = blockedReason(s);
+                    const mine = s.my_status;
+                    const disabled = past || Boolean(blocked) || Boolean(mine);
+                    const canWaitlist = !past && !mine && (blocked === "full" || blocked === "quota");
                     const selected = picked.includes(s.id);
                     const gated = needsApproval(s.level, player.skill);
                     const roster = s.roster ?? [];
                     // Roster already arrives with followed players first.
                     const friends = roster.filter((r) => r.you_follow && !r.is_you);
                     return (
+                      <div key={s.id} className="flex min-w-0 flex-col gap-2">
                       <button
-                        key={s.id}
                         type="button"
                         onClick={() => !disabled && toggle(s)}
                         disabled={disabled}
-                        className={`tile text-left ${selected ? "tile-selected" : ""} ${disabled ? "tile-disabled" : ""}`}
+                        className={`tile text-left ${selected ? "tile-selected" : ""} ${disabled && !mine ? "tile-disabled" : ""} ${mine ? "border-volt-deep" : ""}`}
                       >
                         {friends.length > 0 && (
                           <p className="mb-2 flex items-center gap-1.5 rounded-md bg-volt-soft px-2 py-1 text-[11px] font-semibold leading-snug text-volt-deep">
@@ -478,18 +534,44 @@ export function GamesFlow({
                                 left <= 2 ? "text-amber font-semibold" : "text-volt-deep font-semibold"
                               }`}
                             >
-                              {past ? "Started" : left <= 0 ? "Full" : `${left} left`}
+                              {mine === "confirmed"
+                                ? "You're in"
+                                : mine === "pending_approval"
+                                  ? "Awaiting approval"
+                                  : mine === "waitlist"
+                                    ? `Waitlist #${s.my_waitlist_position ?? "?"}`
+                                    : past
+                                      ? "Started"
+                                      : blocked === "full"
+                                        ? "Full"
+                                        : blocked === "quota"
+                                          ? `${myGender === "male" ? "Men's" : "Women's"} spots full`
+                                          : `${left} left`}
                             </span>
                           )}
                         </div>
                         <p className="mt-1 text-xs text-ink/65">{formatTimeRange(s.start_time, s.end_time)}</p>
                         <p className="mt-2 flex items-center gap-1.5 text-xs text-ink/70">
-                          <MapPin size={11} /> {s.venue_name}
+                          <MapPin size={11} /> {s.venue_name} · <strong className="font-semibold text-ink">Court {s.court_number}</strong>
                         </p>
+                        <div className="mt-2 flex items-center gap-2 text-[11px] text-ink/60">
+                          <span className="flex gap-0.5" aria-hidden>
+                            {Array.from({ length: cap(s) }, (_, i) => (
+                              <span key={i} className={`h-1.5 w-3 rounded-full ${i < (s.booked ?? 0) ? "bg-volt-deep" : "bg-line"}`} />
+                            ))}
+                          </span>
+                          <span>{s.booked ?? 0}/{cap(s)} players{(s.waitlist ?? 0) > 0 ? ` · ${s.waitlist} waiting` : ""}</span>
+                        </div>
+                        {s.mixed_doubles && (
+                          <p className="mt-1 text-[11px] text-ink/60">Men {s.male ?? 0}/3 · Women {s.female ?? 0}/3</p>
+                        )}
 
                         <div className="mt-2.5 flex items-center justify-between">
-                          <span className={gated ? "chip-warn py-0.5 text-[10px]" : "chip py-0.5 text-[10px]"}>
-                            {LEVEL_LABEL[s.level] ?? s.level}
+                          <span className="flex flex-wrap gap-1">
+                            <span className={gated ? "chip-warn py-0.5 text-[10px]" : "chip py-0.5 text-[10px]"}>
+                              {s.level === "all" ? "Open to all" : LEVEL_LABEL[s.level] ?? s.level}
+                            </span>
+                            {s.mixed_doubles && <span className="chip py-0.5 text-[10px] border-fuchsia-300 bg-fuchsia-50 text-fuchsia-900">Mixed doubles</span>}
                           </span>
                           <span className="text-right">
                             <span className="block text-sm font-semibold text-volt-deep">
@@ -569,12 +651,24 @@ export function GamesFlow({
                           </div>
                         )}
 
-                        {gated && (
+                        {gated && !mine && (
                           <p className="mt-2 text-[10px] leading-snug text-amber">
                             {approvalReason(s.level, player.skill)}
                           </p>
                         )}
+                        {blocked === "gender" && !past && !mine && (
+                          <p className="mt-2 text-[10px] leading-snug text-amber">Mixed doubles: add your gender to your profile to book.</p>
+                        )}
                       </button>
+                      {canWaitlist && (
+                        <button type="button" onClick={() => joinWaitlist(s)} disabled={joining === s.id} className="btn-outline btn-sm w-full">
+                          {joining === s.id ? "Joining…" : `Join waitlist${(s.waitlist ?? 0) > 0 ? ` (${s.waitlist} ahead)` : ""} · free`}
+                        </button>
+                      )}
+                      {mine && (
+                        <a href="/dashboard" className="text-center text-[11px] font-semibold text-volt-deep hover:underline">Manage in My account</a>
+                      )}
+                      </div>
                     );
                   })}
                 </div>

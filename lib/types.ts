@@ -59,6 +59,15 @@ export type GameSession = {
   end_time: string;
   court_number: number;
   level: "all" | "beginner" | "intermediate" | "advanced";
+  /** Mixed doubles: at most 3 men or 3 women on the court. */
+  mixed_doubles?: boolean;
+  waitlist?: number;
+  male?: number;
+  female?: number;
+  /** The viewer's own place on this slot, if any. */
+  my_status?: "confirmed" | "pending_approval" | "waitlist" | null;
+  my_registration_id?: string | null;
+  my_waitlist_position?: number | null;
   capacity: number;
   price_paise: number;
   pricing_mode?: "fixed" | "split" | string;

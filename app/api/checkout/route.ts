@@ -5,7 +5,7 @@ import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { newRef, shippingFor } from "@/lib/money";
 import { priceBasket } from "@/lib/fees";
-import { announceSlots, checkSlots, insertRegistrations, loadSessions, slotPricePaise } from "@/lib/booking";
+import { announceSlots, checkSlotRules, checkSlots, insertRegistrations, loadSessions, slotPricePaise } from "@/lib/booking";
 import { quote, redeem, releaseRedemption } from "@/lib/discounts";
 import { createRazorpayOrder, isRazorpayEnabled } from "@/lib/razorpay";
 import { adjustWallet, chargeWallet, duesPaise, getWalletBalance, isBlocked } from "@/lib/wallet";
@@ -93,6 +93,12 @@ export async function POST(req: Request) {
     const slotProblem = checkSlots(sessions, wanted);
     if (wanted.length > 0 && slotProblem) {
       return NextResponse.json({ error: slotProblem }, { status: 409 });
+    }
+
+    if (session && sessions.length > 0) {
+      const sk = await queryOne<{ skill_level: string | null }>(`SELECT skill_level FROM users WHERE id = $1`, [session.id]);
+      const ruleProblem = await checkSlotRules(sessions, session.id, sk?.skill_level ?? "beginner");
+      if (ruleProblem) return NextResponse.json({ error: ruleProblem }, { status: 409 });
     }
 
     if (session && sessions.length > 0) {

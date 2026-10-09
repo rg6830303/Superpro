@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { adminGate, audit, badRequest, buildUpdate, serverError } from "@/lib/admin";
 import { query } from "@/lib/db";
 import { addDays, istToday } from "@/lib/dates";
+import { MAX_OCCUPANCY, promoteWaitlist } from "@/lib/slot-rules";
+import { ensureSchema } from "@/lib/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +13,7 @@ const EDITABLE = [
   "end_time",
   "court_number",
   "level",
+  "mixed_doubles",
   "capacity",
   "price_paise",
   "pricing_mode",
@@ -23,13 +26,21 @@ export async function GET(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const params = new URL(req.url).searchParams;
     const from = params.get("from") ?? istToday();
     const to = params.get("to") ?? addDays(from, 13);
     const sessions = await query(
       `SELECT s.*, s.session_date::text AS session_date, v.name AS venue_name, v.area AS venue_area,
               COALESCE((SELECT SUM(players_count) FROM game_registrations r
-                        WHERE r.session_id = s.id AND r.status <> 'cancelled'), 0)::int AS booked
+                        WHERE r.session_id = s.id AND r.status IN ('confirmed','pending_approval')), 0)::int AS booked,
+              (SELECT COUNT(*) FROM game_registrations r WHERE r.session_id = s.id AND r.status = 'waitlist')::int AS waitlist,
+              COALESCE((SELECT SUM(r.players_count) FROM game_registrations r LEFT JOIN users u ON u.id = r.user_id
+                        WHERE r.session_id = s.id AND r.status IN ('confirmed','pending_approval')
+                          AND lower(COALESCE(r.player_gender, u.gender)) = 'male'), 0)::int AS male,
+              COALESCE((SELECT SUM(r.players_count) FROM game_registrations r LEFT JOIN users u ON u.id = r.user_id
+                        WHERE r.session_id = s.id AND r.status IN ('confirmed','pending_approval')
+                          AND lower(COALESCE(r.player_gender, u.gender)) = 'female'), 0)::int AS female
        FROM game_sessions s JOIN venues v ON v.id = s.venue_id
        WHERE s.session_date BETWEEN $1 AND $2
        ORDER BY s.session_date, s.start_time, v.sort_order, s.court_number`,
@@ -50,7 +61,64 @@ export async function POST(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+
+    // ── Multi-venue planner ────────────────────────────────────────────────
+    // { dates: [...], plan: [{ venue_id, courts: [1,2], times: [{start,end}] }],
+    //   level, mixed_doubles, capacity, pricing_mode, price_paise, court_fee_paise }
+    if (Array.isArray(body.plan)) {
+      const DATE = /^\d{4}-\d{2}-\d{2}$/;
+      const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+      const dates = (Array.isArray(body.dates) ? body.dates : []).filter((d): d is string => typeof d === "string" && DATE.test(d));
+      if (dates.length === 0) return badRequest("Pick at least one date.");
+      if (dates.length > 62) return badRequest("Plan at most two months at a time.");
+      const level = ["all", "beginner", "intermediate", "advanced"].includes(String(body.level)) ? String(body.level) : "all";
+      const mixed = body.mixed_doubles === true;
+      const capacity = Math.max(1, Math.min(MAX_OCCUPANCY, Number(body.capacity) || MAX_OCCUPANCY));
+      const pricingMode = body.pricing_mode === "split" ? "split" : "fixed";
+      const price = Math.max(0, Math.round(Number(body.price_paise ?? 35000)));
+      const courtFee = Math.max(0, Math.round(Number(body.court_fee_paise ?? 0)));
+      type PlanRow = { venue_id: string; courts: number[]; times: Array<{ start: string; end: string }> };
+      const plan = (body.plan as PlanRow[]).filter((p) => p && typeof p.venue_id === "string");
+      if (plan.length === 0) return badRequest("Add at least one venue to the plan.");
+      for (const p of plan) {
+        if (!Array.isArray(p.courts) || p.courts.length === 0) return badRequest("Pick at least one court for every venue.");
+        if (p.courts.some((c) => !Number.isInteger(Number(c)) || Number(c) < 1 || Number(c) > 50)) return badRequest("Court numbers must be 1–50.");
+        if (!Array.isArray(p.times) || p.times.length === 0) return badRequest("Add at least one time for every venue.");
+        for (const t of p.times) {
+          if (!TIME.test(t.start) || !TIME.test(t.end) || t.end <= t.start) return badRequest(`Check the time ${t.start}–${t.end}: end must be after start.`);
+        }
+      }
+      let created = 0;
+      let skipped = 0;
+      for (const date of dates) {
+        for (const p of plan) {
+          for (const t of p.times) {
+            for (const court of [...new Set(p.courts.map(Number))]) {
+              const rows = await query<{ id: string }>(
+                `INSERT INTO game_sessions (venue_id, session_date, start_time, end_time, court_number,
+                   level, mixed_doubles, capacity, price_paise, pricing_mode, court_fee_paise, status)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'open')
+                 ON CONFLICT (venue_id, session_date, start_time, court_number) DO NOTHING
+                 RETURNING id`,
+                [p.venue_id, date, t.start, t.end, court, level, mixed, capacity, price, pricingMode, courtFee],
+              );
+              if (rows.length) created++;
+              else skipped++;
+            }
+          }
+        }
+      }
+      await audit(gate, "session.plan", "game_sessions", undefined, { created, skipped, dates: dates.length, venues: plan.length, level, mixed });
+      return NextResponse.json({
+        ok: true,
+        created,
+        skipped,
+        message: skipped ? `${created} slot${created === 1 ? "" : "s"} added. ${skipped} already existed and ${skipped === 1 ? "was" : "were"} left as is.` : undefined,
+      });
+    }
+
     const venueIds: string[] = Array.isArray(body.venue_ids)
       ? (body.venue_ids as string[])
       : body.venue_id
@@ -59,7 +127,7 @@ export async function POST(req: Request) {
     if (venueIds.length === 0) return badRequest("Pick at least one venue.");
 
     const level = (body.level as string) ?? "all";
-    const capacity = Number(body.capacity ?? 8);
+    const capacity = Math.max(1, Math.min(MAX_OCCUPANCY, Number(body.capacity) || MAX_OCCUPANCY));
     const price = Number(body.price_paise ?? 35000);
     // "split" divides a court's hourly fee across the slot's capacity; "fixed"
     // charges the per-player price directly.
@@ -128,13 +196,33 @@ export async function PATCH(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     if (!body.id) return badRequest("Missing session id.");
+    if ("capacity" in body) body.capacity = Math.max(1, Math.min(MAX_OCCUPANCY, Number(body.capacity) || MAX_OCCUPANCY));
+    if ("court_number" in body) {
+      const c = Number(body.court_number);
+      if (!Number.isInteger(c) || c < 1 || c > 50) return badRequest("Court number must be between 1 and 50.");
+    }
+    if ("level" in body && !["all", "beginner", "intermediate", "advanced"].includes(String(body.level))) return badRequest("Unknown level.");
+    if ("mixed_doubles" in body) body.mixed_doubles = body.mixed_doubles === true || body.mixed_doubles === "true";
     const update = buildUpdate("game_sessions", EDITABLE, body);
     if (!update) return badRequest("Nothing to update.");
-    const rows = await query(update.text, update.params);
+    let rows;
+    try {
+      rows = await query(update.text, update.params);
+    } catch (err) {
+      if ((err as { code?: string })?.code === "23505") return badRequest("That venue already has a slot on this court at this date and time.");
+      throw err;
+    }
     await audit(gate, "session.update", "game_sessions", String(body.id), body);
-    return NextResponse.json({ ok: true, session: rows[0] ?? null });
+    // More room, or rules loosened: let the waitlist move up.
+    const promoted = await promoteWaitlist(String(body.id)).catch(() => 0);
+    return NextResponse.json({
+      ok: true,
+      session: rows[0] ?? null,
+      message: promoted ? `${promoted} player${promoted > 1 ? "s" : ""} moved up from the waitlist and notified.` : undefined,
+    });
   } catch (err) {
     return serverError("sessions:update", err);
   }
@@ -144,6 +232,7 @@ export async function DELETE(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const id = new URL(req.url).searchParams.get("id");
     if (!id) return badRequest("Missing session id.");
 

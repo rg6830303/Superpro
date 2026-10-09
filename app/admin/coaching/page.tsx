@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useUrlTab } from "@/components/admin/use-url-tab";
 import { Pencil, Trash2 } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import {
@@ -96,7 +97,7 @@ const COACH_FIELDS: FieldDef[] = [
 const STATUSES = ["requested", "confirmed", "completed", "cancelled"];
 
 export default function AdminCoachingPage() {
-  const [tab, setTab] = useState<"coaches" | "availability" | "bookings">("coaches");
+  const [tab, setTab] = useUrlTab<"coaches" | "availability" | "bookings">("coaches", ["coaches", "availability", "bookings"]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);

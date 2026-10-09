@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useUrlTab } from "@/components/admin/use-url-tab";
 import { KeyRound, Pencil, Search, Trash2 } from "lucide-react";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import { AddButton, Drawer, ListState, RecordEditor, submitResource, type FieldDef } from "@/components/admin/crud";
@@ -23,7 +24,7 @@ const listHint = (values: readonly string[]) => `One per line. Allowed: ${values
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
 export default function AdminGroupCoachingPage() {
-  const [tab, setTab] = useState<Tab>("registrations");
+  const [tab, setTab] = useUrlTab<Tab>("registrations", ["registrations", "groups", "logins"]);
   const [regs, setRegs] = useState<Reg[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);

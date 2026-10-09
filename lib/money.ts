@@ -68,14 +68,18 @@ export type SlotPricing = {
   capacity: number;
 };
 
+/** A court slot holds at most 5 players (lib/slot-rules.ts); split pricing divides by that. */
+const SLOT_MAX_PLAYERS = 5;
+const slotSeats = (capacity: number) => Math.max(1, Math.min(SLOT_MAX_PLAYERS, Number(capacity) || SLOT_MAX_PLAYERS));
+
 export function perPlayerPaise(slot: SlotPricing): number {
   if (slot.pricing_mode !== "split") return slot.price_paise;
-  const capacity = Math.max(1, slot.capacity);
+  const capacity = slotSeats(slot.capacity);
   return Math.ceil(Number(slot.court_fee_paise ?? 0) / capacity);
 }
 
 /** "₹1,400 court ÷ 8 players" — shown next to a split price so the maths is visible. */
 export function splitCaption(slot: SlotPricing): string | null {
   if (slot.pricing_mode !== "split") return null;
-  return `${formatPaise(Number(slot.court_fee_paise ?? 0))} court ÷ ${Math.max(1, slot.capacity)} players`;
+  return `${formatPaise(Number(slot.court_fee_paise ?? 0))} court ÷ ${slotSeats(slot.capacity)} players`;
 }

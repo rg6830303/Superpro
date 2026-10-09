@@ -597,6 +597,12 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // The email a coach signs up with. Set by an admin, so only a real coach
   // on the roster can claim a coach login.
   `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS email TEXT`,
+  // Mixed-doubles tag on a court slot, and the player gender snapshot it is enforced on.
+  `ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS mixed_doubles BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS player_gender TEXT`,
+  `ALTER TABLE game_registrations ADD COLUMN IF NOT EXISTS promoted_at TIMESTAMPTZ`,
+  // Every court slot holds at most 5 players; the old default was 8.
+  `ALTER TABLE game_sessions ALTER COLUMN capacity SET DEFAULT 5`,
   // One-time code a coach uses to create their portal login (SHA-256 only).
   `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS invite_code_hash TEXT`,
   `ALTER TABLE coaches ADD COLUMN IF NOT EXISTS achievements JSONB NOT NULL DEFAULT '[]'::jsonb`,

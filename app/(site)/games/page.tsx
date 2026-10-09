@@ -52,6 +52,7 @@ export default async function GamesPage() {
               skill: profile.skill_level,
               dupr: profile.dupr,
               dupr_id: profile.dupr_id,
+              gender: profile.gender ?? null,
             }}
           />
         ) : (

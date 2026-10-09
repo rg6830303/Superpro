@@ -40,9 +40,12 @@ export default async function DashboardPage({
 
   const [games, coaching, entries, orders] = await Promise.all([
     query<GameRow>(
-      `SELECT r.id, s.session_date::text AS session_date, s.start_time, v.name AS venue_name,
+      `SELECT r.id, s.session_date::text AS session_date, s.start_time, s.end_time, v.name AS venue_name,
               COALESCE(r.court_number, s.court_number) AS court_number,
-              r.status, r.payment_status, r.amount_paise
+              r.status, r.payment_status, r.amount_paise, s.level, s.mixed_doubles,
+              ((s.session_date + s.start_time::time) AT TIME ZONE 'Asia/Kolkata') <= now() AS started,
+              CASE WHEN r.status = 'waitlist' THEN (SELECT COUNT(*) FROM game_registrations w
+                WHERE w.session_id = r.session_id AND w.status = 'waitlist' AND w.created_at <= r.created_at)::int END AS waitlist_position
        FROM game_registrations r
        JOIN game_sessions s ON s.id = r.session_id
        JOIN venues v ON v.id = s.venue_id

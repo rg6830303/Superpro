@@ -145,7 +145,7 @@ async function settleGame(p: Payload) {
      FROM game_registrations r
      JOIN game_sessions s ON s.id = r.session_id
      JOIN venues v ON v.id = s.venue_id
-     WHERE r.reference = $1`,
+     WHERE r.reference = $1 AND r.razorpay_order_id IS NOT NULL`,
     [p.reference],
   );
 
@@ -154,9 +154,10 @@ async function settleGame(p: Payload) {
   }
 
   await query(
+    // Only the rows charged on this order — waitlisted rows on the same reference were not.
     `UPDATE game_registrations SET payment_status = 'paid', razorpay_payment_id = $1, status = 'confirmed'
-     WHERE reference = $2`,
-    [p.razorpay_payment_id, p.reference],
+     WHERE reference = $2 AND razorpay_order_id = $3 AND status <> 'waitlist'`,
+    [p.razorpay_payment_id, p.reference, p.razorpay_order_id],
   );
 
   const total = rows.reduce((sum, r) => sum + r.amount_paise, 0);

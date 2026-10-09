@@ -3,6 +3,7 @@ import { formatDate } from "@/lib/dates";
 import { perPlayerPaise } from "@/lib/money";
 import { needsApproval } from "@/lib/levels";
 import { notifyFollowers } from "@/lib/notifications";
+import { decideSeat, occupancyOf, slotGender } from "@/lib/slot-rules";
 
 /**
  * Slot booking, shared by the cart checkout and the direct games endpoint.
@@ -21,6 +22,7 @@ export type SessionRow = {
   court_number: number;
   capacity: number;
   level: string;
+  mixed_doubles: boolean;
   venue_name: string;
   pricing_mode?: string;
   court_fee_paise?: number;
@@ -33,9 +35,9 @@ export async function loadSessions(ids: string[]): Promise<SessionRow[]> {
   if (ids.length === 0) return [];
   return query<SessionRow>(
     `SELECT s.id, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number,
-            s.capacity, s.level, s.pricing_mode, s.court_fee_paise, s.price_paise, v.name AS venue_name,
+            s.capacity, s.level, s.mixed_doubles, s.pricing_mode, s.court_fee_paise, s.price_paise, v.name AS venue_name,
             COALESCE((SELECT SUM(r.players_count) FROM game_registrations r
-                      WHERE r.session_id = s.id AND r.status <> 'cancelled'), 0)::int AS booked
+                      WHERE r.session_id = s.id AND r.status IN ('confirmed','pending_approval')), 0)::int AS booked
      FROM game_sessions s JOIN venues v ON v.id = s.venue_id
      WHERE s.id = ANY($1) AND s.status = 'open'`,
     [ids],
@@ -56,9 +58,36 @@ export function checkSlots(sessions: SessionRow[], wanted: string[], playersEach
   if (sessions.length !== wanted.length) {
     return "One of those slots is no longer available.";
   }
+  // Room (capacity, mixed-doubles quota) is checked by checkSlotRules against live seats.
+  void playersEach;
+  return null;
+}
+
+/**
+ * The basket path cannot waitlist (one payment covers goods and court time),
+ * so a slot that would waitlist — full court, full mixed-doubles quota — is
+ * refused here with a pointer to the Daily games page, where joining the
+ * waitlist is free. Also refuses a slot the player already holds.
+ */
+export async function checkSlotRules(sessions: SessionRow[], userId: string, skill: string): Promise<string | null> {
+  if (sessions.length === 0) return null;
+  const held = await query<{ session_id: string }>(
+    `SELECT session_id FROM game_registrations
+     WHERE user_id = $1 AND session_id = ANY($2::uuid[]) AND status IN ('confirmed','pending_approval','waitlist')`,
+    [userId, sessions.map((s) => s.id)],
+  );
+  if (held.length > 0) {
+    const s = sessions.find((x) => x.id === held[0].session_id)!;
+    return `You already have a place on ${formatDate(s.session_date)} ${s.start_time} at ${s.venue_name}.`;
+  }
+  const g = await query<{ gender: string | null }>(`SELECT gender FROM users WHERE id = $1`, [userId]);
+  const gender = slotGender(g[0]?.gender);
+  const occ = await occupancyOf(sessions.map((s) => s.id));
   for (const s of sessions) {
-    if (s.capacity - s.booked < playersEach) {
-      return `The ${formatDate(s.session_date)} ${s.start_time} slot just filled up. Pick another.`;
+    const d = decideSeat(s, occ.get(s.id)!, { gender, skill, players: 1 });
+    if ("error" in d) return `${formatDate(s.session_date)} ${s.start_time}: ${d.error}`;
+    if (d.status === "waitlist") {
+      return `The ${formatDate(s.session_date)} ${s.start_time} slot at ${s.venue_name} is full. Join its waitlist from the Daily games page (it's free).`;
     }
   }
   return null;
@@ -90,12 +119,14 @@ export async function insertRegistrations(args: {
     args.sessions.filter((s) => needsApproval(s.level, args.skillLevel)).map((s) => s.id),
   );
 
+  const g = await query<{ gender: string | null }>(`SELECT gender FROM users WHERE id = $1`, [args.userId]);
+  const gender = slotGender(g[0]?.gender);
   for (const s of args.sessions) {
     await query(
       `INSERT INTO game_registrations (reference, order_ref, session_id, user_id, player_name, player_phone,
          player_email, skill_level, players_count, court_number, amount_paise, payment_method,
-         payment_status, status, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         payment_status, status, notes, player_gender)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL DO UPDATE
          SET players_count = EXCLUDED.players_count,
              status = EXCLUDED.status,
@@ -103,7 +134,8 @@ export async function insertRegistrations(args: {
              order_ref = EXCLUDED.order_ref,
              amount_paise = EXCLUDED.amount_paise,
              payment_method = EXCLUDED.payment_method,
-             payment_status = EXCLUDED.payment_status`,
+             payment_status = EXCLUDED.payment_status,
+             player_gender = EXCLUDED.player_gender`,
       [
         args.reference,
         args.orderRef ?? null,
@@ -120,6 +152,7 @@ export async function insertRegistrations(args: {
         args.paymentStatus,
         gated.has(s.id) ? "pending_approval" : "confirmed",
         args.notes ?? null,
+        gender,
       ],
     );
   }

@@ -21,6 +21,7 @@ import {
 import { LogoutButton } from "@/components/logout-button";
 import { EmptyState } from "@/components/ui";
 import { ProfileForm } from "@/components/profile-form";
+import { GameBookings, type GameBooking } from "@/components/game-bookings";
 import { WalletTopUp } from "@/components/wallet-topup";
 import { Avatar } from "@/components/player-directory";
 import { PlayerDirectory } from "@/components/player-directory";
@@ -33,16 +34,7 @@ import { LEVEL_LABEL } from "@/lib/levels";
 import type { WalletTransaction } from "@/lib/wallet";
 import type { UserNotification } from "@/lib/notifications";
 
-export type GameRow = {
-  id: string;
-  session_date: string;
-  start_time: string;
-  venue_name: string;
-  court_number: number | null;
-  status: string;
-  payment_status: string;
-  amount_paise: number;
-};
+export type GameRow = GameBooking;
 
 export type CoachRow = {
   booking_no: string;
@@ -484,46 +476,7 @@ export function DashboardView({
                 }
               />
             ) : (
-              <div className="table-wrap">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Time</th>
-                      <th>Venue</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {games.map((g) => (
-                      <tr key={g.id}>
-                        <td>{formatDate(g.session_date)}</td>
-                        <td>{formatTime(g.start_time)}</td>
-                        <td>{g.venue_name}</td>
-                        <td>{formatPaise(g.amount_paise)}</td>
-                        <td>
-                          <span
-                            className={
-                              g.status === "cancelled"
-                                ? "chip"
-                                : g.payment_status === "paid"
-                                ? "chip-volt"
-                                : "chip-warn"
-                            }
-                          >
-                            {g.status === "cancelled"
-                              ? "Cancelled"
-                              : g.payment_status === "paid"
-                              ? "Paid"
-                              : "Pay at venue"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <GameBookings games={games} />
             )}
           </section>
 

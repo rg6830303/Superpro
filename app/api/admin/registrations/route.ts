@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { promoteWaitlist } from "@/lib/slot-rules";
+import { ensureSchema } from "@/lib/schema";
 import { adminGate, audit, badRequest, buildUpdate, serverError } from "@/lib/admin";
 import { query } from "@/lib/db";
 import { istToday } from "@/lib/dates";
@@ -12,19 +14,21 @@ export async function GET(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const params = new URL(req.url).searchParams;
     const sessionId = params.get("session_id");
     const date = params.get("date") ?? (sessionId ? null : istToday());
 
     const registrations = await query(
       `SELECT r.*, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number AS session_court,
-              v.name AS venue_name
+              v.name AS venue_name, s.mixed_doubles, s.level AS slot_level, COALESCE(r.player_gender, u.gender) AS gender
        FROM game_registrations r
        JOIN game_sessions s ON s.id = r.session_id
        JOIN venues v ON v.id = s.venue_id
+       LEFT JOIN users u ON u.id = r.user_id
        WHERE ($1::uuid IS NULL OR r.session_id = $1)
          AND ($2::date IS NULL OR s.session_date = $2)
-       ORDER BY s.session_date, s.start_time, r.created_at`,
+       ORDER BY s.session_date, s.start_time, v.name, s.court_number, (r.status = 'waitlist'), r.created_at`,
       [sessionId, date],
     );
     return NextResponse.json({ registrations });
@@ -38,6 +42,7 @@ export async function POST(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     if (!body.session_id || !body.player_name || !body.player_phone) {
       return badRequest("Session, name and phone are required.");
@@ -88,13 +93,20 @@ export async function PATCH(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     if (!body.id) return badRequest("Missing registration id.");
     const update = buildUpdate("game_registrations", EDITABLE, body);
     if (!update) return badRequest("Nothing to update.");
-    const rows = await query(update.text, update.params);
+    const rows = await query<{ session_id?: string }>(update.text, update.params);
     await audit(gate, "registration.update", "game_registrations", String(body.id), body);
-    return NextResponse.json({ ok: true, registration: rows[0] ?? null });
+    // A seat may have freed (cancelled / waitlisted / fewer players): fill it from the waitlist.
+    const promoted = rows[0]?.session_id ? await promoteWaitlist(rows[0].session_id).catch(() => 0) : 0;
+    return NextResponse.json({
+      ok: true,
+      registration: rows[0] ?? null,
+      message: promoted ? `${promoted} player${promoted > 1 ? "s" : ""} moved up from the waitlist and notified.` : undefined,
+    });
   } catch (err) {
     return serverError("registrations:update", err);
   }
@@ -105,11 +117,13 @@ export async function DELETE(req: Request) {
   const gate = await adminGate();
   if (gate instanceof NextResponse) return gate;
   try {
+    await ensureSchema();
     const id = new URL(req.url).searchParams.get("id");
     if (!id) return badRequest("Missing registration id.");
-    await query(`DELETE FROM game_registrations WHERE id = $1`, [id]);
+    const gone = await query<{ session_id: string }>(`DELETE FROM game_registrations WHERE id = $1 RETURNING session_id`, [id]);
     await audit(gate, "registration.delete", "game_registrations", id);
-    return NextResponse.json({ ok: true });
+    const promoted = gone[0] ? await promoteWaitlist(gone[0].session_id).catch(() => 0) : 0;
+    return NextResponse.json({ ok: true, message: promoted ? `${promoted} player${promoted > 1 ? "s" : ""} moved up from the waitlist and notified.` : undefined });
   } catch (err) {
     return serverError("registrations:delete", err);
   }

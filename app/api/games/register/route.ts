@@ -12,6 +12,7 @@ import { adjustWallet, chargeWallet, duesPaise, getWalletBalance, isBlocked } fr
 import { postSlotToGroup } from "@/lib/games";
 import { needsApproval, LEVEL_LABEL } from "@/lib/levels";
 import { notifyFollowers } from "@/lib/notifications";
+import { decideSeat, occupancyOf, slotGender, waitlistReason } from "@/lib/slot-rules";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,7 @@ type SessionRow = {
   pricing_mode: string;
   court_fee_paise: number;
   status: string;
+  mixed_doubles: boolean;
   venue_name: string;
   booked: number;
 };
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
 
     const sessions = await query<SessionRow>(
       `SELECT s.id, s.session_date::text AS session_date, s.start_time, s.end_time, s.court_number, s.capacity, s.level,
-              s.price_paise, s.pricing_mode, s.court_fee_paise, s.status, v.name AS venue_name,
+              s.price_paise, s.pricing_mode, s.court_fee_paise, s.status, s.mixed_doubles, v.name AS venue_name,
               COALESCE((SELECT SUM(players_count) FROM game_registrations r
                         WHERE r.session_id = s.id
                           AND r.status IN ('confirmed','waitlist','pending_approval')), 0)::int AS booked
@@ -97,30 +99,58 @@ export async function POST(req: Request) {
           { status: 409 },
         );
       }
-      if (s.capacity - s.booked < input.players_count) {
-        return NextResponse.json(
-          { error: `The ${formatDate(s.session_date)} ${s.start_time} slot just filled up. Pick another.` },
-          { status: 409 },
-        );
-      }
     }
 
+    // Already holding a seat or a waitlist place on one of these slots?
+    const already = await query<{ session_id: string }>(
+      `SELECT session_id FROM game_registrations
+       WHERE user_id = $1 AND session_id = ANY($2::uuid[]) AND status IN ('confirmed','pending_approval','waitlist')`,
+      [session.id, input.session_ids],
+    );
+    if (already.length > 0) {
+      const s = sessions.find((x) => x.id === already[0].session_id)!;
+      return NextResponse.json(
+        { error: `You're already booked (or waitlisted) for ${formatDate(s.session_date)} ${s.start_time} at ${s.venue_name}.` },
+        { status: 409 },
+      );
+    }
+
+    // Seat, approval or waitlist — decided per slot against live occupancy,
+    // court capacity (max 5) and the mixed-doubles gender quota.
+    const profile = await query<{ gender: string | null }>(`SELECT gender FROM users WHERE id = $1`, [session.id]);
+    const gender = slotGender(profile[0]?.gender);
+    const occ = await occupancyOf(sessions.map((s) => s.id));
+    const decision = new Map<string, "confirmed" | "pending_approval" | "waitlist">();
+    const waitlisted: Array<{ date: string; time: string; venue: string; reason: string }> = [];
+    for (const s of sessions) {
+      const o = occ.get(s.id)!;
+      const d = decideSeat(s, o, { gender, skill: input.skill_level, players: input.players_count });
+      if ("error" in d) {
+        return NextResponse.json({ error: `${formatDate(s.session_date)} ${s.start_time}: ${d.error}` }, { status: 409 });
+      }
+      decision.set(s.id, d.status);
+      if (d.status === "waitlist") {
+        waitlisted.push({ date: s.session_date, time: s.start_time, venue: s.venue_name, reason: waitlistReason(s, o, gender) });
+      }
+    }
+    const seated = sessions.filter((s) => decision.get(s.id) !== "waitlist");
+
     // Price is resolved server-side from the slot's own pricing mode; the client
-    // never gets to say what a slot costs.
+    // never gets to say what a slot costs. Waitlisted slots are not charged.
     const priceOf = (s: SessionRow) => perPlayerPaise(s);
-    const total = sessions.reduce((sum, s) => sum + priceOf(s) * input.players_count, 0);
+    const total = seated.reduce((sum, s) => sum + priceOf(s) * input.players_count, 0);
     const reference = newRef("SPG");
 
     // Wallet is only offered to signed-in players, and the debit happens BEFORE
     // the rows are written so an insufficient balance never leaves a half-paid
     // booking behind.
-    const wantsWallet = input.payment_method === "wallet";
+    const wantsWallet = input.payment_method === "wallet" && total > 0;
     if (wantsWallet) {
       const charge = await chargeWallet({
         userId: session.id,
         amountPaise: total,
         kind: "booking",
-        reason: `Daily games — ${sessions.length} slot${sessions.length > 1 ? "s" : ""} (${reference})`,
+        reason: `Daily games — ${seated.length} slot${seated.length > 1 ? "s" : ""} (${reference})`,
         refTable: "game_registrations",
       });
       if (!charge.ok) {
@@ -129,12 +159,9 @@ export async function POST(req: Request) {
       refundOnFailure = { userId: session.id, amountPaise: total, reference };
     }
 
-    // Reaching above your band is a request, not a booking. Playing down is
-    // always fine, so only the upward direction is gated.
-    const gated = sessions.filter((s) => needsApproval(s.level, input.skill_level));
-    const gatedIds = new Set(gated.map((s) => s.id));
+    const gated = sessions.filter((s) => decision.get(s.id) === "pending_approval");
 
-    const wantsOnline = !wantsWallet && input.payment_method === "razorpay" && isRazorpayEnabled;
+    const wantsOnline = !wantsWallet && total >= 100 && input.payment_method === "razorpay" && isRazorpayEnabled;
     const method = wantsWallet ? "wallet" : wantsOnline ? "razorpay" : "venue";
     const paymentStatus = wantsWallet ? "paid" : "pending";
 
@@ -142,14 +169,17 @@ export async function POST(req: Request) {
       await query(
         `INSERT INTO game_registrations (reference, session_id, user_id, player_name, player_phone,
            player_email, skill_level, players_count, court_number, amount_paise, payment_method,
-           payment_status, status, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,$14,$12)
+           payment_status, status, notes, player_gender)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,$14,$12,$15)
          ON CONFLICT (session_id, user_id) WHERE user_id IS NOT NULL DO UPDATE
            SET players_count = EXCLUDED.players_count,
                status = EXCLUDED.status,
                reference = EXCLUDED.reference,
                amount_paise = EXCLUDED.amount_paise,
-               payment_method = EXCLUDED.payment_method`,
+               payment_method = EXCLUDED.payment_method,
+               payment_status = EXCLUDED.payment_status,
+               player_gender = EXCLUDED.player_gender,
+               created_at = now()`,
         [
           reference,
           s.id,
@@ -161,10 +191,11 @@ export async function POST(req: Request) {
           input.players_count,
           s.court_number,
           priceOf(s) * input.players_count,
-          method,
+          decision.get(s.id) === "waitlist" ? "venue" : method,
           input.notes ?? null,
-          paymentStatus,
-          gatedIds.has(s.id) ? "pending_approval" : "confirmed",
+          decision.get(s.id) === "waitlist" ? "pending" : paymentStatus,
+          decision.get(s.id),
+          gender,
         ],
       );
     }
@@ -178,13 +209,13 @@ export async function POST(req: Request) {
           notes: { reference, player: input.player_name },
         });
         razorpayOrderId = rzp.id;
-        await query(`UPDATE game_registrations SET razorpay_order_id = $1 WHERE reference = $2`, [
+        await query(`UPDATE game_registrations SET razorpay_order_id = $1 WHERE reference = $2 AND status <> 'waitlist'`, [
           rzp.id,
           reference,
         ]);
       } catch (err) {
         console.error("[games] razorpay order failed, falling back to pay-at-venue:", err);
-        await query(`UPDATE game_registrations SET payment_method = 'venue' WHERE reference = $1`, [reference]);
+        await query(`UPDATE game_registrations SET payment_method = 'venue' WHERE reference = $1 AND status <> 'waitlist'`, [reference]);
       }
     }
 
@@ -195,14 +226,14 @@ export async function POST(req: Request) {
       venue_name: s.venue_name,
       court_number: s.court_number,
       level: s.level,
-      status: gatedIds.has(s.id) ? "pending_approval" : "confirmed",
+      status: decision.get(s.id),
     }));
 
-    const confirmedSessions = sessions.filter((s) => !gatedIds.has(s.id));
+    const confirmedSessions = sessions.filter((s) => decision.get(s.id) === "confirmed");
 
     // Pay-at-venue bookings are confirmed now; online ones confirm after
     // /api/payments/verify so we never announce an unpaid slot.
-    if (!razorpayOrderId) {
+    if (!razorpayOrderId && confirmedSessions.length > 0) {
       // Receipts and the group post are best-effort: the slot is already
       // booked and (for wallet) already paid, so a WhatsApp hiccup must never
       // turn into an error the player sees.
@@ -237,6 +268,7 @@ export async function POST(req: Request) {
         level: LEVEL_LABEL[s.level] ?? s.level,
       })),
       razorpay_order_id: razorpayOrderId,
+      waitlisted,
     });
   } catch (err) {
     console.error("[games/register]", err);

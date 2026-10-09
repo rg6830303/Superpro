@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { promoteWaitlist } from "@/lib/slot-rules";
 import { adminGate, audit, badRequest, serverError } from "@/lib/admin";
 import { query, queryOne } from "@/lib/db";
 import { formatDate, formatTime } from "@/lib/dates";
@@ -90,6 +91,8 @@ export async function POST(req: Request) {
         refId: id,
       });
       await audit(gate, "approval.decline", "game_registrations", id, { player: reg.player_name });
+      const sid = await query<{ session_id: string }>(`SELECT session_id FROM game_registrations WHERE id = $1`, [id]);
+      if (sid[0]) await promoteWaitlist(sid[0].session_id).catch(() => 0);
       return NextResponse.json({ ok: true, status: "declined" });
     }
 
