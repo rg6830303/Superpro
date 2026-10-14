@@ -780,3 +780,9 @@
 .so-confirm-icon.is-pending{background:#f6e3a0;color:#7a5b00}
 .so-congrats{display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 14px;border-radius:12px;background:linear-gradient(120deg,#d9ef75,#f6e3a0);font-size:13px;font-weight:700;color:#193d32}
 @keyframes so-pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+
+.so-feature{position:relative;display:block;overflow:hidden;padding:26px 24px;border-radius:24px;color:#f4f1ff;background:radial-gradient(80% 120% at 100% 0%,#7c5cff55,#0000 60%),linear-gradient(135deg,#120f2b,#1d1747 55%,#2b2160);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s}
+.so-feature:hover{transform:translateY(-3px);box-shadow:0 24px 50px -28px #1d1747}
+.so-feature h2{margin-top:12px;font-family:var(--font-display);font-weight:700;font-size:clamp(24px,3.4vw,36px);line-height:1.05;color:#fff}
+.so-feature .so-facts{margin-top:14px}
+.so-feature-cta{display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:10px 16px;border-radius:12px;background:#d9ef75;font-weight:700;font-size:13px;color:#193d32}

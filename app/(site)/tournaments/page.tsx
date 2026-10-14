@@ -1,8 +1,9 @@
+import { SparvicOpenFeature } from "@/components/sparvic-open-feature";
 import { inClubhouse } from "@/lib/booking-context";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, MapPin, Trophy, Users } from "lucide-react";
-import { EmptyState, Reveal, SectionHeading } from "@/components/ui";
+import { Reveal, SectionHeading } from "@/components/ui";
 import { getTournaments } from "@/lib/queries";
 import { formatDateRange, toIsoDate } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
@@ -104,14 +105,11 @@ export default async function TournamentsPage() {
         prize money, published results.
       </p>
 
-      {tournaments.length === 0 ? (
-        <div className="mt-12">
-          <EmptyState
-            title="No tournaments listed yet"
-            sub="The next Sparvic draw will be announced here and in the WhatsApp group."
-          />
-        </div>
-      ) : (
+      <div className="mt-10">
+        <SparvicOpenFeature href={base === "/tournaments" ? "/sparvic-open" : "/dashboard/sparvic-open"} />
+      </div>
+
+      {tournaments.length === 0 ? null : (
         <div className="mt-12 space-y-16">
           {open.length > 0 && (
             <section>

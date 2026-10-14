@@ -1,3 +1,4 @@
+import { SparvicOpenFeature } from "@/components/sparvic-open-feature";
 import { FAQ, faqLd, venuesLd } from "@/lib/seo";
 import { JsonLd } from "@/components/json-ld";
 import Image from "next/image";
@@ -497,9 +498,9 @@ export default async function HomePage() {
                 </div>
               </>
             ) : (
-              <p className="mt-3 text-sm leading-relaxed text-paper/65">
-                Every draw we run or back around {SITE.city}, with formats, brackets and results.
-              </p>
+              <div className="mt-4">
+                <SparvicOpenFeature />
+              </div>
             )}
             <Link
               href="/tournaments"

@@ -636,6 +636,12 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // cover + gallery columns, which are still kept in sync for older readers.
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS media JSONB NOT NULL DEFAULT '[]'::jsonb`,
   `ALTER TABLE open_entries ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
+  // Paid tournament entries are financial records: deleting an account keeps them.
+  `ALTER TABLE open_entries ALTER COLUMN user_id DROP NOT NULL`,
+  `ALTER TABLE open_entries DROP CONSTRAINT IF EXISTS open_entries_user_id_fkey`,
+  `ALTER TABLE open_entries ADD CONSTRAINT open_entries_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL`,
+  `ALTER TABLE open_entries DROP CONSTRAINT IF EXISTS open_entries_status_check`,
+  `ALTER TABLE open_entries ADD CONSTRAINT open_entries_status_check CHECK (payment_status IN ('pending','paid'))`,
   `UPDATE products SET media = (
        SELECT COALESCE(jsonb_agg(jsonb_build_object('type', 'image', 'url', u) ORDER BY o), '[]'::jsonb)
        FROM (
@@ -809,6 +815,8 @@ $repair$`,
 ];
 
 export const SCHEMA_INDEXES: string[] = [
+  `CREATE INDEX IF NOT EXISTS idx_open_entries_user ON open_entries(user_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_open_entries_status ON open_entries(payment_status, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_account_events_recent ON account_events(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_account_events_actor ON account_events(actor_id, created_at DESC)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_email ON coaches(lower(email)) WHERE email IS NOT NULL`,

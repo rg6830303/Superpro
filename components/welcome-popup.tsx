@@ -20,6 +20,8 @@ import { introHasFinished } from "@/lib/intro-once";
 
 const SEEN_KEY = "superpro:welcome-seen";
 const NAME_KEY = "superpro:welcome-name";
+const QUOTE_AT_KEY = "sparvic:quote-at";
+const QUOTE_GAP_MS = 2 * 60 * 1000;
 
 /** Just long enough for the page to paint first, so the card lands on a finished page. */
 const DELAY_MS = 600;
@@ -150,15 +152,17 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
     return () => window.clearTimeout(timer);
   }, [welcome]);
 
-  // Quote: once per tab session, after the intro, never where it would be in the way.
+  // Quote: a few seconds into a page, at most every two minutes, never where
+  // it would be in the way.
   useEffect(() => {
-    if (quiet || welcome || storage((s) => s.getItem(SEEN_KEY)) === "1") return;
+    const recent = () => Date.now() - Number(storage((s) => s.getItem(QUOTE_AT_KEY)) ?? 0) < QUOTE_GAP_MS;
+    if (quiet || welcome || recent()) return;
     let timer: number | undefined;
     const arm = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        if (storage((s) => s.getItem(SEEN_KEY)) === "1") return;
-        storage((s) => s.setItem(SEEN_KEY, "1"));
+        if (recent()) return;
+        storage((s) => s.setItem(QUOTE_AT_KEY, String(Date.now())));
         setCard({ kind: "quote", quote: nextQuote() });
       }, demo ? 7000 : DELAY_MS);
     };
@@ -171,7 +175,7 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
       window.clearTimeout(timer);
       window.removeEventListener(INTRO_DONE_EVENT, arm);
     };
-  }, [quiet, welcome, demo]);
+  }, [quiet, welcome, demo, pathname]);
 
   // Quotes are a passing moment, not a task: they leave on their own after 2.5 s.
   useEffect(() => {
@@ -196,14 +200,24 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
     router.push(href);
   };
 
+  // Every quote, on every domain, is the same small self-closing toast.
+  if (card.kind === "quote") return (
+    <aside className="quote-toast" role="status" aria-label="Court inspiration" onClick={close}>
+      <p className="quote-toast-label">A LITTLE COURT ENERGY</p>
+      <p className="quote-toast-line">{card.quote.line}</p>
+      <p className="quote-toast-who">{card.quote.who}</p>
+      <span className="quote-toast-timer" aria-hidden="true" />
+    </aside>
+  );
+
   if (demo) return (
     <aside className="demo-welcome" aria-label={card.kind === "greeting" ? "Welcome to the club" : "Court inspiration"}>
       <button type="button" className="demo-welcome-close" onClick={close} aria-label="Dismiss message"><X size={18} /></button>
       <div className="demo-welcome-symbol" aria-hidden="true">{card.kind === "greeting" ? <PartyPopper size={23} /> : <Quote size={23} />}</div>
       <p className="demo-nav-label">{card.kind === "greeting" ? "YOU’RE IN GOOD COMPANY" : "A LITTLE COURT ENERGY"}</p>
       <div aria-live="polite">
-        <h2>{card.kind === "greeting" ? `Welcome${card.mode === "login" ? " back" : " to the club"}${card.name ? `, ${card.name}` : ""}.` : card.quote.line}</h2>
-        <p>{card.kind === "greeting" ? "Your people, your next game, your own corner of the club. Make yourself at home." : card.quote.who}</p>
+        <h2>{card.kind === "greeting" ? `Welcome${card.mode === "login" ? " back" : " to the club"}${card.name ? `, ${card.name}` : ""}.` : ""}</h2>
+        <p>{card.kind === "greeting" ? "Your people, your next game, your own corner of the club. Make yourself at home." : ""}</p>
       </div>
       <div className="demo-welcome-actions">{card.kind === "greeting" ? <button className="btn-volt btn-sm" onClick={() => go(card.mode === "signup" ? "/dashboard/profile" : "/dashboard")}>{card.mode === "signup" ? "Set up my profile" : "My clubhouse"}<ArrowRight size={15} /></button> : <button className="btn-volt btn-sm" onClick={close}>Let’s play <ArrowRight size={15} /></button>}<button className="demo-text-button" onClick={close}>Dismiss</button></div>
     </aside>
@@ -268,10 +282,10 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
               <Quote size={16} />
             </span>
             <blockquote className="mt-4 font-display text-[22px] leading-[1.25] text-ink sm:text-[26px]">
-              {card.quote.line}
+              {""}
             </blockquote>
             <figcaption className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink/45">
-              {card.quote.who}
+              {""}
             </figcaption>
             <div className="mt-6 flex items-center justify-between">
               <button type="button" onClick={close} className="text-[12px] text-ink/45 underline hover:text-ink">

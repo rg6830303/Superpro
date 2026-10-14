@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Bell, CalendarCheck, CalendarDays, Compass, LayoutDashboard, Medal, GraduationCap, HeartPulse, Home, Menu, ShoppingBag, Trophy, UserRound, Users, Wallet, X } from "lucide-react";
 import { BrowserNotifier } from "@/components/browser-notifier";
+import { DEMO_URL, MAIN_URL } from "@/lib/surface";
+import { LAUNCH_AT } from "@/lib/site";
 import { LiveLeaderboard } from "@/components/live-leaderboard";
 import { LogoutButton } from "@/components/logout-button";
 import { Logo } from "@/components/logo";
@@ -83,6 +85,17 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
   const section = pathname.split("/")[1];
   const sectionNote = clubhouse ? undefined : sectionNotes[section];
   useEffect(() => setOpen(false), [pathname]);
+  // At the launch second, a tab left open on the demo moves to the same page
+  // on the main domain (the server redirects any later request as well).
+  useEffect(() => {
+    if (location.hostname !== new URL(DEMO_URL).hostname) return;
+    const go = () => location.replace(`${MAIN_URL}${location.pathname}${location.search}`);
+    const wait = LAUNCH_AT - Date.now();
+    if (wait <= 0) { go(); return; }
+    if (wait > 2 ** 31 - 1) return;
+    const t = setTimeout(go, wait + 500);
+    return () => clearTimeout(t);
+  }, []);
   // App-style navigation: a thin progress bar while the next page loads, and a
   // direction hint (forward / back) so pages slide in from the right side.
   const [navigating, setNavigating] = useState(false);
