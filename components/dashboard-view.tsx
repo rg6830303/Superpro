@@ -347,7 +347,7 @@ export function DashboardView({
             </div>
           )}
           <section className="card p-4 sm:p-6">
-            <LiveLeaderboard initialRows={standings} meId={session.id} limit={50} />
+            <LiveLeaderboard initialRows={standings} meId={session.id} limit={500} />
           </section>
         </div>
       )}

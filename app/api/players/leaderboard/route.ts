@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const session = await getPlayerSession();
   if (!session) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   await ensureSchema();
-  const limit = Math.min(Number(new URL(req.url).searchParams.get("limit") ?? 50) || 50, 100);
+  const limit = Math.min(Number(new URL(req.url).searchParams.get("limit") ?? 500) || 500, 500);
   const all = await getLeaderboard(session.id);
   const me = all.find((r) => r.id === session.id) ?? null;
   return NextResponse.json(

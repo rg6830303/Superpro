@@ -17,7 +17,7 @@ const POLL_MS = 20_000;
 export function LiveLeaderboard({
   initialRows = [],
   meId,
-  limit = 50,
+  limit = 500,
   variant = "full",
 }: {
   initialRows?: RankRow[];
