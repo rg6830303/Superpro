@@ -1,3 +1,4 @@
+import { inClubhouse } from "@/lib/booking-context";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, MapPin, Trophy, Users } from "lucide-react";
@@ -37,10 +38,10 @@ function DateTile({ date, label }: { date: Tournament["start_date"]; label: stri
   );
 }
 
-function TournamentCard({ t }: { t: Tournament }) {
+function TournamentCard({ t, base }: { t: Tournament; base: string }) {
   const isOpen = t.status === "open" && t.registration_open;
   return (
-    <Link href={`/tournaments/${t.slug}`} className="card-hover group flex flex-col gap-5 p-6 sm:flex-row">
+    <Link href={`${base}/${t.slug}`} className="card-hover group flex flex-col gap-5 p-6 sm:flex-row">
       {/* A calendar tile: the day, the month and the year. It used to slice
           String(Date) for a year and printed the weekday ("Sat") instead. */}
       <DateTile date={t.start_date} label={t.kind === "sponsored" ? "Partner" : "Host"} />
@@ -88,6 +89,7 @@ function TournamentCard({ t }: { t: Tournament }) {
 
 export default async function TournamentsPage() {
   const tournaments = await getTournaments();
+  const base = (await inClubhouse()) ? "/dashboard/tournaments" : "/tournaments";
 
   const open = tournaments.filter((t) => t.status === "open");
   const upcoming = tournaments.filter((t) => t.status === "announced" || t.status === "closed");
@@ -117,7 +119,7 @@ export default async function TournamentsPage() {
               <div className="space-y-4">
                 {open.map((t, i) => (
                   <Reveal key={t.id} delay={i * 70}>
-                    <TournamentCard t={t} />
+                    <TournamentCard t={t} base={base} />
                   </Reveal>
                 ))}
               </div>
@@ -134,7 +136,7 @@ export default async function TournamentsPage() {
               <div className="space-y-4">
                 {upcoming.map((t, i) => (
                   <Reveal key={t.id} delay={i * 70}>
-                    <TournamentCard t={t} />
+                    <TournamentCard t={t} base={base} />
                   </Reveal>
                 ))}
               </div>
@@ -147,7 +149,7 @@ export default async function TournamentsPage() {
               <div className="space-y-4">
                 {past.map((t, i) => (
                   <Reveal key={t.id} delay={i * 70}>
-                    <TournamentCard t={t} />
+                    <TournamentCard t={t} base={base} />
                   </Reveal>
                 ))}
               </div>

@@ -1,3 +1,5 @@
+import { inClubhouse } from "@/lib/booking-context";
+import { SignInGate } from "@/components/sign-in-gate";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Phone } from "lucide-react";
@@ -17,7 +19,8 @@ export const metadata: Metadata = {
 
 export default async function CoachingRegisterPage() {
   const session = await getPlayerSession();
-  const profile = session ? await getUserRow(session.id).catch(() => null) : null;
+  const clubhouse = await inClubhouse();
+  const profile = clubhouse && session ? await getUserRow(session.id).catch(() => null) : null;
   const age = profile?.date_of_birth ? ageFrom(profile.date_of_birth) : null;
   const prefill = profile
     ? {
@@ -47,7 +50,16 @@ export default async function CoachingRegisterPage() {
         </a>
       </p>
       <div className="mt-8">
-        <CoachingRegisterForm prefill={prefill} razorpayEnabled={isRazorpayEnabled} />
+        {clubhouse ? (
+          <CoachingRegisterForm prefill={prefill} razorpayEnabled={isRazorpayEnabled} />
+        ) : (
+          <SignInGate
+            title={session ? "Register in your clubhouse" : "Sign in to register"}
+            detail="Batch registration and payment happen in your member clubhouse, so your group, schedule and receipts stay together."
+            next="/dashboard/coaching/register"
+            signedIn={Boolean(session)}
+          />
+        )}
       </div>
     </div>
   );

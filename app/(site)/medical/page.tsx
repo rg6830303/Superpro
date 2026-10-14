@@ -1,3 +1,5 @@
+import { inClubhouse } from "@/lib/booking-context";
+import { SignInGate } from "@/components/sign-in-gate";
 import type { Metadata } from "next";
 import {
   Activity,
@@ -84,7 +86,8 @@ const FAQ = [
 
 export default async function MedicalAssistancePage() {
   const session = await getPlayerSession();
-  const profile = session ? await getUserRow(session.id).catch(() => null) : null;
+  const clubhouse = await inClubhouse();
+  const profile = clubhouse && session ? await getUserRow(session.id).catch(() => null) : null;
   const age = profile?.date_of_birth ? ageFrom(profile.date_of_birth) : null;
   const prefill = profile
     ? {
@@ -185,7 +188,16 @@ export default async function MedicalAssistancePage() {
               ))}
             </ol>
           </div>
-          <DoctorBookingForm fee={DOCTOR.fee} doctorHandle={DOCTOR.handle} concerns={CONCERNS} slots={SLOTS} razorpayEnabled={isRazorpayEnabled} prefill={prefill} />
+          {clubhouse ? (
+            <DoctorBookingForm fee={DOCTOR.fee} doctorHandle={DOCTOR.handle} concerns={CONCERNS} slots={SLOTS} razorpayEnabled={isRazorpayEnabled} prefill={prefill} />
+          ) : (
+            <SignInGate
+              title={session ? "Book in your clubhouse" : "Sign in to book a consultation"}
+              detail="Consultations are booked and paid from your member clubhouse, where your appointment and receipt stay."
+              next="/dashboard/medical"
+              signedIn={Boolean(session)}
+            />
+          )}
         </div>
       </section>
 

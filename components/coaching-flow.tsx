@@ -127,12 +127,14 @@ export function CoachingFlow({
   razorpayEnabled,
   razorpayKeyId,
   player,
+  signedIn = false,
 }: {
   coaches: Coach[];
   availability?: CoachAvailability[];
   razorpayEnabled: boolean;
   razorpayKeyId: string;
   player: { name: string; phone: string; email: string; skill: string } | null;
+  signedIn?: boolean;
 }) {
   const [step, setStep] = useState(1);
   const [coachId, setCoachId] = useState<string | null>(null);
@@ -230,9 +232,10 @@ export function CoachingFlow({
   if (!player) {
     return (
       <SignInGate
-        title="Sign in to book coaching"
+        title={signedIn ? "Book coaching in your clubhouse" : "Sign in to book coaching"}
         detail="Your coach needs to know who they are working with, and your rating shapes the first session."
-        next="/coaching"
+        next="/dashboard/coaching"
+        signedIn={signedIn}
       />
     );
   }

@@ -1,3 +1,4 @@
+import { inClubhouse } from "@/lib/booking-context";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CoachingPage() {
+  const clubhouse = await inClubhouse();
   const [allCoaches, availability, session] = await Promise.all([
     getCoaches().catch(() => []),
     getCoachAvailability().catch(() => []),
@@ -25,7 +27,7 @@ export default async function CoachingPage() {
   ]);
   // The programme coach is booked through the group registration form, not the per-session flow.
   const coaches = allCoaches.filter((c) => c.slug !== COACH.slug);
-  const profile = session ? await getUserRow(session.id) : null;
+  const profile = clubhouse && session ? await getUserRow(session.id) : null;
   const month = currentBatch().split(" ")[0];
   const fromPrice = Math.min(...VENUES.map((v) => v.kids ?? v.adults));
 
@@ -65,7 +67,7 @@ export default async function CoachingPage() {
               From <strong className="font-display text-2xl text-ink">{formatRupees(fromPrice)}</strong> / month · all equipment provided
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link href="/coaching/register" className="btn-volt">
+              <Link href={clubhouse ? "/dashboard/coaching/register" : "/coaching/register"} className="btn-volt">
                 Register now <ArrowRight size={16} />
               </Link>
               <Link href={`/coaching/${COACH.slug}`} className="btn-outline">
@@ -100,6 +102,7 @@ export default async function CoachingPage() {
               availability={availability}
               razorpayEnabled={isRazorpayEnabled}
               razorpayKeyId={razorpayKeyId}
+              signedIn={Boolean(session)}
               player={
                 profile
                   ? { name: profile.full_name, phone: profile.phone ?? "", email: profile.email, skill: profile.skill_level }

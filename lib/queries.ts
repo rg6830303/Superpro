@@ -116,9 +116,9 @@ export async function getVenues(): Promise<Venue[]> {
  * count is what the games page sorts and labels by: being told a friend booked
  * a court is only useful if the court is then easy to find.
  */
-export async function getWeekSessions(days = 21, viewerId: string | null = null): Promise<GameSession[]> {
-  const from = istToday();
-  const to = addDays(from, days - 1);
+export async function getWeekSessions(days = 21, viewerId: string | null = null, pastDays = 0): Promise<GameSession[]> {
+  const from = addDays(istToday(), -pastDays);
+  const to = addDays(istToday(), days - 1);
   return safe(
     "getWeekSessions",
     async () => {

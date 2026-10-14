@@ -29,12 +29,16 @@ const links = [
 // Signed-in players get their own clubhouse first, the rest of the club second.
 const memberLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/play", label: "Book a game", icon: CalendarDays },
   { href: "/dashboard/bookings", label: "My bookings", icon: CalendarCheck },
   { href: "/dashboard/community", label: "Community", icon: Compass },
   { href: "/dashboard/rankings", label: "Leaderboard", icon: Medal },
   { href: "/dashboard/activity", label: "Activity", icon: Bell },
   { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
   { href: "/dashboard/profile", label: "My profile", icon: UserRound },
+  { href: "/dashboard/coaching", label: "Coaching", icon: GraduationCap },
+  { href: "/dashboard/tournaments", label: "Tournaments", icon: Trophy },
+  { href: "/dashboard/medical", label: "Player care", icon: HeartPulse },
 ];
 
 const sectionNotes: Record<string, { label: string; note: string }> = {
@@ -52,9 +56,9 @@ const sectionNotes: Record<string, { label: string; note: string }> = {
 // The phone tab bar inside the clubhouse: the one place to switch sections.
 const clubhouseTabs = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/dashboard/play", label: "Play", icon: CalendarDays },
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/dashboard/community", label: "Community", icon: Users },
-  { href: "/dashboard/rankings", label: "Leaderboard", icon: Medal },
   { href: "/dashboard/profile", label: "You", icon: UserRound },
 ];
 
@@ -158,14 +162,14 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
           ? <Link href="/dashboard/activity" className="demo-icon-button" aria-label={`Activity${unread ? `, ${unread} unread` : ""}`}><Bell size={20} />{unread > 0 && <b>{unread > 9 ? "9+" : unread}</b>}</Link>
           : <Link href="/cart" className="demo-icon-button" aria-label={`Shopping bag${ready && count ? `, ${count} items` : ""}`}><ShoppingBag size={20} />{ready && count > 0 && <b>{count}</b>}</Link>}
         {clubhouse
-          ? <Link href="/games" className="demo-account demo-account-cta"><CalendarDays size={17} /><span>Book a game</span></Link>
+          ? <Link href="/dashboard/play" className="demo-account demo-account-cta"><CalendarDays size={17} /><span>Book a game</span></Link>
           : <Link href={signedIn ? "/dashboard" : "/login"} className="demo-account" aria-label={signedIn ? "Open your clubhouse" : "Sign in"}><UserRound size={17} /><span>{signedIn ? "Clubhouse" : "Sign in"}</span></Link>}
         <button ref={toggle} className="demo-menu-button" onClick={() => setOpen(true)} aria-label={clubhouse ? "Open clubhouse menu" : "Open all sections"} aria-expanded={open}><Menu size={21} /></button>
       </div>
     </header>
     {clubhouse && <aside className="demo-sidebar">{nav()}<div className="demo-sidebar-board"><div className="demo-sidebar-board-head"><p className="demo-nav-label">LEADERBOARD</p><Link href="/dashboard/rankings">All</Link></div><LiveLeaderboard meId={null} limit={5} variant="mini" /></div></aside>}
     <div className="demo-body"><main id="main-content" tabIndex={-1}>{children}</main>{clubhouse ? <footer className="demo-member-footer"><Logo height={25} href={null} /><span>© {new Date().getFullYear()} {SITE.legalName}</span><Link href="/">Website</Link><Link href="/about">Our story</Link><a href={`mailto:${SITE.email}`}>Contact the club</a></footer> : <SiteFooter surface="demo" />}</div>
-    <dialog ref={dialog} aria-label={clubhouse ? "Clubhouse menu" : "All sections"} className="demo-drawer" onCancel={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}><div className="demo-drawer-head"><Logo height={38} href={null} /><button className="demo-icon-button" onClick={() => setOpen(false)} aria-label="Close menu"><X size={22} /></button></div>{nav(true)}<Link className="btn-volt mt-6 w-full" href={clubhouse ? "/games" : signedIn ? "/dashboard" : "/signup"} onClick={() => setOpen(false)}>{clubhouse ? "Book a game" : signedIn ? "My clubhouse" : "Join the club"}<ArrowUpRight size={17} /></Link><div className="demo-drawer-support"><p>Need a hand? Ask the caddy or talk to the club.</p><FloatingActions /></div></dialog>
+    <dialog ref={dialog} aria-label={clubhouse ? "Clubhouse menu" : "All sections"} className="demo-drawer" onCancel={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}><div className="demo-drawer-head"><Logo height={38} href={null} /><button className="demo-icon-button" onClick={() => setOpen(false)} aria-label="Close menu"><X size={22} /></button></div>{nav(true)}<Link className="btn-volt mt-6 w-full" href={clubhouse ? "/dashboard/play" : signedIn ? "/dashboard" : "/signup"} onClick={() => setOpen(false)}>{clubhouse ? "Book a game" : signedIn ? "My clubhouse" : "Join the club"}<ArrowUpRight size={17} /></Link><div className="demo-drawer-support"><p>Need a hand? Ask the caddy or talk to the club.</p><FloatingActions /></div></dialog>
     {clubhouse && <nav className="demo-bottom-nav" aria-label="Clubhouse sections">{clubhouseTabs.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={active(href) ? "page" : undefined}><Icon size={20} /><span>{label}</span></Link>)}</nav>}
     <div className="demo-support"><FloatingActions /></div>
     <Suspense fallback={null}><WelcomePopup demo /></Suspense>

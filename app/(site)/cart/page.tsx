@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CalendarDays, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
 import { EmptyState } from "@/components/ui";
@@ -9,6 +10,8 @@ import { formatPaise, FREE_SHIPPING_THRESHOLD_PAISE } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 
 export default function CartPage() {
+  // Inside the clubhouse (game bookings), checkout stays in the clubhouse too.
+  const inClubhouse = usePathname().startsWith("/dashboard");
   const {
     lines, setQty, remove, subtotalPaise, productSubtotalPaise, slotSubtotalPaise,
     convenienceFeePaise, hasProducts, hasSlots, count, ready,
@@ -168,7 +171,7 @@ export default function CartPage() {
               </p>
             )}
 
-            <Link href="/checkout" className="btn-volt mt-6 w-full">
+            <Link href={inClubhouse ? "/dashboard/checkout" : "/checkout"} className="btn-volt mt-6 w-full">
               Checkout
             </Link>
             <Link href="/products" className="btn-ghost mt-2 w-full">

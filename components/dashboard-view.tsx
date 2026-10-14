@@ -265,7 +265,7 @@ export function DashboardView({
                 <>
                   <h2 className="mt-2 text-2xl">Nothing booked yet</h2>
                   <p className="mt-1 text-sm text-ink/65">Pick a slot this week; your court number lands on WhatsApp.</p>
-                  <Link href="/games" className="btn-volt btn-sm mt-5">
+                  <Link href="/dashboard/play" className="btn-volt btn-sm mt-5">
                     Find a game <ArrowRight size={14} />
                   </Link>
                 </>
@@ -540,7 +540,7 @@ function PlayerCard({
         <div className="demo-player-actions">
           {variant === "overview" ? (
             <>
-              <Link href="/games" className="btn-volt btn-sm">
+              <Link href="/dashboard/play" className="btn-volt btn-sm">
                 <CalendarDays size={14} /> Book a game
               </Link>
               <Link href={tabHref("activity")} className="demo-passport-btn relative" aria-label={`Activity${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}>
@@ -636,7 +636,7 @@ function BookingsSection({ games, coaching, entries, orders }: { games: GameRow[
             <EmptyState
               title="No games booked yet"
               sub="Pick a slot for this week and your court number lands on WhatsApp."
-              action={<Link href="/games" className="btn-volt btn-sm mt-2">Book a slot</Link>}
+              action={<Link href="/dashboard/play" className="btn-volt btn-sm mt-2">Book a slot</Link>}
             />
           ) : (
             <GameBookings games={games} />
@@ -644,7 +644,7 @@ function BookingsSection({ games, coaching, entries, orders }: { games: GameRow[
 
         {kind === "coaching" &&
           (coaching.length === 0 ? (
-            <EmptyState title="No coaching yet" sub="Book a session with a Sparvic coach." action={<Link href="/coaching" className="btn-volt btn-sm mt-2">Get coached</Link>} />
+            <EmptyState title="No coaching yet" sub="Book a session with a Sparvic coach." action={<Link href="/dashboard/coaching" className="btn-volt btn-sm mt-2">Get coached</Link>} />
           ) : (
             <div className="table-wrap">
               <table className="tbl">
@@ -669,7 +669,7 @@ function BookingsSection({ games, coaching, entries, orders }: { games: GameRow[
 
         {kind === "tournaments" &&
           (entries.length === 0 ? (
-            <EmptyState title="No tournament entries" sub="Entries are open to every registered player." action={<Link href="/tournaments" className="btn-volt btn-sm mt-2">See tournaments</Link>} />
+            <EmptyState title="No tournament entries" sub="Entries are open to every registered player." action={<Link href="/dashboard/tournaments" className="btn-volt btn-sm mt-2">See tournaments</Link>} />
           ) : (
             <div className="table-wrap">
               <table className="tbl">

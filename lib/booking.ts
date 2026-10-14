@@ -196,6 +196,6 @@ export async function announceSlots(reference: string): Promise<void> {
     kind: "game_booking",
     title: `${first.player_name} booked a game`,
     message: `${first.player_name} is playing at ${first.venue_name} on ${formatDate(first.session_date)}, ${first.start_time}${more}. Join them on court.`,
-    linkUrl: "/games",
+    linkUrl: "/dashboard/bookings",
   });
 }

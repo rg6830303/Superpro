@@ -174,7 +174,7 @@ export function GamesFlow({
         level: s.level,
       })),
     );
-    router.push("/cart");
+    router.push("/dashboard/cart");
   }
   const totalPaise = pickedSessions.reduce((sum, s) => sum + perPlayerPaise(s), 0);
   const gatedPicks = pickedSessions.filter((s) => needsApproval(s.level, player.skill));

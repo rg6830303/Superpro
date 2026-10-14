@@ -271,7 +271,7 @@ export async function POST(req: Request) {
           kind: "game_booking",
           title: `${session.name || input.player_name} booked a Game Slot!`,
           message: `${session.name || input.player_name} is playing at ${firstSession.venue_name} on ${formatDate(firstSession.session_date)} (${firstSession.start_time})! Join them on the court.`,
-          linkUrl: "/games",
+          linkUrl: "/dashboard/bookings",
         }).catch((err) => console.error("[notifications] game notify failed:", err));
       }
     }

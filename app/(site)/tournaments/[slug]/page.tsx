@@ -1,3 +1,4 @@
+import { inClubhouse } from "@/lib/booking-context";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -35,14 +36,15 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
     getTournamentFormFields(t.id),
     getPlayerSession(),
   ]);
-  // Signed-in players get their own details back rather than retyping them.
-  const profile = session ? await getUserRow(session.id) : null;
+  // Entries happen in the clubhouse; the website page is view-only.
+  const clubhouse = await inClubhouse();
+  const profile = clubhouse && session ? await getUserRow(session.id) : null;
   const categories = Array.isArray(t.categories) ? t.categories : [];
   const canRegister = t.status === "open" && t.registration_open;
 
   return (
     <div className="wrap section-tight">
-      <Link href="/tournaments" className="inline-flex items-center gap-1.5 text-sm text-ink/65 hover:text-volt-deep">
+      <Link href={clubhouse ? "/dashboard/tournaments" : "/tournaments"} className="inline-flex items-center gap-1.5 text-sm text-ink/65 hover:text-volt-deep">
         <ChevronLeft size={16} /> All tournaments
       </Link>
 
@@ -165,9 +167,10 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           {canRegister && !profile ? (
             <SignInGate
-              title="Sign in to enter"
+              signedIn={Boolean(session)}
+              title={session ? "Enter from your clubhouse" : "Sign in to enter"}
               detail="Draws are seeded off your DUPR rating and the organisers need one contact per team, so entries run through your account. Everything we already know about you is filled in for you."
-              next={`/tournaments/${t.slug}`}
+              next={`/dashboard/tournaments/${t.slug}`}
             />
           ) : canRegister ? (
             <TournamentRegistration

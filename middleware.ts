@@ -118,7 +118,11 @@ async function gate(req: NextRequest, pathname: string): Promise<NextResponse> {
     }
   }
 
-  return NextResponse.next();
+  // Pages read this to tell the clubhouse (/dashboard/*, where booking happens)
+  // from the website (view-only). Set here, never trusted from the client.
+  const forwarded = new Headers(req.headers);
+  forwarded.set("x-sp-path", pathname);
+  return NextResponse.next({ request: { headers: forwarded } });
 }
 
 export const config = {
