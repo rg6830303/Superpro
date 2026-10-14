@@ -602,6 +602,10 @@ export const SCHEMA_MIGRATIONS: string[] = [
      IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
        REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
        REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+       -- The app never uses the Supabase data API, so its roles get nothing here:
+       -- no functions, and no way into the schema at all.
+       REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+       REVOKE USAGE ON SCHEMA public FROM anon, authenticated;
      END IF;
    END $$`,
 

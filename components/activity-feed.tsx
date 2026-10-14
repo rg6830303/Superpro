@@ -151,6 +151,7 @@ export function ActivityFeed({
                   <p className="text-sm font-bold text-ink">{item.title}</p>
                   <span className="font-mono text-[11px] text-ink/45">
                     {new Date(item.created_at).toLocaleDateString("en-IN", {
+                      timeZone: "Asia/Kolkata",
                       month: "short",
                       day: "numeric",
                       hour: "2-digit",

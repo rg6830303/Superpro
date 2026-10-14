@@ -286,7 +286,7 @@
     @apply border-ink bg-volt-soft shadow-card;
   }
   .tile-disabled {
-    @apply cursor-not-allowed border-line/60 bg-mist text-ink/30 line-through
+    @apply cursor-not-allowed border-line/60 bg-mist text-ink/40
            hover:translate-y-0 hover:border-line/60 hover:shadow-none;
   }
 
@@ -972,3 +972,7 @@ input[type="time"]::-webkit-calendar-picker-indicator { opacity: .55; filter: hu
 }
 @media (prefers-reduced-motion: reduce) { .tp-sheet[open] { animation: none; } }
 .tp-cal-grid button:hover:not(:disabled):not([aria-pressed="true"]),.tp-col button:hover:not([aria-pressed="true"]),.tp-list button:hover:not([aria-selected="true"]){color:#193d32}
+
+/* A slot whose start time has passed: faded and quiet, never struck through. */
+.tile-expired { opacity: .45; filter: grayscale(.85) saturate(.6); }
+.tile-expired:hover { transform: none; }

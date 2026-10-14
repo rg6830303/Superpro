@@ -514,7 +514,7 @@ export function GamesFlow({
                         type="button"
                         onClick={() => !disabled && toggle(s)}
                         disabled={disabled}
-                        className={`tile text-left ${selected ? "tile-selected" : ""} ${disabled && !mine ? "tile-disabled" : ""} ${mine ? "border-volt-deep" : ""}`}
+                        className={`tile text-left ${selected ? "tile-selected" : ""} ${disabled && !mine && !past ? "tile-disabled" : ""} ${past ? "tile-expired" : ""} ${mine ? "border-volt-deep" : ""}`}
                       >
                         {friends.length > 0 && (
                           <p className="mb-2 flex items-center gap-1.5 rounded-md bg-volt-soft px-2 py-1 text-[11px] font-semibold leading-snug text-volt-deep">
@@ -548,7 +548,7 @@ export function GamesFlow({
                                   : mine === "waitlist"
                                     ? `Waitlist #${s.my_waitlist_position ?? "?"}`
                                     : past
-                                      ? "Started"
+                                      ? "Expired"
                                       : blocked === "full"
                                         ? "Full"
                                         : blocked === "quota"

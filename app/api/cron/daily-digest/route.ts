@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { istToday, formatDate, formatTimeRange } from "@/lib/dates";
-import { seedSessions } from "@/lib/seed";
 import { sendWhatsApp } from "@/lib/whatsapp";
 
 export const runtime = "nodejs";
@@ -11,8 +10,7 @@ export const maxDuration = 60;
 
 /**
  * Daily 7:00 AM IST job (01:30 UTC, see vercel.json):
- *   1. Roll the schedule forward so there is always a full week of open slots.
- *   2. Post today's line-up — every slot, its court, and who is playing — to
+ *   Post today's line-up — every slot, its court, and who is playing — to
  *      the daily-games WhatsApp group.
  *
  * Vercel sends CRON_SECRET as a bearer token; the endpoint refuses anything else.
@@ -26,7 +24,9 @@ export async function GET(req: Request) {
 
   try {
     await ensureSchema();
-    const created = await seedSessions(7);
+    // Slots come only from the admin console. This job used to roll a template
+    // schedule forward every morning, which put slots on the site nobody set up.
+    const created = 0;
 
     const today = istToday();
     const rows = await query<{

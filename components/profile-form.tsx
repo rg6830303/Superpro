@@ -311,7 +311,7 @@ export function ProfileForm({
                 <tbody>
                   {transactions.map((t) => (
                     <tr key={t.id}>
-                      <td>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
+                      <td>{new Date(t.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
                       <td className="capitalize">{t.kind}</td>
                       <td className="text-ink/70">{t.reason ?? "—"}</td>
                       <td className={t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}>

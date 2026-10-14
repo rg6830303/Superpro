@@ -274,7 +274,7 @@ export default async function OrderConfirmationPage({
                   {e.note && <p className="text-ink/65">{e.note}</p>}
                   {e.courier && <p className="text-ink/50">{e.courier}</p>}
                   <p className="mt-0.5 font-mono text-[11px] text-ink/40">
-                    {new Date(e.created_at).toLocaleString("en-IN")}
+                    {new Date(e.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                   </p>
                 </div>
               </li>

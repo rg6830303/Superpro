@@ -75,17 +75,18 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
   const section = pathname.split("/")[1];
   const sectionNote = clubhouse ? undefined : sectionNotes[section];
   useEffect(() => setOpen(false), [pathname]);
-  // Signing in or up swaps the public site for the member clubhouse; mark that
-  // moment with a short reveal instead of a silent layout jump.
-  const [entering, setEntering] = useState(false);
+  // Crossing between the two interfaces gets its own short transition:
+  // into the clubhouse (after signing in, or from the website) and back out.
+  const [transition, setTransition] = useState<"enter" | "leave" | null>(null);
   useEffect(() => {
+    const mode = clubhouse ? "clubhouse" : "website";
     let prev: string | null = null;
-    try { prev = sessionStorage.getItem("sparvic:shell-mode"); sessionStorage.setItem("sparvic:shell-mode", signedIn ? "member" : "guest"); } catch {}
-    if (!(signedIn && prev === "guest")) return;
-    setEntering(true);
-    const t = setTimeout(() => setEntering(false), 2100);
+    try { prev = sessionStorage.getItem("sparvic:iface"); sessionStorage.setItem("sparvic:iface", mode); } catch {}
+    if (!prev || prev === mode) return;
+    setTransition(mode === "clubhouse" ? "enter" : "leave");
+    const t = setTimeout(() => setTransition(null), mode === "clubhouse" ? 2100 : 1900);
     return () => clearTimeout(t);
-  }, [signedIn]);
+  }, [clubhouse]);
   useEffect(() => {
     if (!open) { dialog.current?.close(); return; }
     dialog.current?.showModal();
@@ -100,7 +101,8 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
   return <div data-demo-page={section || "home"} className={`demo-ui ${clubhouse ? "demo-member demo-clubhouse" : "demo-guest"}`}>
     <ReadProgress />
     {signedIn && <BrowserNotifier onUnread={setUnread} />}
-    {entering && <div className="demo-enter" aria-live="polite"><div className="demo-enter-card"><Logo height={46} href={null} /><p className="demo-nav-label">WELCOME TO YOUR CLUBHOUSE</p><h2>Hey {playerName?.split(" ")[0]}, let’s play.</h2><span className="demo-enter-bar" /></div></div>}
+    {transition === "enter" && <div className="demo-enter" aria-live="polite"><div className="demo-enter-card"><Logo height={46} href={null} /><p className="demo-nav-label">WELCOME TO YOUR CLUBHOUSE</p><h2>Hey {playerName?.split(" ")[0]}, let’s play.</h2><span className="demo-enter-bar" /></div></div>}
+    {transition === "leave" && <div className="demo-leave" aria-live="polite"><span className="demo-leave-wipe" /><div className="demo-leave-card"><Logo height={40} href={null} /><p className="demo-nav-label">LEAVING THE CLUBHOUSE</p><h2>Off to the club website.</h2><span className="demo-leave-court" aria-hidden="true" /></div></div>}
     {/* Living background: drifting colour fields, a slowly panning court grid and a
         few floating balls. Fixed behind every page; static under reduced motion. */}
     <div className="demo-backdrop" aria-hidden="true">

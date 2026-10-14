@@ -539,3 +539,36 @@
 .demo-follow-sheet .demo-player-card>div:last-child{grid-column:auto;border:0;padding:0}
 @media(max-width:640px){.demo-follow-sheet{margin:auto 0 0;width:100vw}.demo-follow-sheet-inner{border-radius:26px 26px 0 0;padding-bottom:max(22px,env(safe-area-inset-bottom))}}
 .demo-note-list,.demo-note-list li,.demo-note-list a{min-width:0;max-width:100%}
+
+/* ── Surface variations ──────────────────────────────────────────────────────
+   Four translucent treatments rotate through every card set so no two
+   neighbours look stamped from the same template:
+   1 corner glow · 2 accent stripe · 3 court-line texture · 4 dotted texture.
+   Background layers only (no pseudo-elements, no overflow clipping). */
+.demo-ui :is(.card,.card-hover,.tile,.demo-service):nth-child(4n+1){background:radial-gradient(120% 90% at 100% 0%,#ffffffb3 0%,#ffffff00 55%),linear-gradient(160deg,#ffffff59,#ffffff14),var(--tint)!important}
+.demo-ui :is(.card,.card-hover,.tile,.demo-service):nth-child(4n+2){background:linear-gradient(90deg,#1a563f2e 0 5px,#0000 5px),linear-gradient(150deg,#ffffff80,#ffffff1f 65%),var(--tint)!important}
+.demo-ui :is(.card,.card-hover,.tile,.demo-service):nth-child(4n+3){background:repeating-linear-gradient(135deg,#ffffff38 0 1px,#0000 1px 18px),linear-gradient(170deg,#ffffff73,#ffffff14),var(--tint)!important}
+.demo-ui :is(.card,.card-hover,.tile,.demo-service):nth-child(4n+4){background:radial-gradient(#193d3214 1px,#0000 1.4px) 0 0/14px 14px,radial-gradient(90% 80% at 0% 100%,#ffffffa6,#ffffff00 60%),var(--tint)!important}
+/* Plain white/paper blocks become frosted glass too. */
+.demo-ui :is(.bg-paper,.bg-white,[class*="bg-paper/"],[class*="bg-white/"]):not(input):not(select):not(textarea):not(.btn-outline){background-color:#ffffff59!important;backdrop-filter:blur(12px)}
+.demo-ui :is(.bg-mist,[class*="bg-mist/"]){background-color:#ffffff40!important}
+/* Home hero: frosted glass with a soft court glow instead of a cream slab. */
+.demo-ui .demo-hero{background:radial-gradient(90% 120% at 0% 0%,#ffffffb3,#ffffff00 60%),linear-gradient(140deg,#eef6e2b3,#f6efdcb3)!important;backdrop-filter:blur(16px);box-shadow:0 1px 0 #fff inset,0 30px 60px -40px #193d3266}
+.demo-ui .demo-hero-art{background:linear-gradient(160deg,#cfe3b4b3,#b6d49b99)!important}
+.demo-avatar-stack img{width:33px;height:33px;margin-right:-7px;border:2px solid #fff;border-radius:50%;object-fit:cover}
+
+/* Clubhouse → website: a warm wipe sweeps across, the card slides through,
+   and the public site is revealed behind it (≈1.9 s). */
+.demo-leave{position:fixed;inset:0;z-index:200;display:grid;place-items:center;pointer-events:none;overflow:hidden}
+.demo-leave-wipe{position:absolute;inset:-10%;background:linear-gradient(115deg,#f7e3cf,#f3d5c0 40%,#e9ecd2 75%,#d9ef75);transform:translateX(-110%) skewX(-12deg);animation:demo-leave-wipe 1.9s cubic-bezier(.7,0,.2,1) forwards}
+.demo-leave-card{position:relative;display:grid;justify-items:center;gap:12px;padding:30px 38px;border-radius:28px;background:#ffffff80;backdrop-filter:blur(14px);text-align:center;animation:demo-leave-card 1.9s cubic-bezier(.2,.8,.2,1) forwards}
+.demo-leave-card h2{font-size:clamp(22px,4vw,32px);color:#193d32}
+.demo-leave-card .demo-nav-label{margin:0}
+.demo-leave-court{width:150px;height:3px;border-radius:3px;background:repeating-linear-gradient(90deg,#1a563f 0 10px,#0000 10px 18px);animation:demo-leave-court 1.2s .25s linear both}
+@keyframes demo-leave-wipe{0%{transform:translateX(-110%) skewX(-12deg)}30%,62%{transform:translateX(0) skewX(-12deg)}100%{transform:translateX(115%) skewX(-12deg)}}
+@keyframes demo-leave-card{0%,12%{opacity:0;transform:translateX(-40px)}30%,62%{opacity:1;transform:none}100%{opacity:0;transform:translateX(60px)}}
+@keyframes demo-leave-court{from{background-position:0 0}to{background-position:72px 0}}
+/* The website settles in as the wipe clears. */
+.demo-guest .demo-header{animation:demo-header-in .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes demo-header-in{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.demo-leave-wipe,.demo-leave-card,.demo-leave-court,.demo-guest .demo-header{animation:none}.demo-leave{animation:demo-enter-fade 1.2s ease forwards}.demo-leave-wipe{transform:none}}

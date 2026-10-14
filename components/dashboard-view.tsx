@@ -236,7 +236,7 @@ export function DashboardView({
                         <span className="block truncate text-sm font-semibold text-ink">{n.title}</span>
                         <span className="block truncate text-xs text-ink/60">{n.message}</span>
                       </span>
-                      <span className="shrink-0 text-[11px] text-ink/45">{new Date(n.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                      <span className="shrink-0 text-[11px] text-ink/45">{new Date(n.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })}</span>
                     </Link>
                   </li>
                 ))}
@@ -432,7 +432,7 @@ export function DashboardView({
                   <tbody>
                     {walletTx.map((t) => (
                       <tr key={t.id}>
-                        <td>{new Date(t.created_at).toLocaleDateString("en-IN")}</td>
+                        <td>{new Date(t.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
                         <td className="capitalize">{t.kind}</td>
                         <td className="text-ink/70">{t.reason ?? "—"}</td>
                         <td className={t.delta_paise > 0 ? "text-volt-deep" : "text-signal"}>
@@ -743,7 +743,7 @@ function BookingsSection({ games, coaching, entries, orders }: { games: GameRow[
                   {orders.map((o) => (
                     <tr key={o.order_no}>
                       <td><Link href={`/order/${o.order_no}`} className="font-mono text-xs text-volt-deep hover:underline">{o.order_no}</Link></td>
-                      <td>{new Date(o.created_at).toLocaleDateString("en-IN")}</td>
+                      <td>{new Date(o.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
                       <td>{formatPaise(o.total_paise)}</td>
                       <td className="capitalize">{o.payment_status}</td>
                       <td><span className={o.fulfillment_status === "delivered" ? "chip-volt" : "chip"}>{ORDER_STATUS[o.fulfillment_status] ?? o.fulfillment_status}</span></td>
@@ -752,7 +752,7 @@ function BookingsSection({ games, coaching, entries, orders }: { games: GameRow[
                           <>
                             {o.last_note && <span className="block text-ink/75">{o.last_note}</span>}
                             {o.courier && <span className="block">{o.courier}{o.tracking_ref ? ` · ${o.tracking_ref}` : ""}</span>}
-                            {o.last_update && <span className="block text-ink/40">{new Date(o.last_update).toLocaleDateString("en-IN")}</span>}
+                            {o.last_update && <span className="block text-ink/40">{new Date(o.last_update).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</span>}
                           </>
                         ) : (
                           <span className="text-ink/30">—</span>
