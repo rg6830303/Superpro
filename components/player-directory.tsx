@@ -130,7 +130,7 @@ export function FollowButton({
   );
 }
 
-type ViewKey = "all" | "following" | "followers" | "mutual";
+export type ViewKey = "all" | "following" | "followers" | "mutual";
 
 const VIEWS: Array<{ key: ViewKey; label: string; empty: string }> = [
   { key: "all", label: "Discover", empty: "No players listed yet." },
@@ -152,13 +152,16 @@ export function PlayerDirectory({
   initial,
   initialCounts = { following: 0, followers: 0 },
   signedIn,
+  fixedView,
 }: {
   initial: DirectoryPlayer[];
   initialCounts?: FollowCounts;
   signedIn: boolean;
+  /** Lock to one slice (discover, followers, following) and hide the slice tabs. */
+  fixedView?: ViewKey;
 }) {
   const [q, setQ] = useState("");
-  const [view, setView] = useState<ViewKey>("all");
+  const [view, setView] = useState<ViewKey>(fixedView ?? "all");
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("");
   const [players, setPlayers] = useState(initial);
   const [counts, setCounts] = useState(initialCounts);
@@ -240,7 +243,7 @@ export function PlayerDirectory({
         </div>
       </div>
 
-      {signedIn && (
+      {signedIn && !fixedView && (
         <div className="mt-6 flex gap-1 overflow-x-auto border-b border-line" role="tablist" aria-label="Players">
           {VIEWS.map((v) => {
             const n = v.key === "following" ? counts.following : v.key === "followers" ? counts.followers : null;

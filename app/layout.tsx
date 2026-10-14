@@ -3,6 +3,7 @@ import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { IntroGate } from "@/components/boot-cover";
 import { CartProvider } from "@/components/cart-provider";
+import { ThemedPickers } from "@/components/themed-pickers";
 import { SITE } from "@/lib/site";
 
 /**
@@ -98,6 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <CartProvider>{children}</CartProvider>
+        <ThemedPickers />
       </body>
     </html>
   );

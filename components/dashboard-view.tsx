@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
+  ChevronRight,
+  X,
   Bell,
   Check,
   CalendarDays,
@@ -176,7 +178,6 @@ export function DashboardView({
 
   return (
     <div className="wrap section demo-dashboard">
-      {activeTab === "overview" && <PlayerCard profile={profile} name={name} age={calculatedAge} badges={badges} rank={me?.rank ?? null} followersCount={followersCount} followingCount={followingCount} unreadCount={unreadCount} variant="overview" />}
       {/* The demo clubhouse switches sections from its sidebar and bottom tab bar;
           the main domain has no clubhouse shell, so it keeps tabs here. */}
       {launch && (
@@ -196,7 +197,11 @@ export function DashboardView({
       )}
 
       {activeTab === "overview" && !launch && (
-        <div className="mt-6 space-y-8">
+        <div className="space-y-8">
+          <div className="demo-overview-head">
+            <p className="eyebrow">Your clubhouse</p>
+            <h1>Hi {name.split(" ")[0]}, ready to play?</h1>
+          </div>
           <div className="demo-account-metrics grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {[
               { icon: CalendarDays, k: `${upcomingGames.length}`, v: "Upcoming games" },
@@ -211,6 +216,33 @@ export function DashboardView({
               </Link>
             ))}
           </div>
+
+          <section className="card p-6">
+            <div className="flex items-center justify-between gap-3">
+              <p className="eyebrow">Notifications</p>
+              <Link href={tabHref("activity")} className="text-xs font-semibold text-volt-deep hover:underline">
+                See all{unreadCount > 0 ? ` (${unreadCount} new)` : ""}
+              </Link>
+            </div>
+            {notifications.length === 0 ? (
+              <p className="mt-3 text-sm text-ink/55">Nothing yet. Follows, bookings and club news show up here.</p>
+            ) : (
+              <ul className="demo-note-list">
+                {notifications.slice(0, 4).map((n) => (
+                  <li key={n.id} className={n.read ? undefined : "is-new"}>
+                    <Link href={n.link_url || tabHref("activity")}>
+                      <span className="demo-note-dot" aria-hidden="true" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-ink">{n.title}</span>
+                        <span className="block truncate text-xs text-ink/60">{n.message}</span>
+                      </span>
+                      <span className="shrink-0 text-[11px] text-ink/45">{new Date(n.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
           <div className="grid min-w-0 gap-5 lg:grid-cols-[1.4fr_1fr]">
             <section className="card p-6">
@@ -286,8 +318,8 @@ export function DashboardView({
 
       {activeTab === "community" && (
         <div className="mt-8">
-          <SectionHead eyebrow="Community" title="Discover & follow" sub="Find players at your level, follow the ones you rally with, and see who follows you back." />
-          <PlayerDirectory initial={[]} initialCounts={{ following: followingCount, followers: followersCount }} signedIn />
+          <SectionHead eyebrow="Discover" title="Find your people" sub="Search by name, handle or city, filter by level, and follow the players you want to rally with." />
+          <PlayerDirectory initial={[]} signedIn fixedView="all" />
         </div>
       )}
 
@@ -450,9 +482,10 @@ function PlayerCard({
   const stats = [
     { label: "DUPR", value: profile.dupr != null ? Number(profile.dupr).toFixed(2) : "Unrated", href: tabHref("profile") },
     { label: "Club rank", value: rank ? `#${rank}` : "—", href: tabHref("rankings") },
-    { label: "Followers", value: String(followersCount), href: tabHref("community") },
-    { label: "Following", value: String(followingCount), href: tabHref("community") },
-  ];
+    { label: "Followers", value: String(followersCount), href: tabHref("profile"), list: "followers" as const },
+    { label: "Following", value: String(followingCount), href: tabHref("profile"), list: "following" as const },
+  ] as Array<{ label: string; value: string; href: string; list?: "followers" | "following" }>;
+  const [list, setList] = useState<"followers" | "following" | null>(null);
   return (
     <section className="demo-player-card-frame" aria-label="Your player card">
       <div className="demo-player-cover" aria-hidden="true">
@@ -490,12 +523,20 @@ function PlayerCard({
           {variant === "profile" && profile.bio && <p className="demo-player-bio">{profile.bio}</p>}
         </div>
         <div className="demo-player-stats">
-          {stats.map((s) => (
-            <Link key={s.label} href={s.href}>
-              <span className="demo-stat-label">{s.label}</span>
-              <span className="demo-stat-value">{s.value}</span>
-            </Link>
-          ))}
+          {stats.map((s) =>
+            s.list && variant === "profile" ? (
+              <button key={s.label} type="button" className="demo-stat-tap" onClick={() => setList(s.list!)} aria-haspopup="dialog">
+                <span className="demo-stat-label">{s.label}</span>
+                <span className="demo-stat-value">{s.value}</span>
+                <span className="demo-stat-hint">View list <ChevronRight size={12} /></span>
+              </button>
+            ) : (
+              <Link key={s.label} href={s.href}>
+                <span className="demo-stat-label">{s.label}</span>
+                <span className="demo-stat-value">{s.value}</span>
+              </Link>
+            ),
+          )}
         </div>
         <div className="demo-player-actions">
           {variant === "overview" ? (
@@ -525,7 +566,37 @@ function PlayerCard({
           )}
         </div>
       </div>
+      {list && <FollowSheet view={list} onClose={() => setList(null)} />}
     </section>
+  );
+}
+
+/** Followers / following as a sheet over the profile, closed by tap-out, ✕ or Esc. */
+function FollowSheet({ view, onClose }: { view: "followers" | "following"; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    d?.showModal();
+    return () => d?.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="demo-follow-sheet"
+      aria-label={view === "followers" ? "Followers" : "Following"}
+      onCancel={onClose}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="demo-follow-sheet-inner">
+        <div className="demo-follow-sheet-head">
+          <h2>{view === "followers" ? "Followers" : "Following"}</h2>
+          <button type="button" onClick={onClose} className="demo-passport-btn" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+        <PlayerDirectory initial={[]} signedIn fixedView={view} />
+      </div>
+    </dialog>
   );
 }
 

@@ -515,3 +515,27 @@
 .demo-ui .demo-player-card>div:last-child button{min-width:0!important;min-height:40px;padding:0 14px}
 @media(max-width:420px){.demo-ui .demo-player-card>div:last-child button{padding:0 12px;font-size:12px}}
 .demo-ui .chip.bg-ink{background:#1a563f;color:#fff}
+
+/* Overview opens on the numbers, not the player card. */
+.demo-overview-head h1{margin-top:8px;font-family:var(--font-display);font-weight:700;font-size:clamp(26px,3.6vw,40px);line-height:1.1;color:#193d32}
+.demo-note-list{margin-top:12px;display:grid;gap:4px}
+.demo-note-list a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;transition:background .2s}
+.demo-note-list a:hover{background:#ffffff8c}
+.demo-note-dot{width:8px;height:8px;border-radius:50%;background:#193d3226;flex-shrink:0}
+.demo-note-list li.is-new .demo-note-dot{background:#7fb446;box-shadow:0 0 0 4px #d9ef7580}
+/* Followers / following tiles you can tap, and the list sheet they open. */
+.demo-stat-tap{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:16px;background:#ffffffa6;text-align:left;transition:transform .2s,background .2s,box-shadow .2s;box-shadow:0 1px 0 #fff inset,0 8px 18px -14px #193d3266}
+.demo-stat-tap:hover{background:#fff;transform:translateY(-2px)}
+.demo-stat-tap:active{transform:scale(.97)}
+.demo-stat-hint{display:inline-flex;align-items:center;gap:2px;margin-top:2px;font-size:11px;font-weight:600;color:#1a563f}
+@media(max-width:900px){.demo-stat-tap{align-items:center;text-align:center;padding:12px}}
+.demo-follow-sheet{margin:auto;padding:0;border:0;background:transparent;width:min(560px,calc(100vw - 24px));max-width:none;max-height:86dvh;color:#193d32}
+.demo-follow-sheet::backdrop{background:#10241c66;backdrop-filter:blur(6px)}
+.demo-follow-sheet[open]{animation:tp-in .3s cubic-bezier(.2,.8,.2,1)}
+.demo-follow-sheet-inner{max-height:86dvh;overflow:auto;padding:18px 18px 22px;border-radius:26px;background:linear-gradient(160deg,#f6fbeef5,#fbf5e8f5);box-shadow:0 30px 70px -30px #10241c80}
+.demo-follow-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.demo-follow-sheet-head h2{font-family:var(--font-display);font-size:24px;font-weight:700}
+.demo-follow-sheet .demo-player-card{border:0!important;background:#ffffffb3!important;border-radius:16px!important;display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;padding:12px 14px}
+.demo-follow-sheet .demo-player-card>div:last-child{grid-column:auto;border:0;padding:0}
+@media(max-width:640px){.demo-follow-sheet{margin:auto 0 0;width:100vw}.demo-follow-sheet-inner{border-radius:26px 26px 0 0;padding-bottom:max(22px,env(safe-area-inset-bottom))}}
+.demo-note-list,.demo-note-list li,.demo-note-list a{min-width:0;max-width:100%}
