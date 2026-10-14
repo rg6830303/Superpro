@@ -327,6 +327,25 @@ export const SCHEMA_TABLES: string[] = [
     UNIQUE (tournament_id, field_key)
   )`,
 
+  // Sparvic Open entries: one row per checkout, any number of categories.
+  `CREATE TABLE IF NOT EXISTS open_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reference TEXT UNIQUE NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    player_name TEXT NOT NULL,
+    player_phone TEXT,
+    player_email TEXT,
+    player_dupr NUMERIC(4,2),
+    player_dupr_id TEXT,
+    player_gender TEXT,
+    categories JSONB NOT NULL,
+    amount_paise INTEGER NOT NULL,
+    payment_status TEXT NOT NULL DEFAULT 'pending',
+    razorpay_order_id TEXT,
+    razorpay_payment_id TEXT,
+    paid_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
   // Badges an admin hands out by hand (club roles, achievements, milestones).
   `CREATE TABLE IF NOT EXISTS user_badges (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

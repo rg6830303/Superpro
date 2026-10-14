@@ -13,11 +13,14 @@ import { markPaid } from "@/lib/coaching-registrations";
 import { DOCTOR, markAppointmentPaid } from "@/lib/doctor";
 import { sendAppointmentEmail } from "@/lib/doctor-emails";
 import { sendRegistrationEmail } from "@/lib/coaching-emails";
+import { markOpenEntryPaid } from "@/lib/sparvic-open-server";
+import { OPEN, OPEN_CATEGORIES } from "@/lib/sparvic-open";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
 const schema = z.object({
-  kind: z.enum(["order", "checkout", "game", "coaching", "coaching_registration", "doctor_appointment", "tournament", "wallet_topup"]),
+  kind: z.enum(["order", "checkout", "game", "coaching", "coaching_registration", "doctor_appointment", "tournament", "wallet_topup", "sparvic_open"]),
   id: z.string().uuid().optional(),
   reference: z.string().min(3).max(40).optional(),
   razorpay_order_id: z.string().min(3),
@@ -70,6 +73,8 @@ export async function POST(req: Request) {
         return await settleTournament(p);
       case "wallet_topup":
         return await settleTopup(p);
+      case "sparvic_open":
+        return await settleOpenEntry(p);
     }
   } catch (err) {
     console.error("[payments/verify]", err);
@@ -226,6 +231,32 @@ async function settleCoaching(p: Payload) {
   });
 
   return NextResponse.json({ ok: true, booking_no: p.reference });
+}
+
+async function settleOpenEntry(p: Payload) {
+  if (!p.reference) return NextResponse.json({ error: "Missing entry reference." }, { status: 400 });
+  // Only matches when the order id is the one we created for this entry.
+  const entry = await markOpenEntryPaid(p.reference, p.razorpay_order_id, p.razorpay_payment_id);
+  if (!entry) return NextResponse.json({ error: "That payment does not match this entry." }, { status: 409 });
+  const names = entry.categories.map((c) => OPEN_CATEGORIES.find((x) => x.id === c.category)?.label ?? c.category);
+  await createNotification({
+    userId: entry.user_id,
+    kind: "tournament_entry",
+    title: `You're in the ${OPEN.name}`,
+    message: `Entry ${entry.reference} confirmed: ${names.join(", ")}. Fixtures will be shared on Sparvic.`,
+    linkUrl: "/dashboard/sparvic-open",
+  }).catch(() => {});
+  if (entry.player_phone) {
+    await sendWhatsApp({
+      kind: "tournament_paid",
+      target: "number",
+      phone: `91${entry.player_phone}`,
+      message: `🏆 ${OPEN.name}: entry ${entry.reference} confirmed for ${names.join(", ")}. ${OPEN.dates} at ${OPEN.venue}. Questions: ${OPEN.contactDisplay}.`,
+      refTable: "open_entries",
+      refId: entry.id,
+    }).catch(() => {});
+  }
+  return NextResponse.json({ ok: true, reference: entry.reference });
 }
 
 async function settleDoctorAppointment(p: Payload, origin: string) {

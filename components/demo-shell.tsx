@@ -23,6 +23,7 @@ const links = [
   { href: "/products", label: "The pro shop", icon: ShoppingBag },
   { href: "/coaching", label: "Get coached", icon: GraduationCap },
   { href: "/tournaments", label: "Tournaments", icon: Trophy },
+  { href: "/sparvic-open", label: "Sparvic Open", icon: Medal },
   { href: "/medical", label: "Player care", icon: HeartPulse },
 ];
 
@@ -30,6 +31,7 @@ const links = [
 const memberLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/play", label: "Book a game", icon: CalendarDays },
+  { href: "/dashboard/sparvic-open", label: "Sparvic Open", icon: Trophy },
   { href: "/dashboard/bookings", label: "My bookings", icon: CalendarCheck },
   { href: "/dashboard/community", label: "Community", icon: Compass },
   { href: "/dashboard/rankings", label: "Leaderboard", icon: Medal },
@@ -155,7 +157,7 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
     <a className="demo-skip" href="#main-content">Skip to content</a>
     <header className="demo-header">
       <div className="demo-brand"><Logo height={42} priority href={clubhouse ? "/dashboard" : "/"} /><span className="demo-brand-caption">{clubhouse ? "THE CLUBHOUSE" : "THE PICKLEBALL CLUB"}</span></div>
-      {!clubhouse && <nav className="demo-public-nav" aria-label="Main navigation">{links.slice(1, 6).map(l => <Link key={l.href} href={l.href} aria-current={active(l.href) ? "page" : undefined}>{l.label}</Link>)}</nav>}
+      {!clubhouse && <nav className="demo-public-nav" aria-label="Main navigation">{links.filter((l) => l.href !== "/" && l.href !== "/medical" && l.href !== "/coaching").map(l => <Link key={l.href} href={l.href} aria-current={active(l.href) ? "page" : undefined}>{l.label}</Link>)}</nav>}
       {clubhouse && <div className="demo-header-context"><span className="demo-live-dot" />Hi {playerName.split(" ")[0]}, welcome back.</div>}
       <div className="demo-header-actions">
         {clubhouse

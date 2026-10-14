@@ -16,7 +16,7 @@ export type PayStart = {
  */
 export function payForRegistration(
   start: PayStart,
-  opts: { kind?: "coaching_registration" | "doctor_appointment"; name?: string; description?: string } = {},
+  opts: { kind?: "coaching_registration" | "doctor_appointment" | "sparvic_open"; name?: string; description?: string } = {},
 ): Promise<"paid" | "dismissed" | "failed"> {
   const kind = opts.kind ?? "coaching_registration";
   return new Promise((resolve) => {

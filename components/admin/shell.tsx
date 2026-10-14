@@ -20,6 +20,7 @@ const NAV = [
   { href: "/admin/group-coaching", label: "Group coaching", icon: Users },
   { href: "/admin/doctor", label: "Doctor appointments", icon: Stethoscope },
   { href: "/admin/tournaments", label: "Tournaments", icon: Trophy },
+  { href: "/admin/sparvic-open", label: "Sparvic Open", icon: Trophy },
   { href: "/admin/players", label: "Players", icon: Users },
   { href: "/admin/discounts", label: "Discounts", icon: TicketPercent },
   { href: "/admin/announcements", label: "Announcements", icon: BellRing },
