@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -138,6 +138,9 @@ export function DashboardView({
   const [activeTab, setActiveTab] = useState<TabKey>(
     validTabs.includes(initialTab) && !(launch && initialTab === "wallet") ? initialTab : "overview"
   );
+  useEffect(() => {
+    if (!launch) setActiveTab(initialTab);
+  }, [initialTab, launch]);
 
   function switchTab(tab: TabKey) {
     setActiveTab(tab);
@@ -163,9 +166,10 @@ export function DashboardView({
   const calculatedAge = profile.age ?? ageFrom(profile.date_of_birth);
 
   return (
-    <div className="wrap section">
+    <div className="wrap section demo-dashboard">
+      {!launch && <div className="demo-dashboard-heading"><div><p className="eyebrow">YOUR PERSONAL CLUBHOUSE</p><h2>Good to have you on the team.</h2><p>Everything you play, all in one place.</p></div><Link href="/games" className="btn-primary"><CalendarDays size={17} />Find a game</Link></div>}
       {/* Modern Player Passport Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-paper via-paper to-mist/40 p-6 sm:p-8 shadow-card">
+      <div className="demo-player-passport relative overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-paper via-paper to-mist/40 p-6 sm:p-8 shadow-card">
         {/* Subtle decorative volt glow accent */}
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-volt/15 blur-3xl" />
 
@@ -280,7 +284,7 @@ export function DashboardView({
       </div>
 
       {/* Account Tab Switcher */}
-      <div className="mt-8 border-b border-line">
+      <div className="demo-account-tabs mt-8 border-b border-line">
         <div className="flex flex-wrap gap-1 sm:gap-2">
           <button
             type="button"
@@ -364,7 +368,7 @@ export function DashboardView({
       {activeTab === "overview" && !launch && (
         <div className="mt-8 space-y-10">
           {/* Quick Metrics Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="demo-account-metrics grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { icon: CalendarDays, k: `${upcoming}`, v: "Game bookings" },
               { icon: GraduationCap, k: `${coaching.length}`, v: "Coaching bookings" },
@@ -725,7 +729,7 @@ export function DashboardView({
           </div>
 
           {/* Wallet Balance & Topup Card */}
-          <div className="card p-6">
+          <div className="demo-wallet-card card p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">

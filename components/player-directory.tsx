@@ -321,7 +321,7 @@ function PlayerRow({
 }) {
   const mutual = p.follows_me && p.is_following;
   return (
-    <article className="group relative flex h-full items-center gap-3.5 rounded-xl border border-line bg-paper p-4 transition-colors hover:border-ink/30">
+    <article className="demo-player-card group relative flex h-full items-center gap-3.5 rounded-xl border border-line bg-paper p-4 transition-colors hover:border-ink/30">
       <Avatar name={p.full_name} src={p.avatar_url} />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">

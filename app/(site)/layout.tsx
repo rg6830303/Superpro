@@ -8,6 +8,8 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 import { surfaceOfHost } from "@/lib/surface";
 import { getPlayerSession } from "@/lib/auth";
+import { DemoShell } from "@/components/demo-shell";
+import "./demo.css";
 
 /**
  * Public-site chrome. The admin console sits outside this group so it never
@@ -15,7 +17,9 @@ import { getPlayerSession } from "@/lib/auth";
  */
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const surface = surfaceOfHost((await headers()).get("host"));
-  const signedIn = Boolean(await getPlayerSession().catch(() => null));
+  const session = await getPlayerSession().catch(() => null);
+  const signedIn = Boolean(session);
+  if (surface !== "main") return <DemoShell playerName={session?.name ?? null}>{children}</DemoShell>;
   return (
     <div className="flex min-h-screen flex-col">
       {/* Behind everything, and the reason the content below carries a

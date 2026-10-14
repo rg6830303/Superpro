@@ -51,15 +51,18 @@ type Card =
   | { kind: "greeting"; mode: "signup" | "login"; name: string | null }
   | { kind: "quote"; quote: (typeof QUOTES)[number] };
 
-export function WelcomePopup() {
+export function WelcomePopup({ demo = false }: { demo?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const params = useSearchParams();
   const welcome = params.get("welcome");
-  const quiet = QUIET_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const quiet = QUIET_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`)) || (demo && (pathname.startsWith("/games") || pathname.startsWith("/dashboard")));
   const [card, setCard] = useState<Card | null>(null);
 
   const close = useCallback(() => setCard(null), []);
+  useEffect(() => {
+    if (demo) setCard(null);
+  }, [pathname, demo]);
 
   // Greeting: wins over everything else on this visit.
   useEffect(() => {
@@ -87,7 +90,7 @@ export function WelcomePopup() {
         if (storage((s) => s.getItem(SEEN_KEY)) === "1") return;
         storage((s) => s.setItem(SEEN_KEY, "1"));
         setCard({ kind: "quote", quote: QUOTES[Math.floor(Math.random() * QUOTES.length)] });
-      }, DELAY_MS);
+      }, demo ? 7000 : DELAY_MS);
     };
     // Pages under this layout never carry the intro, so start the timer now;
     // the event only matters if an intro is actually on screen.
@@ -98,7 +101,7 @@ export function WelcomePopup() {
       window.clearTimeout(timer);
       window.removeEventListener(INTRO_DONE_EVENT, arm);
     };
-  }, [quiet, welcome]);
+  }, [quiet, welcome, demo]);
 
   useEffect(() => {
     if (!card) return;
@@ -113,6 +116,19 @@ export function WelcomePopup() {
     close();
     router.push(href);
   };
+
+  if (demo) return (
+    <aside className="demo-welcome" aria-label={card.kind === "greeting" ? "Welcome to the club" : "Court inspiration"}>
+      <button type="button" className="demo-welcome-close" onClick={close} aria-label="Dismiss message"><X size={18} /></button>
+      <div className="demo-welcome-symbol" aria-hidden="true">{card.kind === "greeting" ? <PartyPopper size={23} /> : <Quote size={23} />}</div>
+      <p className="demo-nav-label">{card.kind === "greeting" ? "YOU’RE IN GOOD COMPANY" : "A LITTLE COURT ENERGY"}</p>
+      <div aria-live="polite">
+        <h2>{card.kind === "greeting" ? `Welcome${card.mode === "login" ? " back" : " to the club"}${card.name ? `, ${card.name}` : ""}.` : card.quote.line}</h2>
+        <p>{card.kind === "greeting" ? "Your people, your next game, your own corner of the club. Make yourself at home." : card.quote.who}</p>
+      </div>
+      <div className="demo-welcome-actions">{card.kind === "greeting" ? <button className="btn-volt btn-sm" onClick={() => go(card.mode === "signup" ? "/dashboard/profile" : "/dashboard")}>{card.mode === "signup" ? "Set up my profile" : "My clubhouse"}<ArrowRight size={15} /></button> : <button className="btn-volt btn-sm" onClick={close}>Let’s play <ArrowRight size={15} /></button>}<button className="demo-text-button" onClick={close}>Dismiss</button></div>
+    </aside>
+  );
 
   return (
     <div

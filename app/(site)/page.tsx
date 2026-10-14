@@ -1,8 +1,10 @@
 import Image from "next/image";
+import { DemoHomeHero } from "@/components/demo-home-hero";
+import { getPlayerSession } from "@/lib/auth";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, CalendarDays, GraduationCap, MapPin, ShoppingBag, Trophy, Users } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
-import { Counter, Reveal, ScoreMeter, TiltCard } from "@/components/motion";
+import { Reveal, ScoreMeter, TiltCard } from "@/components/motion";
 import { Paddle3D } from "@/components/paddle-3d";
 import {
   getAnnouncements,
@@ -21,6 +23,7 @@ import { PRODUCT_CATEGORIES, SITE } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const player = await getPlayerSession();
   const [featured, sessions, tournaments, coaches, announcements, community] = await Promise.all([
     getFeaturedProducts(5),
     getWeekSessions(7),
@@ -44,77 +47,11 @@ export default async function HomePage() {
       {/* ── Hero ───────────────────────────────────────────────────────────
           Asymmetric on purpose: the claim sits left, the object right, so the
           eye lands on the sentence before the product. ──────────────────── */}
-      <section className="relative overflow-hidden border-b border-line">
-        {/* Decorative light behind the hero object, not behind the sentence. */}
-        <div aria-hidden className="aura aura-volt -right-20 top-0 h-[26rem] w-[26rem]" />
-        <div aria-hidden className="aura aura-ink -left-40 bottom-[-6rem] h-80 w-80 opacity-40" />
-        <div aria-hidden className="ring-court -right-28 top-12 h-72 w-72" />
-        <div className="wrap grid min-w-0 items-center gap-10 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
-          <div>
-            <p className="eyebrow animate-wipe-in inline-flex rounded-full border border-volt/30 bg-volt-soft px-3 py-1.5">Kolkata · since 2024</p>
+      <DemoHomeHero name={player?.name} slots={live.length} />
 
-            <h1 className="mt-5 animate-rise-in headline-hero">
-              Pickleball,
-              <br />
-              played properly.
-            </h1>
-
-            <p className="lede mt-6 max-w-md animate-rise-in [animation-delay:80ms]">
-              Champion Series paddles, open games every morning and evening, and coaches who rebuild your third
-              shot rather than your confidence.
-            </p>
-
-            <div className="mt-7 grid animate-rise-in gap-3 min-[400px]:flex min-[400px]:flex-wrap min-[400px]:items-center sm:mt-9 [animation-delay:140ms]">
-              <Link href="/games" className="btn-volt">
-                Book today&apos;s game <ArrowRight size={16} />
-              </Link>
-              <Link
-                href="/products"
-                className="link-underline group inline-flex min-h-11 items-center justify-center gap-1.5 text-sm font-semibold text-ink sm:justify-start"
-              >
-                Shop the Champion Series
-                <ArrowUpRight
-                  size={15}
-                  className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                />
-              </Link>
-            </div>
-
-            {/* A scoreboard line, not a box: three figures divided by hairlines,
-                and only the ones that are true today — a "0 coaches" boast on a
-                fresh roster reads worse than no number at all. */}
-            {(() => {
-              const stats = [
-                { n: live.length, label: "Open slots this week" },
-                { n: coaches.length, label: "Certified coaches" },
-                { n: tournaments.length, label: "Draws run & backed" },
-              ].filter((st) => st.n > 0);
-              if (stats.length === 0) return null;
-              return (
-                <dl className="mt-8 flex flex-wrap items-end gap-x-7 gap-y-4 sm:mt-10 sm:gap-x-10">
-                  {stats.map((st, i) => (
-                    <div key={st.label} className={i > 0 ? "border-l border-line pl-7 sm:pl-10" : ""}>
-                      <dt className="sr-only">{st.label}</dt>
-                      <dd>
-                        <Counter to={st.n} className="block font-display text-[2rem] leading-none text-ink sm:text-[2.6rem]" />
-                        <span className="mt-2 block max-w-[9rem] font-mono text-[10px] uppercase leading-tight tracking-[0.12em] text-ink/50">
-                          {st.label}
-                        </span>
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              );
-            })()}
-          </div>
-
-          {/* Capped on phones: at full column width the paddle stood ~500px
-              tall and took a whole screen of its own under the headline. */}
-          <div className="relative mx-auto w-full max-w-[240px] sm:max-w-[320px] lg:max-w-none">
-            <div aria-hidden className="court-grid court-grid-drift absolute inset-x-0 bottom-8 top-8 -z-10 rounded-card" />
-            <Paddle3D priority />
-          </div>
-        </div>
+      <section className="wrap section-tight demo-paddle-studio">
+        <div><p className="eyebrow">CHAMPION SERIES · MADE FOR YOUR GAME</p><h2 className="headline-section mt-3">A feel for the real thing.</h2><p className="lede mt-4">Take the T700 for a spin. Explore the paddle, then find your next court companion.</p><Link href="/products" className="btn-outline mt-6">Explore the collection <ArrowUpRight size={16} /></Link></div>
+        <div className="demo-paddle-interactive"><Paddle3D /></div>
       </section>
 
       {notice && (
@@ -135,66 +72,6 @@ export default async function HomePage() {
       {/* ── The four doors ─────────────────────────────────────────────────
           Every visitor is here for one of these. Rather than make them read
           the nav, put the four rooms of the club on the page. ───────────── */}
-      <section className="wrap section-tight">
-        <div className="grid min-w-0 grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              href: "/products",
-              icon: ShoppingBag,
-              title: "Shop",
-              blurb: "Champion Series paddles, outdoor balls and grips built for Kolkata humidity.",
-              cta: "Browse the kit",
-            },
-            {
-              href: "/games",
-              icon: CalendarDays,
-              title: "Daily Games",
-              blurb: "Open slots at every venue, morning and evening. See who is coming before you book.",
-              cta: "Find today's slot",
-            },
-            {
-              href: "/coaching",
-              icon: GraduationCap,
-              title: "Coaching",
-              blurb: "Pick the coach who owns your next rung — first rally to first DUPR rating.",
-              cta: "Meet the coaches",
-            },
-            {
-              href: "/tournaments",
-              icon: Trophy,
-              title: "Tournaments",
-              blurb: "Draws Sparvic runs and events we back across the city. Enter with a partner.",
-              cta: "See the draws",
-            },
-          ].map((door, i) => (
-            <Reveal key={door.href} delay={i * 70}>
-              {/* An index entry, not a box: a hairline above, a number, the
-                  title and a line of copy. The volt rule drawing across the
-                  top on hover is the only frame it ever gets. */}
-              <Link
-                href={door.href}
-                className="group relative flex h-full items-start gap-4 border-t border-line pt-5 transition-colors before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:origin-left before:scale-x-0 before:bg-volt before:transition-transform before:duration-300 hover:before:scale-x-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-volt lg:flex-col lg:gap-0"
-              >
-                <span className="flex shrink-0 items-center gap-3 lg:w-full lg:justify-between">
-                  <span className="font-mono text-[11px] tabular-nums tracking-[0.14em] text-ink/35">0{i + 1}</span>
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-volt-soft text-volt-deep transition-transform duration-200 group-hover:scale-110 lg:order-last">
-                    <door.icon size={18} />
-                  </span>
-                </span>
-                <span className="min-w-0 flex-1 lg:mt-6">
-                  <span className="flex items-center gap-2 font-display text-xl text-ink sm:text-2xl">
-                    {door.title}
-                    <ArrowRight size={16} className="text-ink/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-volt-deep" />
-                  </span>
-                  <span className="mt-1.5 block text-sm leading-relaxed text-ink/60">{door.blurb}</span>
-                </span>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Next on court ─────────────────────────────────────────────────── */}
       <section className="wrap section">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-6">
