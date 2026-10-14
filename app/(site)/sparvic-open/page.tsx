@@ -7,15 +7,19 @@ import { ensureSchema } from "@/lib/schema";
 import { inClubhouse } from "@/lib/booking-context";
 import { isRazorpayEnabled } from "@/lib/razorpay";
 import { formatPaise } from "@/lib/money";
+import { LAUNCH_AT } from "@/lib/site";
 import { ELIGIBILITY, MATCH_FORMAT, OPEN, OPEN_CATEGORIES, OPEN_RULES } from "@/lib/sparvic-open";
 import { myEntries } from "@/lib/sparvic-open-server";
 import { SparvicOpenForm } from "@/components/sparvic-open-form";
+import { JsonLd } from "@/components/json-ld";
+import { sparvicOpenLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Sparvic Open Tournament",
-  description: `${OPEN.dates} at ${OPEN.venue}. Nine DUPR-banded categories for players rated below ${OPEN.maxDupr.toFixed(1)}.`,
+  title: "Sparvic Open Tournament 2026 · Pickleball, Kolkata",
+  alternates: { canonical: "/sparvic-open" },
+  description: `${OPEN.dates} at ${OPEN.venue}. Nine DUPR-banded singles and doubles categories, with direct online registration.`,
 };
 
 const REGISTER = "/dashboard/sparvic-open";
@@ -36,6 +40,7 @@ export default async function SparvicOpenPage() {
       form = (
         <SparvicOpenForm
           razorpayEnabled={isRazorpayEnabled}
+          earlyBird={Boolean(profile.created_at) && new Date(profile.created_at).getTime() < LAUNCH_AT}
           profile={{
             name: profile.full_name,
             email: profile.email,
@@ -52,7 +57,7 @@ export default async function SparvicOpenPage() {
 
   const cta = (
     <div className="so-cta">
-      <p className="text-sm font-semibold text-ink">Registration is open to Sparvic members rated below DUPR {OPEN.maxDupr.toFixed(1)}.</p>
+      <p className="text-sm font-semibold text-ink">Registration is open to Sparvic members within each category's DUPR band. Members who joined before launch get {OPEN.earlyBirdPct}% off.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Link href={`/signup?next=${encodeURIComponent(REGISTER)}`} className="btn-volt">Create an account &amp; register <ArrowRight size={16} /></Link>
         <Link href={`/login?next=${encodeURIComponent(REGISTER)}`} className="btn-outline">I already have an account</Link>
@@ -62,8 +67,9 @@ export default async function SparvicOpenPage() {
 
   return (
     <div className="wrap section">
+      <JsonLd data={sparvicOpenLd()} />
       <section className="so-hero">
-        <p className="so-kicker"><Trophy size={14} /> Tournament · DUPR below {OPEN.maxDupr.toFixed(1)}</p>
+        <p className="so-kicker"><Trophy size={14} /> Tournament · DUPR-banded categories</p>
         <h1>{OPEN.name}</h1>
         <p className="so-tagline">{OPEN.tagline}</p>
         <div className="so-facts">

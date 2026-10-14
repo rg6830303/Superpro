@@ -24,12 +24,82 @@ const NAME_KEY = "superpro:welcome-name";
 /** Just long enough for the page to paint first, so the card lands on a finished page. */
 const DELAY_MS = 600;
 
+/** Next quote from a per-browser shuffled deck, so none repeats until all have shown. */
+function nextQuote() {
+  const KEY = "sparvic:quote-deck";
+  let deck: number[] = [];
+  try { deck = JSON.parse(localStorage.getItem(KEY) ?? "[]"); } catch {}
+  deck = deck.filter((i) => Number.isInteger(i) && i >= 0 && i < QUOTES.length);
+  if (!deck.length) {
+    deck = QUOTES.map((_, i) => i);
+    for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  }
+  const idx = deck.shift() as number;
+  try { localStorage.setItem(KEY, JSON.stringify(deck)); } catch {}
+  return QUOTES[idx];
+}
+
 const QUOTES = [
   { line: "The ball does not care how you felt about the last point.", who: "Court wisdom" },
   { line: "Good players win rallies. Great players win the third shot.", who: "Sparvic coaches" },
   { line: "Dink like you have all day. Smash like you have one chance.", who: "Court wisdom" },
   { line: "You do not rise to the level of your paddle. You fall to the level of your footwork.", who: "Sparvic coaches" },
   { line: "Every regular on this court was once the newest player on it.", who: "Sparvic Kolkata" },
+  { line: "Patience at the kitchen line wins more points than power from the baseline.", who: "Sparvic coaches" },
+  { line: "Reset, breathe, go again.", who: "Court wisdom" },
+  { line: "The best shot is the one your opponent did not expect.", who: "Court wisdom" },
+  { line: "Soft hands, quick feet, calm mind.", who: "Sparvic coaches" },
+  { line: "Play the ball, not the scoreboard.", who: "Court wisdom" },
+  { line: "Your partner's confidence is a shot you can play too.", who: "Sparvic Kolkata" },
+  { line: "Get to the kitchen. Good things happen there.", who: "Sparvic coaches" },
+  { line: "Miss long? Aim lower. Miss in the net? Lift. Keep learning.", who: "Sparvic coaches" },
+  { line: "One more rally is always worth it.", who: "Sparvic Kolkata" },
+  { line: "Champions are just players who kept showing up.", who: "Court wisdom" },
+  { line: "The third shot drop is a promise to be patient.", who: "Sparvic coaches" },
+  { line: "Win or learn. There is no lose.", who: "Court wisdom" },
+  { line: "Ready position is a habit, not a moment.", who: "Sparvic coaches" },
+  { line: "A smile at 0–5 is the start of a comeback.", who: "Sparvic Kolkata" },
+  { line: "Keep your paddle up and your excuses down.", who: "Court wisdom" },
+  { line: "Every dink is a conversation. Listen to the reply.", who: "Sparvic coaches" },
+  { line: "Small court. Big friendships.", who: "Sparvic Kolkata" },
+  { line: "Footwork first, fancy shots later.", who: "Sparvic coaches" },
+  { line: "The net is a teacher. It tells you exactly what to fix.", who: "Court wisdom" },
+  { line: "Hit to the feet, win the point.", who: "Sparvic coaches" },
+  { line: "Calm is contagious. So is panic. Choose calm.", who: "Court wisdom" },
+  { line: "Your best game is the next one.", who: "Sparvic Kolkata" },
+  { line: "Serve deep, return deep, then move in.", who: "Sparvic coaches" },
+  { line: "Pressure is a privilege. It means the point matters.", who: "Court wisdom" },
+  { line: "Talk to your partner. Silence loses middles.", who: "Sparvic coaches" },
+  { line: "The kitchen line is where games are decided.", who: "Court wisdom" },
+  { line: "Practice the boring shots. They win the exciting matches.", who: "Sparvic coaches" },
+  { line: "Every expert dinked into the net a thousand times.", who: "Court wisdom" },
+  { line: "Good sport first. Good player second. Both is best.", who: "Sparvic Kolkata" },
+  { line: "Lob rarely, but lob well.", who: "Sparvic coaches" },
+  { line: "Make them hit one more ball.", who: "Court wisdom" },
+  { line: "Rest is training too.", who: "Sparvic coaches" },
+  { line: "Same court, same time tomorrow?", who: "Sparvic Kolkata" },
+  { line: "Slow the ball down to speed your game up.", who: "Sparvic coaches" },
+  { line: "Respect every opponent. Fear none.", who: "Court wisdom" },
+  { line: "Paddle face controls everything. Feel it.", who: "Sparvic coaches" },
+  { line: "The comeback starts with the next serve.", who: "Court wisdom" },
+  { line: "Learn one new shot this week.", who: "Sparvic coaches" },
+  { line: "Pickleball is better with people you like. Find yours.", who: "Sparvic Kolkata" },
+  { line: "Aim for the middle when in doubt.", who: "Sparvic coaches" },
+  { line: "Stay low, stay ready, stay hungry.", who: "Court wisdom" },
+  { line: "Celebrate the great shots, even the ones against you.", who: "Sparvic Kolkata" },
+  { line: "Consistency beats brilliance over eleven points.", who: "Sparvic coaches" },
+  { line: "You miss every drop you are afraid to try.", who: "Court wisdom" },
+  { line: "Warm up the body, then warm up the mind.", who: "Sparvic coaches" },
+  { line: "Kolkata plays with heart. Bring yours.", who: "Sparvic Kolkata" },
+  { line: "The ball is coming back. Be ready when it does.", who: "Court wisdom" },
+  { line: "Trust your partner. Cover your side.", who: "Sparvic coaches" },
+  { line: "Leave the court better than you found it.", who: "Sparvic Kolkata" },
+  { line: "A good loss teaches more than an easy win.", who: "Court wisdom" },
+  { line: "Breathe out on contact.", who: "Sparvic coaches" },
+  { line: "Every rating starts somewhere. Yours is just the start.", who: "Sparvic Kolkata" },
+  { line: "Keep it low, keep it unattackable.", who: "Sparvic coaches" },
+  { line: "Hustle is a skill.", who: "Court wisdom" },
+  { line: "Have fun out there. That is the whole point.", who: "Sparvic Kolkata" },
 ];
 
 function storage(fn: (s: Storage) => string | null | void): string | null {
@@ -89,7 +159,7 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
       timer = window.setTimeout(() => {
         if (storage((s) => s.getItem(SEEN_KEY)) === "1") return;
         storage((s) => s.setItem(SEEN_KEY, "1"));
-        setCard({ kind: "quote", quote: QUOTES[Math.floor(Math.random() * QUOTES.length)] });
+        setCard({ kind: "quote", quote: nextQuote() });
       }, demo ? 7000 : DELAY_MS);
     };
     // Pages under this layout never carry the intro, so start the timer now;
@@ -103,10 +173,10 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
     };
   }, [quiet, welcome, demo]);
 
-  // Quotes are a passing moment, not a task: they leave on their own after 2 s.
+  // Quotes are a passing moment, not a task: they leave on their own after 2.5 s.
   useEffect(() => {
     if (card?.kind !== "quote") return;
-    const t = window.setTimeout(close, 2000);
+    const t = window.setTimeout(close, 2500);
     return () => window.clearTimeout(t);
   }, [card, close]);
 

@@ -29,7 +29,16 @@ export function LaunchCountdown({ target, serverNow }: { target: number; serverN
     const tick = () => {
       const current = Date.now() + offset;
       setNow(current);
-      if (current >= target) return; // At zero it stops; nothing left to count.
+      if (current >= target) {
+        // Doors open: reload once so the main domain serves the full site.
+        try {
+          if (!sessionStorage.getItem("sparvic:launched-reload")) {
+            sessionStorage.setItem("sparvic:launched-reload", "1");
+            setTimeout(() => window.location.reload(), 1200);
+          }
+        } catch {}
+        return;
+      }
       // Aim just past the next whole second. Landing a few ms early would
       // repeat the previous number for another second.
       timer = setTimeout(tick, 1000 - (current % 1000) + 20);

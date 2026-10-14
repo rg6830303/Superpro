@@ -1,0 +1,31 @@
+# Sparvic
+
+> Sparvic (sparvic.com) is Kolkata's pickleball community and sports platform. Members book daily open-play pickleball games, find and follow players at their level, book coaching and sports-clinic consultations, enter DUPR-rated tournaments, and buy pickleball gear, all from one free account.
+
+## Key facts
+- City: Kolkata, West Bengal, India
+- Sport: pickleball (singles and doubles; beginner to advanced)
+- Daily games venues: TurfXL (New Alipore), Sportsplex Indoor (Topsia), Ballygunge Arena (Ballygunge)
+- Booking: members book slots from their Sparvic clubhouse; slots show venue, court number, level and spots left
+- Coaching: group batches and sessions, including a monthly programme with coach Ishaan Chetani
+- Player care: paid clinic consultations for pickleball injuries, pain and recovery
+- Shop: Champion Series paddles, balls and accessories; guest checkout; pickup at TurfXL New Alipore or delivery across Kolkata
+- Contact: info@sparvic.com, +91 91631 32551, Instagram @sparvic_official
+
+## Sparvic Open Tournament
+- Dates: 30 October – 1 November 2026
+- Venue: TurfXL New Alipore, Kolkata
+- Nine DUPR-banded categories: Men's Singles (< 3.599, < 4.099, < 4.599), Men's Doubles (< 3.599, < 4.299), Women's Doubles (< 3.599, < 4.099), Mixed Doubles (< 3.599, < 4.099)
+- Entry fees: Rs 1,600 (singles), Rs 2,000 – 3,000 per doubles team
+- Registration: online from the Sparvic clubhouse with Razorpay payment; members who joined before launch get 10% off
+
+## Pages
+- [Home](https://www.sparvic.com/): what Sparvic is and how to start
+- [Daily games](https://www.sparvic.com/games): the week's posted slots by venue and court
+- [Sparvic Open](https://www.sparvic.com/sparvic-open): tournament details, categories, prizes and rules
+- [Tournaments](https://www.sparvic.com/tournaments): all Sparvic tournaments
+- [Coaching](https://www.sparvic.com/coaching): coaches and group programmes
+- [Pro shop](https://www.sparvic.com/products): paddles, balls and accessories
+- [Player care](https://www.sparvic.com/medical): clinic consultations
+- [About](https://www.sparvic.com/about): the Sparvic story
+- [Join](https://www.sparvic.com/signup): create a free account

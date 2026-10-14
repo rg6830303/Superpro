@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       order: { id: order.id, amount: order.amount },
       key_id: razorpayKeyId,
       prefill: { name: e.player_name, contact: e.player_phone ?? undefined, email: e.player_email ?? undefined },
-      description: `${OPEN.name} · ${e.reference}`,
+      description: `${OPEN.name} · ${e.reference}${Number((e as { discount_paise?: number }).discount_paise ?? 0) > 0 ? ` · Early bird ${OPEN.earlyBirdPct}% off applied` : ""}`,
     });
   } catch (err) {
     console.error("[sparvic-open/pay]", err);

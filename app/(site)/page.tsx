@@ -1,3 +1,5 @@
+import { FAQ, faqLd, venuesLd } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
 import Image from "next/image";
 import { DemoHomeHero } from "@/components/demo-home-hero";
 import Link from "next/link";
@@ -508,6 +510,20 @@ export default async function HomePage() {
           </div>
         </Reveal>
       </section>
+
+      <section className="wrap section" aria-labelledby="faq-title">
+        <p className="eyebrow">Questions players ask</p>
+        <h2 id="faq-title" className="mt-2 headline-section">Pickleball in Kolkata, answered</h2>
+        <div className="demo-faq mt-6">
+          {FAQ.map((f) => (
+            <details key={f.q} className="card p-5">
+              <summary className="cursor-pointer font-semibold text-ink">{f.q}</summary>
+              <p className="mt-3 text-sm leading-relaxed text-ink/70">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+      <JsonLd data={[faqLd(), ...venuesLd()]} />
     </>
   );
 }

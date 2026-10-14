@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
-import { isMainPath, surfaceOfHost, isMainClosedApi } from "@/lib/surface";
+import { isMainPath, surfaceOfHost, isMainClosedApi, isLaunched, MAIN_URL } from "@/lib/surface";
 
 /**
  * One domain for everything: https://www.sparvic.com.
@@ -77,6 +77,12 @@ export async function middleware(req: NextRequest) {
     // Hidden sections are not reachable from here at all: no hop to the demo host.
     if (!isMainPath(pathname)) return NextResponse.redirect(new URL("/", req.url), 307);
     if (pathname === "/") return NextResponse.rewrite(new URL(`/launch${req.nextUrl.search}`, req.url));
+  }
+  if (pathname === "/launch" && isLaunched()) return NextResponse.redirect(new URL("/", req.url), 308);
+  // After launch the demo's pages live on the main domain: send visitors to the
+  // same path there. APIs stay answering, so tabs left open can still finish.
+  if (surface === "demo" && !isApi && isLaunched()) {
+    return NextResponse.redirect(new URL(`${pathname}${req.nextUrl.search}`, MAIN_URL), 308);
   }
   // The demo stands alone: it serves its own sign-up, community, profiles and
   // account pages and never hands visitors to the main domain. The one

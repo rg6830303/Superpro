@@ -1,3 +1,4 @@
+import { LAUNCH_AT } from "@/lib/site";
 /**
  * Two faces of one deployment.
  *
@@ -24,9 +25,18 @@ export const DEMO_URL = (process.env.NEXT_PUBLIC_DEMO_URL ?? "https://sparvicdem
 const MAIN_HOSTS = new Set(["www.sparvic.com", "sparvic.com"]);
 const DEMO_HOSTS = new Set([new URL(DEMO_URL).hostname]);
 
+/**
+ * The coming-soon period ends at LAUNCH_AT. From then on the main domain
+ * serves the whole site (what the demo served), and the demo hands its
+ * visitors to the main domain. SPARVIC_FORCE_LAUNCHED=1 previews that state.
+ */
+export function isLaunched(now: number = Date.now()): boolean {
+  return process.env.SPARVIC_FORCE_LAUNCHED === "1" || now >= LAUNCH_AT;
+}
+
 export function surfaceOfHost(host: string | null | undefined): Surface {
   const h = (host ?? "").split(":")[0].toLowerCase();
-  if (MAIN_HOSTS.has(h)) return "main";
+  if (MAIN_HOSTS.has(h)) return isLaunched() ? "full" : "main";
   if (DEMO_HOSTS.has(h)) return "demo";
   return "full";
 }
@@ -47,6 +57,7 @@ const MAIN_PREFIXES = [
   "/admin",
   // Browser-notification service worker (the Activity page on either domain).
   "/sw-notify.js",
+  "/llms.txt",
 ];
 
 function underPrefix(pathname: string, prefix: string): boolean {

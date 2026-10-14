@@ -340,6 +340,7 @@ export const SCHEMA_TABLES: string[] = [
     player_gender TEXT,
     categories JSONB NOT NULL,
     amount_paise INTEGER NOT NULL,
+    discount_paise INTEGER NOT NULL DEFAULT 0,
     payment_status TEXT NOT NULL DEFAULT 'pending',
     razorpay_order_id TEXT,
     razorpay_payment_id TEXT,
@@ -634,6 +635,7 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // Ordered product media (photos and videos). Back-filled once from the old
   // cover + gallery columns, which are still kept in sync for older readers.
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS media JSONB NOT NULL DEFAULT '[]'::jsonb`,
+  `ALTER TABLE open_entries ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
   `UPDATE products SET media = (
        SELECT COALESCE(jsonb_agg(jsonb_build_object('type', 'image', 'url', u) ORDER BY o), '[]'::jsonb)
        FROM (

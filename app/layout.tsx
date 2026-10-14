@@ -5,6 +5,8 @@ import { IntroGate } from "@/components/boot-cover";
 import { CartProvider } from "@/components/cart-provider";
 import { ThemedPickers } from "@/components/themed-pickers";
 import { SITE } from "@/lib/site";
+import { SEO_DESCRIPTION, SEO_KEYWORDS, SEO_TITLE, organizationLd, websiteLd } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
 
 /**
  * Three faces, three jobs: Archivo sets headlines with a wide grotesque cut,
@@ -35,18 +37,16 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: `${SITE.name} — ${SITE.tagline}`,
+    default: SEO_TITLE,
     template: `%s · ${SITE.name}`,
   },
-  description: SITE.description,
+  description: SEO_DESCRIPTION,
   applicationName: SITE.name,
-  keywords: [
-    "pickleball Kolkata",
-    "pickleball paddles India",
-    "Sparvic pickleball",
-    "pickleball coaching Kolkata",
-    "pickleball tournaments Kolkata",
-  ],
+  keywords: SEO_KEYWORDS,
+  category: "sports",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+  other: { "geo.region": "IN-WB", "geo.placename": "Kolkata" },
   icons: {
     icon: [
       { url: "/icons/icon-64.png", sizes: "64x64", type: "image/png" },
@@ -58,15 +58,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: SITE.name,
-    title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
     url: SITE.url,
+    locale: "en_IN",
     images: [{ url: "/og-sparvic.png", width: 1200, height: 630, alt: SITE.name }],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
+    title: SEO_TITLE,
+    description: SEO_DESCRIPTION,
     images: ["/og-sparvic.png"],
   },
 };
@@ -100,6 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <CartProvider>{children}</CartProvider>
         <ThemedPickers />
+        <JsonLd data={[organizationLd(), websiteLd()]} />
       </body>
     </html>
   );

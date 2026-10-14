@@ -13,8 +13,10 @@ export const OPEN = {
   venue: "TurfXL New Alipore, Kolkata",
   contactDisplay: "91631 32551",
   contactDigits: "919163132551",
-  /** The club's ceiling for this event: every player must be rated below this. */
-  maxDupr: 4.0,
+  /** The highest category band: anyone rated above it fits no category. */
+  maxDupr: 4.599,
+  /** Players who joined Sparvic before launch get this off their tournament total. */
+  earlyBirdPct: 10,
   duprAsOf: "10 October 2026",
   earlyOffer: "Participants registered before 15 October get a special offer.",
 } as const;
@@ -54,7 +56,7 @@ export const OPEN_RULES: Array<{ title: string; points: string[] }> = [
 ];
 
 export const ELIGIBILITY = [
-  { title: "Meet the threshold", body: `You and your partner must be under the DUPR band of every category you enter, as on ${OPEN.duprAsOf}. This event is for players rated below ${OPEN.maxDupr.toFixed(1)}.` },
+  { title: "Meet the threshold", body: `You and your partner must be under the DUPR band of every category you enter, as on ${OPEN.duprAsOf}. Each category's band is its limit.` },
   { title: "Checked at registration", body: "If any manipulation of DUPR is found, the player or team is disqualified." },
   { title: "Multiple accounts", body: "If a player has more than one DUPR account, the one with the higher rating counts." },
   { title: "Reliability cap 50%", body: "In a < 3.599 category, a player rated 3.6 with reliability of 50% or less is still permitted." },
@@ -66,7 +68,7 @@ export type EntryInput = { category: string; partner_name?: string; partner_phon
 /** Why a player can't enter the event at all, or null when they can. */
 export function playerBlock(p: PlayerFacts): string | null {
   if (p.dupr == null || !Number.isFinite(p.dupr)) return "Add your DUPR rating to enter: draws and eligibility run off it.";
-  if (p.dupr >= OPEN.maxDupr) return `The Sparvic Open is for players rated below ${OPEN.maxDupr.toFixed(1)} DUPR. Your rating is ${p.dupr.toFixed(2)}.`;
+  if (p.dupr > OPEN.maxDupr) return `Your DUPR ${p.dupr.toFixed(2)} is above every category band (the highest is < ${OPEN.maxDupr}).`;
   if (p.gender !== "male" && p.gender !== "female") return "Set your gender in your profile so we can offer the right categories.";
   return null;
 }
@@ -100,12 +102,14 @@ export function validateEntries(entries: EntryInput[], p: PlayerFacts, taken: Se
       if (!/^\d{10}$/.test(e.partner_phone ?? "")) return `${cat.label}: add your partner's 10-digit phone number.`;
       const d = e.partner_dupr;
       if (d == null || !Number.isFinite(d)) return `${cat.label}: add your partner's DUPR rating.`;
-      if (d >= OPEN.maxDupr) return `${cat.label}: your partner must be rated below ${OPEN.maxDupr.toFixed(1)}.`;
       if (d > cat.band) return `${cat.label}: your partner's DUPR ${d.toFixed(2)} is above this band.`;
     }
   }
   return null;
 }
+
+/** Early-bird discount in paise for a total, when the player qualifies. */
+export const earlyBirdPaise = (total: number, early: boolean) => (early ? Math.round((total * OPEN.earlyBirdPct) / 100) : 0);
 
 export const totalPaise = (ids: string[]) =>
   ids.reduce((sum, id) => sum + (OPEN_CATEGORIES.find((c) => c.id === id)?.feePaise ?? 0), 0);

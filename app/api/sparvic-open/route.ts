@@ -6,7 +6,8 @@ import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { createRazorpayOrder, isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
-import { OPEN, OPEN_CATEGORIES, totalPaise, validateEntries } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, earlyBirdPaise, totalPaise, validateEntries } from "@/lib/sparvic-open";
+import { LAUNCH_AT } from "@/lib/site";
 import { myEntries, newReference, paidCategories } from "@/lib/sparvic-open-server";
 
 export const runtime = "nodejs";
@@ -75,23 +76,28 @@ export async function POST(req: Request) {
     if (error) return NextResponse.json({ error }, { status: 400 });
 
     if (!isRazorpayEnabled) return NextResponse.json({ error: "Online payment isn't available right now. Please call us." }, { status: 503 });
-    const amount = totalPaise(entries.map((e) => e.category));
+    // Early bird: accounts created before the coming-soon countdown ended.
+    const early = Boolean(profile.created_at) && new Date(profile.created_at).getTime() < LAUNCH_AT;
+    const gross = totalPaise(entries.map((e) => e.category));
+    const discount = earlyBirdPaise(gross, early);
+    const amount = gross - discount;
     const reference = newReference();
     const order = await createRazorpayOrder({ amountPaise: amount, receipt: reference, notes: { kind: "sparvic_open", reference } });
     await queryOne(
       `INSERT INTO open_entries (reference, user_id, player_name, player_phone, player_email, player_dupr, player_dupr_id,
-         player_gender, categories, amount_paise, razorpay_order_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11) RETURNING id`,
+         player_gender, categories, amount_paise, discount_paise, razorpay_order_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12) RETURNING id`,
       [reference, session.id, profile.full_name, profile.phone, profile.email, dupr, profile.dupr_id ?? parsed.data.dupr_id ?? null,
-       profile.gender, JSON.stringify(entries), amount, order.id],
+       profile.gender, JSON.stringify(entries), amount, discount, order.id],
     );
     return NextResponse.json({
       ok: true,
       reference,
       order: { id: order.id, amount: order.amount },
       key_id: razorpayKeyId,
+      discount_paise: discount,
       prefill: { name: profile.full_name, contact: profile.phone ?? undefined, email: profile.email },
-      description: `${OPEN.name} · ${entries.length} categor${entries.length === 1 ? "y" : "ies"}`,
+      description: `${OPEN.name} · ${entries.length} categor${entries.length === 1 ? "y" : "ies"}${discount ? ` · Early bird ${OPEN.earlyBirdPct}% off applied` : ""}`,
     });
   } catch (err) {
     console.error("[sparvic-open]", err);

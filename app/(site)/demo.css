@@ -759,3 +759,24 @@
 .so-paybar{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:18px;background:#fffffff2;box-shadow:0 18px 40px -22px #193d3266}
 @media(max-width:1100px){.demo-member .so-paybar{bottom:84px}}
 @media(max-width:760px){.so-hero{padding:22px 18px;border-radius:22px}.so-hero h1{font-size:30px}.so-facts>*{font-size:12px}}
+.so-earlybird{padding:12px 16px;border-radius:14px;background:linear-gradient(120deg,#d9ef75,#f6e3a0);font-size:13px;font-weight:700;color:#193d32}
+.demo-faq{display:grid;gap:10px}@media(min-width:900px){.demo-faq{grid-template-columns:1fr 1fr}}.demo-faq summary{list-style:none}.demo-faq summary::-webkit-details-marker{display:none}.demo-faq summary:after{content:"+";float:right;font-weight:700;color:#1a563f}.demo-faq details[open] summary:after{content:"–"}
+
+/* Quote pop-up: a compact glass toast instead of a large box. */
+.demo-ui .demo-welcome[aria-label="Court inspiration"]{width:min(320px,calc(100vw - 32px));padding:16px 18px 18px;border-radius:18px;bottom:96px;animation:demo-quote-in .32s cubic-bezier(.2,.8,.2,1) both}
+.demo-ui .demo-welcome[aria-label="Court inspiration"] .demo-welcome-symbol{display:none}
+.demo-ui .demo-welcome[aria-label="Court inspiration"] .demo-nav-label{font-size:8px;margin-bottom:6px}
+.demo-ui .demo-welcome[aria-label="Court inspiration"] h2{font-size:15px!important;line-height:1.35}
+.demo-ui .demo-welcome[aria-label="Court inspiration"] p{font-size:11px!important;margin-top:4px}
+.demo-ui .demo-welcome[aria-label="Court inspiration"] .demo-welcome-actions{display:none}
+.demo-ui .demo-welcome[aria-label="Court inspiration"]:after{animation-duration:2.5s;bottom:8px}
+@keyframes demo-quote-in{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+@media(max-width:1100px){.demo-member .demo-welcome[aria-label="Court inspiration"]{bottom:150px}}
+
+.so-confirm{position:relative;padding:26px 24px;border-radius:24px;background:linear-gradient(150deg,#ffffffd9,#ffffff99),#e3f0d2;text-align:left}
+.so-confirm h1{margin-top:10px;font-family:var(--font-display);font-weight:700;font-size:clamp(26px,4vw,36px);color:#193d32}
+.so-confirm .so-kicker{background:#1a563f1a;color:#1a563f}
+.so-confirm-icon{display:grid;place-items:center;width:58px;height:58px;margin-bottom:12px;border-radius:50%;background:#1a563f;color:#fff;animation:so-pop .5s cubic-bezier(.3,1.5,.5,1)}
+.so-confirm-icon.is-pending{background:#f6e3a0;color:#7a5b00}
+.so-congrats{display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 14px;border-radius:12px;background:linear-gradient(120deg,#d9ef75,#f6e3a0);font-size:13px;font-weight:700;color:#193d32}
+@keyframes so-pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}

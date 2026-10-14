@@ -8,7 +8,7 @@ import { Alert, Spinner } from "@/components/ui";
 import { useRazorpayPreload } from "@/components/razorpay-client";
 import { payForRegistration, type PayStart } from "@/components/coaching-pay";
 import { formatPaise } from "@/lib/money";
-import { OPEN, OPEN_CATEGORIES, categoryBlock, playerBlock, totalPaise, type EntryInput } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, categoryBlock, earlyBirdPaise, playerBlock, totalPaise, type EntryInput } from "@/lib/sparvic-open";
 
 type Profile = { name: string; email: string; phone: string; gender: string | null; dupr: number | null; dupr_id: string | null };
 type Entry = { reference: string; categories: EntryInput[]; amount_paise: number; payment_status: string; created_at: string };
@@ -21,7 +21,7 @@ const label = (id: string) => OPEN_CATEGORIES.find((c) => c.id === id)?.label ??
  * the player ticks any categories they're eligible for (the total follows),
  * adds a partner for doubles, and pays on Razorpay to confirm.
  */
-export function SparvicOpenForm({ profile, entries, razorpayEnabled }: { profile: Profile; entries: Entry[]; razorpayEnabled: boolean }) {
+export function SparvicOpenForm({ profile, entries, razorpayEnabled, earlyBird = false }: { profile: Profile; entries: Entry[]; razorpayEnabled: boolean; earlyBird?: boolean }) {
   useRazorpayPreload(razorpayEnabled);
   const router = useRouter();
   const [dupr, setDupr] = useState(profile.dupr != null ? String(profile.dupr) : "");
@@ -38,7 +38,9 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled }: { profile
     () => new Set(entries.filter((e) => e.payment_status === "paid").flatMap((e) => e.categories.map((c) => c.category))),
     [entries],
   );
-  const total = totalPaise(picked);
+  const gross = totalPaise(picked);
+  const discount = earlyBirdPaise(gross, earlyBird);
+  const total = gross - discount;
 
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const setPartner = (id: string, k: keyof Partner, v: string) =>
@@ -46,13 +48,10 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled }: { profile
 
   async function pay(start: PayStart & { description?: string }) {
     const outcome = await payForRegistration(start, { kind: "sparvic_open", name: OPEN.name, description: start.description });
-    if (outcome === "paid") {
-      setDone(start.reference);
-      setPicked([]);
-      router.refresh();
-    } else if (outcome === "failed") {
-      setError("The payment didn't go through. Your entry is saved: pay from “Your entries” below.");
-      router.refresh();
+    if (outcome === "paid" || outcome === "failed") {
+      // Paid: confirmed. Failed verification: the page shows "pending" and
+      // explains, and the webhook-free recheck happens when it loads.
+      router.push(`/dashboard/sparvic-open/confirmation/${start.reference}`);
     } else {
       router.refresh();
     }
@@ -114,6 +113,10 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled }: { profile
         </div>
       )}
 
+      {earlyBird && (
+        <div className="so-earlybird">🎉 Congratulations! You joined Sparvic before launch, so you get an early-bird {OPEN.earlyBirdPct}% off your tournament total. The discounted amount is what Razorpay will charge.</div>
+      )}
+
       <section className="card p-5 sm:p-6">
         <p className="eyebrow">Your details (from your profile)</p>
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
@@ -165,7 +168,7 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled }: { profile
                         <div className="so-partner">
                           <input className="field" placeholder={c.gender === "mixed" ? "Partner's name (opposite gender)" : "Partner's name"} value={p?.name ?? ""} onChange={(e) => setPartner(c.id, "name", e.target.value)} />
                           <input className="field" inputMode="numeric" maxLength={10} placeholder="Partner's phone" value={p?.phone ?? ""} onChange={(e) => setPartner(c.id, "phone", e.target.value.replace(/\D/g, ""))} />
-                          <input className="field" inputMode="decimal" placeholder={`Partner's DUPR (under ${Math.min(c.band, OPEN.maxDupr)})`} value={p?.dupr ?? ""} onChange={(e) => setPartner(c.id, "dupr", e.target.value)} />
+                          <input className="field" inputMode="decimal" placeholder={`Partner's DUPR (under ${c.band})`} value={p?.dupr ?? ""} onChange={(e) => setPartner(c.id, "dupr", e.target.value)} />
                         </div>
                       )}
                     </div>
@@ -184,9 +187,10 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled }: { profile
           <div>
             <p className="text-[11px] uppercase tracking-[0.12em] text-ink/55">{picked.length} categor{picked.length === 1 ? "y" : "ies"}</p>
             <p className="font-display text-2xl text-ink">{formatPaise(total)}</p>
+            {discount > 0 && <p className="text-[11px] font-semibold text-volt-deep"><s className="text-ink/40">{formatPaise(gross)}</s> · Early bird −{OPEN.earlyBirdPct}%</p>}
           </div>
           <button type="button" className="btn-volt" disabled={busy || picked.length === 0 || !razorpayEnabled} onClick={submit}>
-            {busy ? <Spinner /> : <Trophy size={16} />} Pay &amp; confirm
+            {busy ? <Spinner /> : <Trophy size={16} />} Pay {picked.length ? formatPaise(total) : ""} &amp; confirm
           </button>
         </div>
       )}
