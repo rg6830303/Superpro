@@ -1,3 +1,6 @@
+import { inClubhouse } from "@/lib/booking-context";
+import { headers } from "next/headers";
+import { surfaceOfHost } from "@/lib/surface";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -83,6 +86,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   if (!profile) notFound();
 
   const isSelf = session?.id === profile.id;
+  if (session && !(await inClubhouse()) && surfaceOfHost((await headers()).get("host")) !== "main") redirect(`/dashboard/players/${handle}`);
   const badges = await listUserBadges(profile.id);
   const age = ageFrom(profile.date_of_birth);
 

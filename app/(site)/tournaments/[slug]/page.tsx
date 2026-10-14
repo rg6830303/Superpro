@@ -167,8 +167,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           {canRegister && !profile ? (
             <SignInGate
-              signedIn={Boolean(session)}
-              title={session ? "Enter from your clubhouse" : "Sign in to enter"}
+              title="Sign in to enter"
               detail="Draws are seeded off your DUPR rating and the organisers need one contact per team, so entries run through your account. Everything we already know about you is filled in for you."
               next={`/dashboard/tournaments/${t.slug}`}
             />

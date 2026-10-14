@@ -118,6 +118,8 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
   }, [card, close]);
 
   if (!card || (quiet && card.kind === "quote")) return null;
+  // On the demo the website is the guest view: the named greeting belongs to the clubhouse.
+  if (demo && card.kind === "greeting" && !pathname.startsWith("/dashboard")) return null;
 
   const go = (href: string) => {
     close();

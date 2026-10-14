@@ -1,3 +1,4 @@
+import { inClubhouse } from "@/lib/booking-context";
 import type { Metadata } from "next";
 import { CheckoutForm } from "@/components/checkout-form";
 import { isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
@@ -14,7 +15,9 @@ export const metadata: Metadata = {
 
 export default async function CheckoutPage() {
   const session = await getPlayerSession();
-  const profile = session ? await getUserRow(session.id) : null;
+  // The website checkout is a plain guest checkout; members' details and
+  // wallet are used only when checking out from the clubhouse.
+  const profile = session && (await inClubhouse()) ? await getUserRow(session.id) : null;
   return (
     <div className="wrap section">
       <p className="eyebrow">Checkout</p>

@@ -192,11 +192,10 @@ export default async function MedicalAssistancePage() {
             <DoctorBookingForm fee={DOCTOR.fee} doctorHandle={DOCTOR.handle} concerns={CONCERNS} slots={SLOTS} razorpayEnabled={isRazorpayEnabled} prefill={prefill} />
           ) : (
             <SignInGate
-              title={session ? "Book in your clubhouse" : "Sign in to book a consultation"}
+              title="Sign in to book a consultation"
               detail="Consultations are booked and paid from your member clubhouse, where your appointment and receipt stay."
               next="/dashboard/medical"
-              signedIn={Boolean(session)}
-            />
+              />
           )}
         </div>
       </section>

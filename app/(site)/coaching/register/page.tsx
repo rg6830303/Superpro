@@ -54,11 +54,10 @@ export default async function CoachingRegisterPage() {
           <CoachingRegisterForm prefill={prefill} razorpayEnabled={isRazorpayEnabled} />
         ) : (
           <SignInGate
-            title={session ? "Register in your clubhouse" : "Sign in to register"}
+            title="Sign in to register"
             detail="Batch registration and payment happen in your member clubhouse, so your group, schedule and receipts stay together."
             next="/dashboard/coaching/register"
-            signedIn={Boolean(session)}
-          />
+            />
         )}
       </div>
     </div>

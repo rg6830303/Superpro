@@ -64,11 +64,10 @@ export default async function GamesPage() {
             <SlotSchedule sessions={sessions} />
             <div className="lg:sticky lg:top-24">
               <SignInGate
-                title={session ? "Book in your clubhouse" : "Sign in to book"}
+                title="Sign in to book"
                 detail="Slots are booked from your member clubhouse, so your name, rating, wallet and bookings stay in one place."
                 next="/dashboard/play"
-                signedIn={Boolean(session)}
-              />
+                />
             </div>
           </div>
         )}

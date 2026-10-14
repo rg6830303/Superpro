@@ -102,7 +102,6 @@ export default async function CoachingPage() {
               availability={availability}
               razorpayEnabled={isRazorpayEnabled}
               razorpayKeyId={razorpayKeyId}
-              signedIn={Boolean(session)}
               player={
                 profile
                   ? { name: profile.full_name, phone: profile.phone ?? "", email: profile.email, skill: profile.skill_level }
