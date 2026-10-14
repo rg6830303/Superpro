@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { surfaceOfHost } from "@/lib/surface";
 import { ArrowRight, CalendarDays, MapPin } from "lucide-react";
 import { Avatar, PlayerDirectory, type DirectoryPlayer, type FollowCounts } from "@/components/player-directory";
 import { getPlayerSession } from "@/lib/auth";
@@ -38,6 +41,9 @@ export default async function CommunityPage() {
   await ensureSchema();
   const session = await getPlayerSession();
   const me = session?.id ?? null;
+  // On the demo, members discover players inside their clubhouse; the website
+  // stays the same guest page for everyone.
+  if (session && surfaceOfHost((await headers()).get("host")) !== "main") redirect("/dashboard/community");
 
   const [players, onCourt, summary] = await Promise.all([
     query<DirectoryPlayer>(

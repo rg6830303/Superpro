@@ -1,3 +1,4 @@
+import { getLeaderboard } from "@/lib/leaderboard";
 import { listUserBadges } from "@/lib/badges-server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -18,7 +19,6 @@ import {
   type EntryRow,
   type OrderRow,
   type TabKey,
-  type RankRow,
 } from "@/components/dashboard-view";
 
 export async function renderDashboard(tab: TabKey) {
@@ -88,25 +88,7 @@ export async function renderDashboard(tab: TabKey) {
     `SELECT count(*)::int AS n FROM follows WHERE following_id = $1`,
     [session.id],
   ).catch(() => [{ n: 0 }]);
-  // Community standings: players ordered by DUPR (unrated last), then by games
-  // played. Only public directory columns leave the database.
-  const standings = tab === "rankings" || tab === "overview" || tab === "profile"
-    ? await query<RankRow>(
-        `WITH played AS (
-           SELECT r.user_id, COUNT(*)::int AS games
-           FROM game_registrations r JOIN game_sessions s ON s.id = r.session_id
-           WHERE r.status = 'confirmed'
-             AND ((s.session_date + s.start_time::time) AT TIME ZONE 'Asia/Kolkata') <= now()
-           GROUP BY r.user_id)
-         SELECT u.id, u.handle, u.full_name, u.avatar_url, u.skill_level, u.dupr,
-                COALESCE(p.games, 0)::int AS games,
-                (SELECT COUNT(*) FROM follows f WHERE f.following_id = u.id)::int AS followers,
-                ROW_NUMBER() OVER (ORDER BY u.dupr DESC NULLS LAST, COALESCE(p.games, 0) DESC, u.full_name)::int AS rank
-         FROM users u LEFT JOIN played p ON p.user_id = u.id
-         WHERE COALESCE(u.role, 'player') = 'player' AND (u.handle IS NOT NULL OR u.id = $1)`,
-        [session.id],
-      ).catch(() => [] as RankRow[])
-    : [];
+  const standings = tab === "rankings" || tab === "profile" || tab === "overview" ? await getLeaderboard(session.id) : [];
 
   const [profile, walletTx, notifications, unreadCount, badges] = await Promise.all([
     getUserRow(session.id),

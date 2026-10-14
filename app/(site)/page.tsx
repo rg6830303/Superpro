@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { DemoHomeHero } from "@/components/demo-home-hero";
-import { getPlayerSession } from "@/lib/auth";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, CalendarDays, GraduationCap, MapPin, ShoppingBag, Trophy, Users } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
@@ -23,7 +22,6 @@ import { PRODUCT_CATEGORIES, SITE } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const player = await getPlayerSession();
   const [featured, sessions, tournaments, coaches, announcements, community] = await Promise.all([
     getFeaturedProducts(5),
     getWeekSessions(7),
@@ -47,7 +45,7 @@ export default async function HomePage() {
       {/* ── Hero ───────────────────────────────────────────────────────────
           Asymmetric on purpose: the claim sits left, the object right, so the
           eye lands on the sentence before the product. ──────────────────── */}
-      <DemoHomeHero name={player?.name} slots={live.length} players={community.players} faces={community.faces} />
+      <DemoHomeHero slots={live.length} players={community.players} faces={community.faces} />
 
       <section className="wrap section-tight demo-paddle-studio">
         <div><p className="eyebrow">CHAMPION SERIES · MADE FOR YOUR GAME</p><h2 className="headline-section mt-3">A feel for the real thing.</h2><p className="lede mt-4">Take the T700 for a spin. Explore the paddle, then find your next court companion.</p><Link href="/products" className="btn-outline mt-6">Explore the collection <ArrowUpRight size={16} /></Link></div>

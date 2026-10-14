@@ -12,8 +12,8 @@ export const PROGRAM = {
   minGroupSize: 3,
   phoneDisplay: "+91 91631 32551",
   phoneDigits: "919163132551",
-  instagram: "https://www.instagram.com/superprosports_official/",
-  instagramHandle: "superprosports_official",
+  instagram: "https://www.instagram.com/sparvic_official/",
+  instagramHandle: "sparvic_official",
 } as const;
 
 export const COACH = {

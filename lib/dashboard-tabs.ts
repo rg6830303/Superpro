@@ -7,7 +7,7 @@ export const TAB_TITLES: Record<TabKey, string> = {
   overview: "My clubhouse",
   bookings: "My bookings",
   community: "Community",
-  rankings: "Rankings",
+  rankings: "Leaderboard",
   activity: "Activity",
   wallet: "Wallet",
   profile: "My profile",

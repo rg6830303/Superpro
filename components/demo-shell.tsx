@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Bell, CalendarCheck, CalendarDays, Compass, LayoutDashboard, Medal, GraduationCap, HeartPulse, Home, Menu, ShoppingBag, Trophy, UserRound, Users, Wallet, X } from "lucide-react";
 import { BrowserNotifier } from "@/components/browser-notifier";
+import { LiveLeaderboard } from "@/components/live-leaderboard";
+import { LogoutButton } from "@/components/logout-button";
 import { Logo } from "@/components/logo";
 import { useCart } from "@/components/cart-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -29,7 +31,7 @@ const memberLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/bookings", label: "My bookings", icon: CalendarCheck },
   { href: "/dashboard/community", label: "Community", icon: Compass },
-  { href: "/dashboard/rankings", label: "Rankings", icon: Medal },
+  { href: "/dashboard/rankings", label: "Leaderboard", icon: Medal },
   { href: "/dashboard/activity", label: "Activity", icon: Bell },
   { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
   { href: "/dashboard/profile", label: "My profile", icon: UserRound },
@@ -52,7 +54,7 @@ const clubhouseTabs = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/dashboard/community", label: "Community", icon: Users },
-  { href: "/dashboard/rankings", label: "Rankings", icon: Medal },
+  { href: "/dashboard/rankings", label: "Leaderboard", icon: Medal },
   { href: "/dashboard/profile", label: "You", icon: UserRound },
 ];
 
@@ -75,6 +77,25 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
   const section = pathname.split("/")[1];
   const sectionNote = clubhouse ? undefined : sectionNotes[section];
   useEffect(() => setOpen(false), [pathname]);
+  // App-style navigation: a thin progress bar while the next page loads, and a
+  // direction hint (forward / back) so pages slide in from the right side.
+  const [navigating, setNavigating] = useState(false);
+  useEffect(() => { setNavigating(false); }, [pathname]);
+  useEffect(() => {
+    const root = document.documentElement;
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a || a.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || url.pathname === location.pathname) return;
+      root.dataset.nav = "forward";
+      setNavigating(true);
+    };
+    const onPop = () => { root.dataset.nav = "back"; };
+    document.addEventListener("click", onClick);
+    window.addEventListener("popstate", onPop);
+    return () => { document.removeEventListener("click", onClick); window.removeEventListener("popstate", onPop); };
+  }, []);
   // Crossing between the two interfaces gets its own short transition:
   // into the clubhouse (after signing in, or from the website) and back out.
   const [transition, setTransition] = useState<"enter" | "leave" | null>(null);
@@ -96,10 +117,12 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
   const active = (href: string) => href === "/" || href === "/dashboard" ? pathname === href : pathname.startsWith(href);
   const item = ({ href, label, icon: Icon }: (typeof links)[number]) => <Link key={href} href={href} onClick={() => setOpen(false)} aria-current={active(href) ? "page" : undefined}><Icon size={19} /><span>{label}</span>{href === "/dashboard/activity" && unread > 0 ? <b className="demo-badge-inline">{unread > 9 ? "9+" : unread}</b> : active(href) && <span className="demo-nav-dot" />}</Link>;
   const nav = (mobile = false) => clubhouse
-    ? <nav aria-label={mobile ? "Clubhouse menu" : "Your clubhouse"}><p className="demo-nav-label">YOUR CLUBHOUSE</p>{memberLinks.map(item)}<div className="demo-nav-divider" /><Link href="/" onClick={() => setOpen(false)}><ArrowLeft size={19} /><span>Visit the website</span></Link></nav>
+    ? <nav aria-label={mobile ? "Clubhouse menu" : "Your clubhouse"}><p className="demo-nav-label">YOUR CLUBHOUSE</p>{memberLinks.map(item)}<div className="demo-nav-divider" /><Link href="/" onClick={() => setOpen(false)}><ArrowLeft size={19} /><span>Visit the website</span></Link><LogoutButton className="demo-nav-signout" /></nav>
     : <nav aria-label={mobile ? "All sections" : "Main navigation"}>{links.map(item)}<div className="demo-nav-divider" /><Link href="/about" onClick={() => setOpen(false)}><ArrowUpRight size={19} />The Sparvic story</Link></nav>;
   return <div data-demo-page={section || "home"} className={`demo-ui ${clubhouse ? "demo-member demo-clubhouse" : "demo-guest"}`}>
     <ReadProgress />
+    {navigating && <div className="demo-nav-progress" aria-hidden="true" />}
+    {sectionNote && <div key={pathname} className={`demo-section-toast demo-ribbon-${section}`} role="status"><span>{sectionNote.label}</span><p>{sectionNote.note}</p></div>}
     {signedIn && <BrowserNotifier onUnread={setUnread} />}
     {transition === "enter" && <div className="demo-enter" aria-live="polite"><div className="demo-enter-card"><Logo height={46} href={null} /><p className="demo-nav-label">WELCOME TO YOUR CLUBHOUSE</p><h2>Hey {playerName?.split(" ")[0]}, let’s play.</h2><span className="demo-enter-bar" /></div></div>}
     {transition === "leave" && <div className="demo-leave" aria-live="polite"><span className="demo-leave-wipe" /><div className="demo-leave-card"><Logo height={40} href={null} /><p className="demo-nav-label">LEAVING THE CLUBHOUSE</p><h2>Off to the club website.</h2><span className="demo-leave-court" aria-hidden="true" /></div></div>}
@@ -116,6 +139,14 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
       <span className="demo-ball demo-ball-3" />
       <span className="demo-ball demo-ball-4" />
       <span className="demo-ball demo-ball-5" />
+      <span className="demo-ball demo-ball-6" />
+      <span className="demo-ball demo-ball-7" />
+      <span className="demo-ball demo-ball-8" />
+      <span className="demo-paddle demo-paddle-1" />
+      <span className="demo-paddle demo-paddle-2" />
+      <span className="demo-paddle demo-paddle-3" />
+      <span className="demo-paddle demo-paddle-4" />
+      <span className="demo-paddle demo-paddle-5" />
     </div>
     <a className="demo-skip" href="#main-content">Skip to content</a>
     <header className="demo-header">
@@ -132,8 +163,8 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
         <button ref={toggle} className="demo-menu-button" onClick={() => setOpen(true)} aria-label={clubhouse ? "Open clubhouse menu" : "Open all sections"} aria-expanded={open}><Menu size={21} /></button>
       </div>
     </header>
-    {clubhouse && <aside className="demo-sidebar">{nav()}<div className="demo-sidebar-note"><span>MAKE TIME<br />FOR PLAY.</span><p>Your next good day starts on court.</p><Link href="/games">Book a game <ArrowUpRight size={16} /></Link></div></aside>}
-    <div className="demo-body"><main id="main-content" tabIndex={-1}>{sectionNote && <div className={`demo-section-ribbon demo-ribbon-${section}`}><span>{sectionNote.label}</span><p>{sectionNote.note}</p><span className="demo-ribbon-court" aria-hidden="true" /></div>}{children}</main>{clubhouse ? <footer className="demo-member-footer"><Logo height={25} href={null} /><span>© {new Date().getFullYear()} {SITE.legalName}</span><Link href="/">Website</Link><Link href="/about">Our story</Link><a href={`mailto:${SITE.email}`}>Contact the club</a></footer> : <SiteFooter surface="demo" />}</div>
+    {clubhouse && <aside className="demo-sidebar">{nav()}<div className="demo-sidebar-board"><div className="demo-sidebar-board-head"><p className="demo-nav-label">LEADERBOARD</p><Link href="/dashboard/rankings">All</Link></div><LiveLeaderboard meId={null} limit={5} variant="mini" /></div></aside>}
+    <div className="demo-body"><main id="main-content" tabIndex={-1}>{children}</main>{clubhouse ? <footer className="demo-member-footer"><Logo height={25} href={null} /><span>© {new Date().getFullYear()} {SITE.legalName}</span><Link href="/">Website</Link><Link href="/about">Our story</Link><a href={`mailto:${SITE.email}`}>Contact the club</a></footer> : <SiteFooter surface="demo" />}</div>
     <dialog ref={dialog} aria-label={clubhouse ? "Clubhouse menu" : "All sections"} className="demo-drawer" onCancel={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}><div className="demo-drawer-head"><Logo height={38} href={null} /><button className="demo-icon-button" onClick={() => setOpen(false)} aria-label="Close menu"><X size={22} /></button></div>{nav(true)}<Link className="btn-volt mt-6 w-full" href={clubhouse ? "/games" : signedIn ? "/dashboard" : "/signup"} onClick={() => setOpen(false)}>{clubhouse ? "Book a game" : signedIn ? "My clubhouse" : "Join the club"}<ArrowUpRight size={17} /></Link><div className="demo-drawer-support"><p>Need a hand? Ask the caddy or talk to the club.</p><FloatingActions /></div></dialog>
     {clubhouse && <nav className="demo-bottom-nav" aria-label="Clubhouse sections">{clubhouseTabs.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={active(href) ? "page" : undefined}><Icon size={20} /><span>{label}</span></Link>)}</nav>}
     <div className="demo-support"><FloatingActions /></div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Heart, Play, Instagram, MessageCircle, Search, UserPlus, Users } from "lucide-react";
+import { ArrowRight, Heart, Play, Search, UserPlus, Users } from "lucide-react";
+import { WhatsAppIcon, InstagramIcon } from "@/components/brand-icons";
 import { getPlayerSession } from "@/lib/auth";
 import { queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
@@ -208,7 +209,7 @@ export default async function LaunchPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 hover:text-white"
           >
-            <MessageCircle size={12} /> WhatsApp
+            <WhatsAppIcon size={12} /> WhatsApp
           </a>
           <a
             href={SITE.instagram}
@@ -216,7 +217,7 @@ export default async function LaunchPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 hover:text-white"
           >
-            <Instagram size={12} /> Instagram
+            <InstagramIcon size={12} /> Instagram
           </a>
         </div>
       </footer>

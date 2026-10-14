@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { BadgeChip } from "@/components/badge-chip";
+import { LiveLeaderboard } from "@/components/live-leaderboard";
 import { BrowserNotifyToggle } from "@/components/browser-notifier";
 import type { UserBadge } from "@/lib/badges";
 import { EmptyState } from "@/components/ui";
@@ -288,13 +289,12 @@ export function DashboardView({
           <div className="grid min-w-0 gap-5 lg:grid-cols-2">
             <section className="card p-6">
               <div className="flex items-center justify-between gap-3">
-                <p className="eyebrow">Club standings</p>
+                <p className="eyebrow">Leaderboard</p>
                 <Link href={tabHref("rankings")} className="text-xs font-semibold text-volt-deep hover:underline">
-                  Full table
+                  Full leaderboard
                 </Link>
               </div>
-              <RankList rows={standings.slice(0, 5)} meId={session.id} />
-              {me && me.rank > 5 && <RankList rows={[me]} meId={session.id} />}
+              <LiveLeaderboard initialRows={standings} meId={session.id} limit={5} variant="full" />
             </section>
             <section className="card flex flex-col p-6">
               <p className="eyebrow">Your people</p>
@@ -318,14 +318,13 @@ export function DashboardView({
 
       {activeTab === "community" && (
         <div className="mt-8">
-          <SectionHead eyebrow="Discover" title="Find your people" sub="Search by name, handle or city, filter by level, and follow the players you want to rally with." />
           <PlayerDirectory initial={[]} signedIn fixedView="all" />
         </div>
       )}
 
       {activeTab === "rankings" && (
         <div className="mt-8 space-y-6">
-          <SectionHead eyebrow="Rankings" title="Club standings" sub="Ordered by DUPR rating, then games played. Add your DUPR in your profile to climb the table." />
+          <SectionHead eyebrow="Leaderboard" title="Club leaderboard" sub="Live: ordered by DUPR rating, then games played, and refreshed every few seconds. Add your DUPR in your profile to climb." />
           {me && (
             <div className="demo-rank-me card p-5">
               <div>
@@ -348,7 +347,7 @@ export function DashboardView({
             </div>
           )}
           <section className="card p-4 sm:p-6">
-            <RankList rows={standings.slice(0, 50)} meId={session.id} />
+            <LiveLeaderboard initialRows={standings} meId={session.id} limit={50} />
           </section>
         </div>
       )}
@@ -607,37 +606,6 @@ function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; 
       <h2 className="mt-2 headline-page">{title}</h2>
       <p className="mt-2 max-w-2xl text-sm text-ink/65">{sub}</p>
     </div>
-  );
-}
-
-function RankList({ rows, meId }: { rows: RankRow[]; meId: string }) {
-  if (rows.length === 0) return <p className="mt-4 text-sm text-ink/55">Standings appear once players join.</p>;
-  return (
-    <ol className="demo-rank-list">
-      {rows.map((r) => {
-        const inner = (
-          <>
-            <span className="demo-rank-pos">{r.rank}</span>
-            <Avatar name={r.full_name} src={r.avatar_url} size="sm" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-ink">
-                {r.full_name}
-                {r.id === meId ? " (you)" : ""}
-              </span>
-              <span className="block text-[11px] capitalize text-ink/55">
-                {LEVEL_LABEL[r.skill_level] ?? r.skill_level} · {r.games} games
-              </span>
-            </span>
-            <span className="font-mono text-sm font-bold text-ink">{r.dupr != null ? Number(r.dupr).toFixed(2) : "—"}</span>
-          </>
-        );
-        return (
-          <li key={r.id} className={r.id === meId ? "is-me" : undefined}>
-            {r.handle && r.id !== meId ? <Link href={`/players/${r.handle}`}>{inner}</Link> : <div>{inner}</div>}
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 

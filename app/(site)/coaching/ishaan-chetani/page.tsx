@@ -7,14 +7,13 @@ import {
   Check,
   Crosshair,
   GraduationCap,
-  Instagram,
   MapPin,
-  MessageCircle,
   Phone,
   Trophy,
   TrendingUp,
   Users,
 } from "lucide-react";
+import { WhatsAppIcon, InstagramIcon } from "@/components/brand-icons";
 import { Reveal } from "@/components/motion";
 import { COACH, CURRICULUM, HIGHLIGHTS, PROGRAM, VENUES, currentBatch, formatRupees } from "@/lib/coaching-program";
 import { waLink } from "@/lib/site";
@@ -232,10 +231,10 @@ export default function IshaanChetaniPage() {
                 Register now <ArrowRight size={16} />
               </Link>
               <a href={waLink(`Hi! I'd like to join ${PROGRAM.name} coaching.`, PROGRAM.phoneDigits)} target="_blank" rel="noopener noreferrer" className="btn-outline">
-                <MessageCircle size={16} /> WhatsApp
+                <WhatsAppIcon size={16} /> WhatsApp
               </a>
               <a href={PROGRAM.instagram} target="_blank" rel="noopener noreferrer" className="btn-outline">
-                <Instagram size={16} /> @{PROGRAM.instagramHandle}
+                <InstagramIcon size={16} /> @{PROGRAM.instagramHandle}
               </a>
             </div>
           </div>

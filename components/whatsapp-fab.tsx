@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { X } from "lucide-react";
+import { WhatsAppIcon } from "@/components/brand-icons";
 import { waLink, WHATSAPP_GROUP_URL, WHATSAPP_NUMBER } from "@/lib/site";
 
 const QUICK_ASKS = [
@@ -64,7 +65,7 @@ export function WhatsAppFab() {
         aria-label={open ? "Close WhatsApp menu" : "Chat with a Sparvic representative"}
         className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-paper shadow-lift transition-[transform,background-color] duration-200 ease-out hover:bg-ink-700 active:translate-y-px"
       >
-        {open ? <X size={23} /> : <MessageCircle size={25} />}
+        {open ? <X size={23} /> : <WhatsAppIcon size={27} />}
       </button>
     </div>
   );

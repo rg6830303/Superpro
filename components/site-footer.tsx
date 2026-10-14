@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Instagram, Mail, MapPin, MessageCircle } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
+import { WhatsAppIcon, InstagramIcon } from "@/components/brand-icons";
 import { Logo } from "@/components/logo";
 import type { Surface } from "@/lib/surface";
 import { SITE, WHATSAPP_GROUP_URL, WHATSAPP_NUMBER, waLink } from "@/lib/site";
@@ -76,7 +77,7 @@ export function SiteFooter({ surface = "full" }: { surface?: Surface }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-pill border border-paper/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-paper/70 transition-colors hover:border-volt hover:text-volt"
             >
-              <MessageCircle size={12} /> WhatsApp
+              <WhatsAppIcon size={12} /> WhatsApp
             </a>
             <a
               href={SITE.instagram}
@@ -84,7 +85,7 @@ export function SiteFooter({ surface = "full" }: { surface?: Surface }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-pill border border-paper/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-paper/70 transition-colors hover:border-volt hover:text-volt"
             >
-              <Instagram size={12} /> Instagram
+              <InstagramIcon size={12} /> Instagram
             </a>
           </div>
         </div>

@@ -503,7 +503,7 @@
 
 /* Popups: glass, not a white box. */
 .demo-ui .demo-welcome{background:linear-gradient(150deg,#f4f9e8e6,#fdf3e3d9);border:0;backdrop-filter:blur(18px)}
-.demo-ui .demo-welcome:after{content:"";position:absolute;left:26px;right:26px;bottom:12px;height:3px;border-radius:3px;background:#1a563f33;transform-origin:left;animation:demo-quote-timer 3s linear forwards}
+.demo-ui .demo-welcome:after{content:"";position:absolute;left:26px;right:26px;bottom:12px;height:3px;border-radius:3px;background:#1a563f33;transform-origin:left;animation:demo-quote-timer 2s linear forwards}
 .demo-ui .demo-welcome[aria-label="Welcome to the club"]:after{display:none}
 @keyframes demo-quote-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .demo-account-cta{background:#d9ef75!important;color:#193d32}
@@ -572,3 +572,113 @@
 .demo-guest .demo-header{animation:demo-header-in .5s cubic-bezier(.2,.8,.2,1) both}
 @keyframes demo-header-in{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.demo-leave-wipe,.demo-leave-card,.demo-leave-court,.demo-guest .demo-header{animation:none}.demo-leave{animation:demo-enter-fade 1.2s ease forwards}.demo-leave-wipe{transform:none}}
+
+/* Clubhouse sidebar: sign out, and a live mini leaderboard. */
+.demo-ui .demo-nav-signout{min-height:46px;padding:12px 14px;display:flex;align-items:center;gap:12px;font-size:12px;font-weight:600;border-radius:12px;color:#a2412f;background:transparent;width:100%;text-align:left}
+.demo-ui .demo-nav-signout:hover{background:#f6e1e2a6}
+.demo-sidebar-board{margin:20px 6px 8px;padding:14px 10px 10px;border-radius:18px;background:linear-gradient(160deg,#ffffff8c,#ffffff33),#e8e0f6b3}
+.demo-sidebar-board-head{display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.demo-sidebar-board-head .demo-nav-label{margin:0}
+.demo-sidebar-board-head a{font-size:11px;font-weight:700;color:#1a563f}
+/* Live board */
+.demo-live-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:700 10px var(--font-mono,monospace);letter-spacing:.1em;text-transform:uppercase;color:#1a563f}
+.demo-live-status span:not(.demo-live-pulse){font-weight:500;letter-spacing:.02em;text-transform:none;color:#193d3280}
+.demo-live-pulse{width:8px;height:8px;border-radius:50%;background:#e2483d;box-shadow:0 0 0 0 #e2483d80;animation:demo-live-pulse 1.6s ease-out infinite}
+@keyframes demo-live-pulse{to{box-shadow:0 0 0 8px #e2483d00}}
+.demo-live-mini .demo-live-status{padding:6px 6px 0}
+.demo-live-mini .demo-rank-list{margin-top:6px;gap:2px}
+.demo-live-mini .demo-rank-list li>*{padding:7px 6px;gap:8px}
+.demo-live-mini .demo-rank-pos{width:18px;font-size:11px}
+.demo-live-mini .font-mono.text-sm{font-size:11px}
+.demo-rank-move{display:inline-flex;align-items:center;gap:1px;padding:2px 6px;border-radius:999px;font:700 10px var(--font-mono,monospace)}
+.demo-rank-move.is-up{background:#d9ef75;color:#1a563f}
+.demo-rank-move.is-down{background:#f6d5d0;color:#a2412f}
+.demo-rank-list li.moved-up>*{animation:demo-rank-flash-up 2.4s ease}
+.demo-rank-list li.moved-down>*{animation:demo-rank-flash-down 2.4s ease}
+@keyframes demo-rank-flash-up{0%,40%{background:#d9ef7580}}
+@keyframes demo-rank-flash-down{0%,40%{background:#f6d5d080}}
+.demo-rank-gap{text-align:center;color:#193d3266;letter-spacing:.3em;line-height:1}
+@media(prefers-reduced-motion:reduce){.demo-live-pulse,.demo-rank-list li>*{animation:none!important}}
+/* The sidebar holds nav + board; let it scroll on short screens. */
+@media(min-width:1101px){.demo-sidebar{display:flex;flex-direction:column}}
+
+/* ── Section toast (replaces the section quote box) ───────────────────────── */
+.demo-section-toast{position:fixed;z-index:60;top:100px;left:50%;display:grid;gap:2px;max-width:min(420px,calc(100vw - 32px));padding:10px 16px;border-radius:14px;background:var(--section-wash,#e6eee0);background-image:linear-gradient(150deg,#ffffffa6,#ffffff26);backdrop-filter:blur(14px);box-shadow:0 14px 34px -18px #193d3266;pointer-events:none;transform:translate(-50%,-12px);opacity:0;animation:demo-toast 2s cubic-bezier(.2,.8,.2,1) forwards}
+.demo-section-toast span{font:700 9px var(--font-mono,monospace);letter-spacing:.16em;color:#193d32a6}
+.demo-section-toast p{font-size:12px;font-weight:600;color:#193d32}
+@keyframes demo-toast{0%{opacity:0;transform:translate(-50%,-12px) scale(.96)}14%,80%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-8px) scale(.98);visibility:hidden}}
+@media(max-width:760px){.demo-section-toast{top:76px}}
+
+/* ── Background, more defined: crisper court, more balls, drifting paddles ── */
+.demo-court-grid{opacity:.85;background-image:linear-gradient(#ffffffd9 2px,transparent 2px),linear-gradient(90deg,#ffffffd9 2px,transparent 2px),linear-gradient(#93b27a40 1px,transparent 1px),linear-gradient(90deg,#93b27a40 1px,transparent 1px)}
+.demo-blob{filter:blur(52px);opacity:.62}
+.demo-ball{opacity:.85;box-shadow:inset -3px -4px 0 #93ab2a55}
+.demo-ball-6{left:40%;width:20px;height:20px;animation-duration:30s;animation-delay:-5s}
+.demo-ball-7{left:68%;width:24px;height:24px;animation-duration:26s;animation-delay:-19s}
+.demo-ball-8{left:16%;width:28px;height:28px;animation-duration:33s;animation-delay:-27s}
+.demo-paddle{position:absolute;width:74px;height:118px;opacity:.5;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 96'%3E%3Crect x='4' y='2' width='52' height='60' rx='22' fill='%231a563f' stroke='%23d9ef75' stroke-width='3'/%3E%3Cpath d='M18 18c8-6 16-6 24 0' stroke='%23ffffff55' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Crect x='24' y='60' width='12' height='32' rx='5' fill='%23193d32'/%3E%3Cpath d='M24 68h12M24 75h12M24 82h12' stroke='%23d9ef75' stroke-width='1.6'/%3E%3C/svg%3E");will-change:transform;animation:demo-paddle-drift 38s ease-in-out infinite alternate}
+.demo-paddle-1{left:6%;top:18%;--r:-24deg}
+.demo-paddle-2{right:7%;top:30%;--r:28deg;animation-duration:44s;animation-delay:-12s;width:60px;height:96px}
+.demo-paddle-3{left:44%;top:66%;--r:-60deg;animation-duration:50s;animation-delay:-20s;width:56px;height:90px;opacity:.38}
+.demo-paddle-4{right:24%;top:6%;--r:12deg;animation-duration:41s;animation-delay:-30s;width:48px;height:78px;opacity:.36}
+.demo-paddle-5{left:22%;top:84%;--r:40deg;animation-duration:47s;animation-delay:-8s;width:64px;height:102px;opacity:.42}
+@keyframes demo-paddle-drift{0%{transform:translate(0,0) rotate(var(--r))}50%{transform:translate(26px,-34px) rotate(calc(var(--r) + 14deg))}100%{transform:translate(-18px,22px) rotate(calc(var(--r) - 10deg))}}
+@media(max-width:760px){.demo-paddle{width:46px;height:74px;opacity:.4}.demo-paddle-3,.demo-paddle-4{display:none}.demo-ball-6{display:none}}
+@media(prefers-reduced-motion:reduce){.demo-paddle{animation:none}}
+
+/* ── App-style navigation ─────────────────────────────────────────────────── */
+.demo-nav-progress{position:fixed;top:0;left:0;right:0;z-index:300;height:3px;background:linear-gradient(90deg,#1a563f,#d9ef75);transform-origin:left;animation:demo-nav-progress 1.6s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes demo-nav-progress{from{transform:scaleX(0)}to{transform:scaleX(.85)}}
+/* Pages slide in from the direction you're going, with depth. */
+.demo-ui .route-shell{animation:demo-page-forward .48s cubic-bezier(.22,.9,.24,1) both}
+:root[data-nav="back"] .demo-ui .route-shell{animation-name:demo-page-back}
+@keyframes demo-page-forward{from{opacity:0;transform:translate3d(36px,0,0) scale(.985);filter:blur(5px)}to{opacity:1;transform:none;filter:none}}
+@keyframes demo-page-back{from{opacity:0;transform:translate3d(-36px,0,0) scale(.985);filter:blur(5px)}to{opacity:1;transform:none;filter:none}}
+/* Content inside each page arrives in a quick cascade. */
+.demo-ui .route-shell :is(.card,.card-hover,.tile,.demo-player-card,.demo-rank-list li,.demo-note-list li){animation:demo-rise .55s cubic-bezier(.2,.8,.2,1) both}
+.demo-ui .route-shell :is(.card,.card-hover,.tile,.demo-player-card):nth-child(2){animation-delay:.05s}
+.demo-ui .route-shell :is(.card,.card-hover,.tile,.demo-player-card):nth-child(3){animation-delay:.1s}
+.demo-ui .route-shell :is(.card,.card-hover,.tile,.demo-player-card):nth-child(4){animation-delay:.15s}
+.demo-ui .route-shell :is(.card,.card-hover,.tile,.demo-player-card):nth-child(n+5){animation-delay:.2s}
+/* Tap feedback, like a native app. */
+.demo-ui :is(a,button){-webkit-tap-highlight-color:transparent}
+.demo-ui :is(.btn-primary,.btn-volt,.btn-outline,.btn-ghost,.demo-icon-button,.demo-menu-button,.demo-account,.demo-passport-btn,.demo-pill-row button,.chip,.tile,.card-hover,.demo-stat-tap,.demo-bottom-nav a,.demo-sidebar nav a,.demo-drawer nav a,.demo-account-tabs a){transition:transform .16s cubic-bezier(.2,.8,.2,1),background-color .2s,box-shadow .2s}
+.demo-ui :is(.btn-primary,.btn-volt,.btn-outline,.btn-ghost,.demo-icon-button,.demo-menu-button,.demo-account,.demo-passport-btn,.demo-pill-row button,.chip,.tile,.card-hover,.demo-stat-tap,.demo-bottom-nav a,.demo-sidebar nav a,.demo-drawer nav a,.demo-account-tabs a):active{transform:scale(.96)}
+/* The active tab's icon pops when you switch. */
+.demo-bottom-nav a[aria-current] svg,.demo-sidebar nav a[aria-current] svg{animation:demo-tab-pop .42s cubic-bezier(.3,1.6,.5,1)}
+@keyframes demo-tab-pop{0%{transform:scale(.7)}100%{transform:scale(1)}}
+/* Drawer slides in like a native sheet. */
+.demo-drawer[open]{animation:demo-drawer-in .34s cubic-bezier(.22,.9,.24,1)}
+@keyframes demo-drawer-in{from{transform:translateX(100%)}to{transform:none}}
+.demo-drawer[open] nav a{animation:demo-rise .4s cubic-bezier(.2,.8,.2,1) both}
+.demo-drawer[open] nav a:nth-child(n+3){animation-delay:.04s}
+.demo-drawer[open] nav a:nth-child(n+5){animation-delay:.08s}
+.demo-drawer[open] nav a:nth-child(n+7){animation-delay:.12s}
+@media(prefers-reduced-motion:reduce){.demo-nav-progress,.demo-ui .route-shell,.demo-ui .route-shell *,.demo-drawer[open],.demo-drawer[open] nav a,.demo-bottom-nav a svg,.demo-sidebar nav a svg{animation:none!important}.demo-ui :is(a,button):active{transform:none!important}}
+
+/* ── Phones: calmer scale ─────────────────────────────────────────────────── */
+@media(max-width:760px){
+  .demo-ui{font-size:14px}
+  .demo-header{height:64px;padding-inline:16px}
+  .demo-ui :is(.demo-icon-button,.demo-menu-button){width:40px;height:40px;border-radius:11px}
+  .demo-account{padding:10px 12px;font-size:11px}
+  .demo-ui :is(.btn-primary,.btn-volt,.btn-outline,.btn-ghost){min-height:42px;font-size:12.5px;padding-inline:16px}
+  .demo-ui :is(.headline-page,h1.headline-page,h2.headline-page){font-size:28px;line-height:1.1}
+  .demo-ui :is(.headline-section,h2.text-3xl,h2.text-4xl){font-size:22px}
+  .demo-ui :is(.lede,p.text-lg){font-size:13.5px;line-height:1.6}
+  .demo-ui .eyebrow{font-size:10px}
+  .demo-hero h1,.demo-member .demo-hero h1{font-size:clamp(32px,9vw,40px)!important;margin-top:12px}
+  .demo-hero-copy{padding:24px 20px!important}
+  .demo-hero-copy>p:not(.demo-overline){font-size:13px!important;margin-top:14px!important}
+  .demo-ui .section{padding-block:22px 32px}
+  .demo-ui .card{border-radius:18px}
+  .demo-ui :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea){min-height:42px}
+  .demo-player-id h1,.demo-overview-head h1{font-size:24px}
+  .demo-stat-value{font-size:16px}
+  .demo-player-stats .demo-stat-value{font-size:17px}
+  .demo-ui :is(.font-display.text-4xl,.font-display.text-5xl){font-size:28px}
+  .demo-ui .text-2xl{font-size:19px}
+  .demo-bottom-nav a{font-size:9px;padding:6px 2px}
+  .demo-bottom-nav a svg{width:19px;height:19px}
+  .demo-member{padding-bottom:72px}
+}

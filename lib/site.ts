@@ -11,8 +11,9 @@ export const SITE = {
     "Sparvic is Kolkata's pickleball house — Champion Series paddles, balls and other pickleball gear and equipment, daily open games, coaching and tournaments.",
   city: "Kolkata",
   email: "info@sparvic.com",
-  // The existing Superpro account (to be renamed); keep the handle, not a tracking link.
-  instagram: "https://www.instagram.com/superprosports_official/",
+  // The club's Instagram (renamed from the old Superpro handle). Plain profile
+  // URL: the share link's tracking parameter is not needed.
+  instagram: "https://www.instagram.com/sparvic_official/",
   // The live domain. An env value still pointing at an old Vercel address is
   // ignored, so links in messages and metadata never send people back there.
   url: (() => {
