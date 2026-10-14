@@ -36,7 +36,7 @@ export default async function ProductsPage({
           : "Everything we put on our own courts. Pickup free at TurfXL, New Alipore — or delivered anywhere in Kolkata, free over ₹5,000."}
       </p>
 
-      <div className="mt-8 flex flex-wrap gap-2">
+      <div className="demo-pill-scroll mt-8 flex flex-wrap gap-2">
         {FILTERS.map((f) => {
           const isActive = (f.slug || undefined) === valid;
           return (

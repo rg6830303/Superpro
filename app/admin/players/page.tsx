@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { KeyRound, Pencil, Search, Wallet } from "lucide-react";
+import { Award, KeyRound, Pencil, Search, Wallet } from "lucide-react";
+import { BadgeDrawer } from "@/components/admin/badge-drawer";
 import { AdminHeader, StatTile } from "@/components/admin/shell";
 import {
   AddButton,
@@ -82,6 +83,7 @@ export default function AdminPlayersPage() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [walletFor, setWalletFor] = useState<User | null>(null);
+  const [badgesFor, setBadgesFor] = useState<User | null>(null);
 
   const load = useCallback(async (search = "") => {
     setLoading(true);
@@ -109,7 +111,7 @@ export default function AdminPlayersPage() {
     <div>
       <AdminHeader
         title="Player accounts"
-        sub="Create, edit and remove accounts, change a player's category, and add or deduct wallet balance."
+        sub="Create, edit and remove accounts, change a player's category, and add or deduct wallet balance, and award badges."
         action={<AddButton label="New account" onClick={() => setCreating(true)} />}
       />
 
@@ -192,6 +194,9 @@ export default function AdminPlayersPage() {
                       <button type="button" onClick={() => setWalletFor(u)} className="btn-outline btn-sm">
                         <Wallet size={13} /> Wallet
                       </button>
+                      <button type="button" onClick={() => setBadgesFor(u)} className="btn-outline btn-sm">
+                        <Award size={13} /> Badges
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -255,6 +260,8 @@ export default function AdminPlayersPage() {
           }}
         />
       )}
+
+      {badgesFor && <BadgeDrawer user={badgesFor} onClose={() => setBadgesFor(null)} />}
 
       {walletFor && (
         <WalletDrawer

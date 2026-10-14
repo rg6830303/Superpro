@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -11,6 +12,7 @@ import {
   ExternalLink,
   GraduationCap,
   LayoutDashboard,
+  Medal,
   MapPin,
   Package,
   Trophy,
@@ -19,6 +21,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
+import { BadgeChip } from "@/components/badge-chip";
+import type { UserBadge } from "@/lib/badges";
 import { EmptyState } from "@/components/ui";
 import { ProfileForm } from "@/components/profile-form";
 import { GameBookings, type GameBooking } from "@/components/game-bookings";
@@ -100,7 +104,18 @@ export type PlayerProfileData = {
   wallet_balance_paise: number;
 };
 
-export type TabKey = "overview" | "discover" | "activity" | "profile" | "wallet";
+export { DASHBOARD_TABS, TAB_TITLES, tabHref, type TabKey, type RankRow } from "@/lib/dashboard-tabs";
+import { tabHref, type TabKey, type RankRow } from "@/lib/dashboard-tabs";
+
+const TAB_META: Array<{ key: TabKey; label: string; icon: typeof LayoutDashboard; member?: boolean }> = [
+  { key: "overview", label: "Overview", icon: LayoutDashboard },
+  { key: "bookings", label: "Bookings", icon: CalendarDays, member: true },
+  { key: "community", label: "Community", icon: Compass },
+  { key: "rankings", label: "Rankings", icon: Medal },
+  { key: "activity", label: "Activity", icon: Bell },
+  { key: "wallet", label: "Wallet", icon: Wallet, member: true },
+  { key: "profile", label: "Profile", icon: UserCog },
+];
 
 export function DashboardView({
   session,
@@ -117,6 +132,9 @@ export function DashboardView({
   razorpayKeyId,
   launch = false,
   followingCount = 0,
+  followersCount = 0,
+  standings = [],
+  badges = [],
 }: {
   session: { id: string; name: string; email: string };
   profile: PlayerProfileData;
@@ -133,29 +151,17 @@ export function DashboardView({
   /** Main domain during the launch: profile + community only, no bookings or wallet. */
   launch?: boolean;
   followingCount?: number;
+  followersCount?: number;
+  standings?: RankRow[];
+  badges?: UserBadge[];
 }) {
-  const validTabs: TabKey[] = ["overview", "discover", "activity", "profile", "wallet"];
-  const [activeTab, setActiveTab] = useState<TabKey>(
-    validTabs.includes(initialTab) && !(launch && initialTab === "wallet") ? initialTab : "overview"
-  );
-  useEffect(() => {
-    if (!launch) setActiveTab(initialTab);
-  }, [initialTab, launch]);
+  const router = useRouter();
+  const tabs = TAB_META.filter((t) => !(launch && t.member));
+  const activeTab: TabKey = tabs.some((t) => t.key === initialTab) ? initialTab : "overview";
+  const switchTab = (tab: TabKey) => router.push(tabHref(tab));
 
-  function switchTab(tab: TabKey) {
-    setActiveTab(tab);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      if (tab === "overview") {
-        url.searchParams.delete("tab");
-      } else {
-        url.searchParams.set("tab", tab);
-      }
-      window.history.replaceState({}, "", url.toString());
-    }
-  }
-
-  const upcoming = games.filter((g) => g.status === "confirmed").length;
+  const upcomingGames = games.filter((g) => g.status === "confirmed" && !g.started);
+  const nextGame = [...upcomingGames].sort((a, b) => Number(a.hours_to_start) - Number(b.hours_to_start))[0];
   const walletPaise = Number(profile?.wallet_balance_paise ?? 0);
   // Postpaid: the balance can legitimately be negative, and when it is, the
   // number on screen is a debt rather than a balance. Colour and wording follow
@@ -164,598 +170,293 @@ export function DashboardView({
   const walletBlocked = isBlocked(walletPaise);
   const walletTone = owing > 0 ? "text-signal" : "text-volt-deep";
   const calculatedAge = profile.age ?? ageFrom(profile.date_of_birth);
+  const name = profile.full_name || session.name;
+  const me = standings.find((r) => r.id === session.id);
 
   return (
     <div className="wrap section demo-dashboard">
-      {!launch && <div className="demo-dashboard-heading"><div><p className="eyebrow">YOUR PERSONAL CLUBHOUSE</p><h2>Good to have you on the team.</h2><p>Everything you play, all in one place.</p></div><Link href="/games" className="btn-primary"><CalendarDays size={17} />Find a game</Link></div>}
-      {/* Modern Player Passport Hero Banner */}
-      <div className="demo-player-passport relative overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-paper via-paper to-mist/40 p-6 sm:p-8 shadow-card">
-        {/* Subtle decorative volt glow accent */}
+      {/* Player passport: who you are, your rating, quick actions. */}
+      <div className="demo-player-passport relative overflow-hidden rounded-2xl p-5 sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-volt/15 blur-3xl" />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          {/* Left: Avatar + Player Identity */}
-          <div className="flex flex-wrap items-center gap-5">
-            <div className="relative">
-              <Avatar name={profile.full_name || session.name} src={profile.avatar_url} size="lg" />
-              <button
-                type="button"
-                onClick={() => switchTab("profile")}
-                className="absolute -bottom-1 -right-1 rounded-full border border-paper bg-volt p-1 text-ink shadow-xs hover:scale-105 transition-transform"
+        <div className="demo-passport-grid relative">
+          <div className="demo-passport-id">
+            <div className="relative shrink-0">
+              <Avatar name={name} src={profile.avatar_url} size="lg" />
+              <Link
+                href={tabHref("profile")}
+                className="absolute -bottom-1 -right-1 rounded-full bg-volt p-1 text-ink shadow-xs transition-transform hover:scale-105"
                 title="Update profile photo"
                 aria-label="Update profile photo"
               >
                 <UserCog size={12} />
-              </button>
+              </Link>
             </div>
-
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-volt-deep bg-volt/15 px-2 py-0.5 rounded-full">
+                <span className="rounded-full bg-volt/15 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-volt-deep">
                   Sparvic Player
                 </span>
-                {profile.handle && (
-                  <span className="font-mono text-xs text-ink/50">@{profile.handle}</span>
-                )}
+                {profile.handle && <span className="font-mono text-xs text-ink/50">@{profile.handle}</span>}
               </div>
-              <h1 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-ink">
-                {profile.full_name || session.name}
-              </h1>
-
-              {/* Demographics & Location pill */}
-              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink/65">
-                <span>{session.email}</span>
-                {calculatedAge && (
-                  <>
-                    <span>·</span>
-                    <span>{calculatedAge} yrs</span>
-                  </>
-                )}
-                {profile.gender && (
-                  <>
-                    <span>·</span>
-                    <span className="capitalize">{profile.gender}</span>
-                  </>
-                )}
+              <h1 className="mt-1 truncate font-display text-2xl font-bold text-ink sm:text-3xl">{name}</h1>
+              {badges.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {badges.map((b) => <BadgeChip key={b.id} badge={b.badge} label={b.label} />)}
+                </div>
+              )}
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/65">
+                {calculatedAge ? <span>{calculatedAge} yrs</span> : null}
+                {profile.gender && <span className="capitalize">{profile.gender}</span>}
                 {profile.city && (
-                  <>
-                    <span>·</span>
-                    <span className="inline-flex items-center gap-1 font-medium text-ink/75">
-                      <MapPin size={11} className="text-volt-deep" /> {profile.city}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: DUPR Rating Showcase & Quick Action Controls */}
-          <div className="flex flex-wrap items-center gap-4">
-            {/* DUPR Card */}
-            <div className="flex items-center gap-3 rounded-xl border border-line bg-paper/90 px-4 py-3 shadow-xs">
-              <div className="text-left">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-ink/45">DUPR Rating</p>
-                <p className="font-mono text-xl sm:text-2xl font-bold text-ink">
-                  {profile.dupr != null ? Number(profile.dupr).toFixed(2) : "Unrated"}
-                </p>
-                {profile.dupr_id && (
-                  <p className="font-mono text-[10px] text-ink/40">ID: {profile.dupr_id}</p>
-                )}
-              </div>
-              <div className="h-8 w-px bg-line/80 mx-1" />
-              <div className="text-left">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-ink/45">Tier</p>
-                <span className="chip-volt inline-block text-[11px] font-semibold capitalize py-0.5">
-                  {LEVEL_LABEL[profile.skill_level] ?? profile.skill_level ?? "Player"}
-                </span>
-              </div>
-            </div>
-
-            {/* Notification, Public Profile, & Logout Buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => switchTab("activity")}
-                className="relative rounded-xl border border-line bg-paper p-2.5 text-ink/70 shadow-xs transition-colors hover:bg-mist hover:text-ink"
-                aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-              >
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-volt px-1 font-mono text-[9px] font-bold text-ink shadow-xs">
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                  <span className="inline-flex items-center gap-1 font-medium text-ink/75">
+                    <MapPin size={11} className="text-volt-deep" /> {profile.city}
                   </span>
                 )}
-              </button>
-
-              {profile.handle && (
-                <Link
-                  href={`/players/${profile.handle}`}
-                  target="_blank"
-                  className="btn-outline btn-sm inline-flex items-center gap-1.5 shadow-xs text-xs font-semibold"
-                >
-                  <ExternalLink size={13} /> Public Profile
+                <Link href={tabHref("community")} className="font-medium text-ink/75 hover:underline">
+                  <b>{followersCount}</b> followers · <b>{followingCount}</b> following
                 </Link>
-              )}
-
-              <LogoutButton />
+              </p>
             </div>
+          </div>
+
+          <div className="demo-passport-stats">
+            <div>
+              <p className="demo-stat-label">DUPR</p>
+              <p className="demo-stat-value">{profile.dupr != null ? Number(profile.dupr).toFixed(2) : "Unrated"}</p>
+            </div>
+            <div>
+              <p className="demo-stat-label">Tier</p>
+              <span className="chip-volt inline-block py-0.5 text-[11px] font-semibold capitalize">
+                {LEVEL_LABEL[profile.skill_level] ?? profile.skill_level ?? "Player"}
+              </span>
+            </div>
+            <div>
+              <p className="demo-stat-label">Club rank</p>
+              <p className="demo-stat-value">{me ? `#${me.rank}` : "—"}</p>
+            </div>
+          </div>
+
+          <div className="demo-passport-actions">
+            <Link
+              href={tabHref("activity")}
+              className="demo-passport-btn relative"
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+            >
+              <Bell size={17} />
+              {unreadCount > 0 && <span className="demo-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+            </Link>
+            {profile.handle && (
+              <Link href={`/players/${profile.handle}`} target="_blank" className="demo-passport-btn">
+                <ExternalLink size={14} /> <span>Public profile</span>
+              </Link>
+            )}
+            <LogoutButton />
           </div>
         </div>
       </div>
 
-      {/* Account Tab Switcher */}
-      <div className="demo-account-tabs mt-8 border-b border-line">
-        <div className="flex flex-wrap gap-1 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => switchTab("overview")}
-            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
-              activeTab === "overview"
-                ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
-                : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
-            }`}
-          >
-            <LayoutDashboard size={15} className={activeTab === "overview" ? "text-volt-deep" : "text-ink/50"} />
-            <span>Overview</span>
-          </button>
+      {/* Section tabs: real pages, so every section has its own URL and back works. */}
+      <nav className="demo-account-tabs" aria-label="Your clubhouse">
+        {tabs.map(({ key, label, icon: Icon }) => (
+          <Link key={key} href={tabHref(key)} aria-current={activeTab === key ? "page" : undefined} scroll={false}>
+            <Icon size={15} />
+            <span>{label}</span>
+            {key === "activity" && unreadCount > 0 && <span className="demo-badge-inline">{unreadCount}</span>}
+          </Link>
+        ))}
+      </nav>
 
-          <button
-            type="button"
-            onClick={() => switchTab("discover")}
-            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
-              activeTab === "discover"
-                ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
-                : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
-            }`}
-          >
-            <Compass size={15} className={activeTab === "discover" ? "text-volt-deep" : "text-ink/50"} />
-            <span>Community</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => switchTab("activity")}
-            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
-              activeTab === "activity"
-                ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
-                : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
-            }`}
-          >
-            <Bell size={15} className={activeTab === "activity" ? "text-volt-deep" : "text-ink/50"} />
-            <span>Activity</span>
-            {unreadCount > 0 && (
-              <span className="ml-1 rounded-full bg-volt px-1.5 py-0.2 font-mono text-[10px] font-bold text-ink">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => switchTab("profile")}
-            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
-              activeTab === "profile"
-                ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
-                : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
-            }`}
-          >
-            <UserCog size={15} className={activeTab === "profile" ? "text-volt-deep" : "text-ink/50"} />
-            <span>Profile</span>
-          </button>
-
-          {!launch && (
-          <button
-            type="button"
-            onClick={() => switchTab("wallet")}
-            className={`flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-semibold transition-all ${
-              activeTab === "wallet"
-                ? "border-volt-deep text-ink bg-mist/60 rounded-t-lg"
-                : "border-transparent text-ink/60 hover:text-ink hover:bg-mist/30 rounded-t-lg"
-            }`}
-          >
-            <Wallet size={15} className={activeTab === "wallet" ? "text-volt-deep" : "text-ink/50"} />
-            <span>Wallet</span>
-          </button>
-          )}
-        </div>
-      </div>
-
-      {/* TAB 1: OVERVIEW */}
       {activeTab === "overview" && launch && (
         <LaunchOverview profile={profile} followingCount={followingCount} switchTab={switchTab} />
       )}
 
       {activeTab === "overview" && !launch && (
-        <div className="mt-8 space-y-10">
-          {/* Quick Metrics Cards */}
-          <div className="demo-account-metrics grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 space-y-8">
+          <div className="demo-account-metrics grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {[
-              { icon: CalendarDays, k: `${upcoming}`, v: "Game bookings" },
-              { icon: GraduationCap, k: `${coaching.length}`, v: "Coaching bookings" },
-              { icon: Trophy, k: `${entries.length}`, v: "Tournament entries" },
+              { icon: CalendarDays, k: `${upcomingGames.length}`, v: "Upcoming games" },
+              { icon: GraduationCap, k: `${coaching.length}`, v: "Coaching" },
+              { icon: Trophy, k: `${entries.length}`, v: "Tournaments" },
               { icon: Package, k: `${orders.length}`, v: "Orders" },
             ].map((s) => (
-              <div key={s.v} className="card p-5">
+              <Link key={s.v} href={tabHref("bookings")} className="card card-hover p-4 sm:p-5">
                 <s.icon size={17} className="text-volt-deep" />
-                <p className="mt-3 font-display text-4xl text-ink">{s.k}</p>
+                <p className="mt-3 font-display text-3xl text-ink sm:text-4xl">{s.k}</p>
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{s.v}</p>
-              </div>
+              </Link>
             ))}
           </div>
 
-          {/* Snapshot Summary Cards: Profile, Discover, & Wallet */}
-          <div className="grid min-w-0 gap-5 lg:grid-cols-3">
-            {/* Profile Snapshot */}
-            <div className="card flex flex-col p-6">
-              <div className="flex items-center gap-3">
-                <Avatar name={profile.full_name || session.name} src={profile.avatar_url} size="md" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Your Profile</p>
-                  <p className="truncate text-base font-bold text-ink">{profile.full_name || session.name}</p>
-                  <p className="text-xs text-ink/60">
-                    {calculatedAge ? `${calculatedAge} yrs` : "Age not set"}
-                    {profile.gender ? ` · ${profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)}` : ""}
+          <div className="grid min-w-0 gap-5 lg:grid-cols-[1.4fr_1fr]">
+            <section className="card p-6">
+              <p className="eyebrow">Next on court</p>
+              {nextGame ? (
+                <>
+                  <h2 className="mt-2 text-2xl">
+                    {formatDate(nextGame.session_date)} · {formatTime(nextGame.start_time)}
+                  </h2>
+                  <p className="mt-1 text-sm text-ink/65">
+                    {nextGame.venue_name}
+                    {nextGame.court_number ? ` · Court ${nextGame.court_number}` : ""}
                   </p>
-                </div>
-              </div>
+                  <Link href={tabHref("bookings")} className="btn-outline btn-sm mt-5">
+                    All my bookings <ArrowRight size={14} />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <h2 className="mt-2 text-2xl">Nothing booked yet</h2>
+                  <p className="mt-1 text-sm text-ink/65">Pick a slot this week; your court number lands on WhatsApp.</p>
+                  <Link href="/games" className="btn-volt btn-sm mt-5">
+                    Find a game <ArrowRight size={14} />
+                  </Link>
+                </>
+              )}
+            </section>
 
-              <div className="mt-4 rounded-lg border border-line bg-mist/30 p-2.5 text-xs flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <span className="text-ink/60">DUPR: </span>
-                  <span className="font-mono font-bold text-ink">
-                    {profile.dupr ? Number(profile.dupr).toFixed(2) : "Unrated"}
-                  </span>
-                </div>
-                <span className="chip-volt capitalize text-[10px]">
-                  {profile.skill_level || "Beginner"}
-                </span>
-              </div>
-
-              <div className="mt-auto pt-4 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => switchTab("profile")}
-                  className="btn-outline btn-sm inline-flex items-center gap-1 text-xs w-full justify-center"
-                >
-                  <UserCog size={13} /> View &amp; Edit Profile
-                </button>
-              </div>
-            </div>
-
-            {/* Discover Snapshot */}
-            <div className="card flex flex-col p-6">
-              <Compass size={18} className="text-volt-deep" />
-              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Community</p>
-              <h3 className="mt-1 text-lg font-bold text-ink">Find your people</h3>
-              <p className="mt-1 text-xs leading-relaxed text-ink/55">
-                Follow the players you rally with and you&apos;ll hear when they book a game or enter a tournament.
-              </p>
-              <div className="mt-auto pt-4">
-                <button
-                  type="button"
-                  onClick={() => switchTab("discover")}
-                  className="btn-volt btn-sm inline-flex items-center gap-1.5 text-xs w-full justify-center"
-                >
-                  <Users size={13} /> Find players
-                </button>
-              </div>
-            </div>
-
-            {/* Wallet Snapshot */}
-            <div className="card flex flex-col p-6">
-              <Wallet size={18} className="text-volt-deep" />
-              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Sparvic wallet</p>
-              <p className={`mt-1 font-display text-4xl ${walletTone}`}>{formatPaise(walletPaise)}</p>
+            <section className="card flex flex-col p-6">
+              <p className="eyebrow">Sparvic wallet</p>
+              <p className={`mt-2 font-display text-4xl ${walletTone}`}>{formatPaise(walletPaise)}</p>
               {owing > 0 && (
                 <p className="mt-1 text-[11px] font-semibold text-signal">
                   {formatPaise(owing)} owed{walletBlocked ? " — bookings paused" : ""}
                 </p>
               )}
-              <p className="mt-1.5 text-xs leading-relaxed text-ink/55">
-                Prepaid credit for instant slot &amp; tournament checkout.
-              </p>
-              <div className="mt-auto pt-4">
-                <button
-                  type="button"
-                  onClick={() => switchTab("wallet")}
-                  className="btn-outline btn-sm inline-flex items-center gap-1 text-xs w-full justify-center"
-                >
-                  <Wallet size={13} /> Manage Wallet
-                </button>
-              </div>
-            </div>
+              <Link href={tabHref("wallet")} className="btn-outline btn-sm mt-auto pt-0">
+                <Wallet size={13} /> Top up &amp; history
+              </Link>
+            </section>
           </div>
 
-          {/* Game Bookings */}
-          <section>
-            <h2 className="mb-5 text-3xl">Game bookings</h2>
-            {games.length === 0 ? (
-              <EmptyState
-                title="No games booked yet"
-                sub="Pick a slot for this week and your court number lands on WhatsApp."
-                action={
-                  <Link href="/games" className="btn-volt btn-sm mt-2">
-                    Book a slot
-                  </Link>
-                }
-              />
-            ) : (
-              <GameBookings games={games} />
-            )}
-          </section>
-
-          {/* Coaching Bookings */}
-          {coaching.length > 0 && (
-            <section>
-              <h2 className="mb-5 text-3xl">Coaching</h2>
-              <div className="table-wrap">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Ref</th>
-                      <th>Coach</th>
-                      <th>First session</th>
-                      <th>Sessions</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {coaching.map((c) => (
-                      <tr key={c.booking_no}>
-                        <td className="font-mono text-xs text-volt-deep">{c.booking_no}</td>
-                        <td>{c.coach_name}</td>
-                        <td>
-                          {c.preferred_date ? `${formatDate(c.preferred_date)} · ${c.preferred_time}` : "—"}
-                        </td>
-                        <td>{c.sessions_count}</td>
-                        <td>{formatPaise(c.amount_paise)}</td>
-                        <td>
-                          <span className="chip capitalize">{c.status}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <div className="grid min-w-0 gap-5 lg:grid-cols-2">
+            <section className="card p-6">
+              <div className="flex items-center justify-between gap-3">
+                <p className="eyebrow">Club standings</p>
+                <Link href={tabHref("rankings")} className="text-xs font-semibold text-volt-deep hover:underline">
+                  Full table
+                </Link>
               </div>
+              <RankList rows={standings.slice(0, 5)} meId={session.id} />
+              {me && me.rank > 5 && <RankList rows={[me]} meId={session.id} />}
             </section>
-          )}
-
-          {/* Tournament Entries */}
-          {entries.length > 0 && (
-            <section>
-              <h2 className="mb-5 text-3xl">Tournament entries</h2>
-              <div className="table-wrap">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Ref</th>
-                      <th>Tournament</th>
-                      <th>Starts</th>
-                      <th>Team</th>
-                      <th>Category</th>
-                      <th>Group</th>
-                      <th>Entry fee</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {entries.map((e) => (
-                      <tr key={e.reference}>
-                        <td className="font-mono text-xs text-volt-deep">{e.reference}</td>
-                        <td>
-                          <Link
-                            href={`/tournaments/${e.tournament_slug}`}
-                            className="font-semibold hover:underline"
-                          >
-                            {e.tournament_title}
-                          </Link>
-                        </td>
-                        <td className="whitespace-nowrap">{formatDate(e.starts_on)}</td>
-                        <td>{e.team_name}</td>
-                        <td className="capitalize">{e.category ?? "—"}</td>
-                        <td>{e.group_name ?? "To be drawn"}</td>
-                        <td>{formatPaise(e.amount_paise)}</td>
-                        <td>
-                          <span
-                            className={
-                              e.status === "withdrawn"
-                                ? "chip"
-                                : e.payment_status === "paid"
-                                ? "chip-volt"
-                                : "chip-warn"
-                            }
-                          >
-                            {e.status === "withdrawn"
-                              ? "Withdrawn"
-                              : e.status === "waitlist"
-                              ? "Waitlisted"
-                              : e.payment_status === "paid"
-                              ? "Confirmed"
-                              : "Fee due"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-          {/* Orders */}
-          {orders.length > 0 && (
-            <section>
-              <h2 className="mb-5 text-3xl">Orders</h2>
-              <div className="table-wrap">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Order</th>
-                      <th>Placed</th>
-                      <th>Total</th>
-                      <th>Payment</th>
-                      <th>Status</th>
-                      <th>Latest update</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((o) => (
-                      <tr key={o.order_no}>
-                        <td>
-                          <Link
-                            href={`/order/${o.order_no}`}
-                            className="font-mono text-xs text-volt-deep hover:underline"
-                          >
-                            {o.order_no}
-                          </Link>
-                        </td>
-                        <td>{new Date(o.created_at).toLocaleDateString("en-IN")}</td>
-                        <td>{formatPaise(o.total_paise)}</td>
-                        <td className="capitalize">{o.payment_status}</td>
-                        <td>
-                          <span className={o.fulfillment_status === "delivered" ? "chip-volt" : "chip"}>
-                            {ORDER_STATUS[o.fulfillment_status] ?? o.fulfillment_status}
-                          </span>
-                        </td>
-                        <td className="text-xs text-ink/60">
-                          {o.last_note || o.courier || o.last_update ? (
-                            <>
-                              {o.last_note && <span className="block text-ink/75">{o.last_note}</span>}
-                              {o.courier && (
-                                <span className="block">
-                                  {o.courier}
-                                  {o.tracking_ref ? ` · ${o.tracking_ref}` : ""}
-                                </span>
-                              )}
-                              {o.last_update && (
-                                <span className="block text-ink/40">
-                                  {new Date(o.last_update).toLocaleDateString("en-IN")}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-ink/30">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-          {/* Tournaments CTA */}
-          <div className="mt-14 flex flex-col gap-5 border-t-2 border-ink pt-7 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-2xl">
-                <Trophy size={20} className="text-volt-deep" /> Ready for a draw?
+            <section className="card flex flex-col p-6">
+              <p className="eyebrow">Your people</p>
+              <h2 className="mt-2 text-2xl">
+                {followersCount} followers · {followingCount} following
               </h2>
-              <p className="mt-2 max-w-md text-sm text-ink/65">
-                Entries are open to every registered player. Grab a partner and enter.
+              <p className="mt-1 text-sm text-ink/65">
+                Follow the players you rally with and hear when they book a game or enter a tournament.
               </p>
-            </div>
-            <Link href="/tournaments" className="btn-outline btn-sm shrink-0">
-              See tournaments
-            </Link>
+              <Link href={tabHref("community")} className="btn-volt btn-sm mt-5 self-start">
+                <Users size={14} /> Discover players
+              </Link>
+            </section>
           </div>
         </div>
       )}
 
-      {/* TAB 2: DISCOVER (Search & Follow Players) */}
-      {activeTab === "discover" && (
+      {activeTab === "bookings" && (
+        <BookingsSection games={games} coaching={coaching} entries={entries} orders={orders} />
+      )}
+
+      {activeTab === "community" && (
         <div className="mt-8">
-          <PlayerDirectory initial={[]} signedIn />
+          <SectionHead eyebrow="Community" title="Discover & follow" sub="Find players at your level, follow the ones you rally with, and see who follows you back." />
+          <PlayerDirectory initial={[]} initialCounts={{ following: followingCount, followers: followersCount }} signedIn />
         </div>
       )}
 
-      {/* TAB 3: ACTIVITY (Follower & Following Circle Alerts) */}
+      {activeTab === "rankings" && (
+        <div className="mt-8 space-y-6">
+          <SectionHead eyebrow="Rankings" title="Club standings" sub="Ordered by DUPR rating, then games played. Add your DUPR in your profile to climb the table." />
+          {me && (
+            <div className="demo-rank-me card p-5">
+              <div>
+                <p className="demo-stat-label">Your position</p>
+                <p className="demo-stat-value">#{me.rank} <small>of {standings.length}</small></p>
+              </div>
+              <div>
+                <p className="demo-stat-label">Games played</p>
+                <p className="demo-stat-value">{me.games}</p>
+              </div>
+              <div>
+                <p className="demo-stat-label">Followers</p>
+                <p className="demo-stat-value">{me.followers}</p>
+              </div>
+              {me.dupr == null && (
+                <Link href={tabHref("profile")} className="btn-volt btn-sm">
+                  Add your DUPR
+                </Link>
+              )}
+            </div>
+          )}
+          <section className="card p-4 sm:p-6">
+            <RankList rows={standings.slice(0, 50)} meId={session.id} />
+          </section>
+        </div>
+      )}
+
       {activeTab === "activity" && (
         <div className="mt-8 max-w-3xl">
+          <SectionHead eyebrow="Activity" title="What’s new" sub="Follows, bookings and club updates." />
           <ActivityFeed initialNotifications={notifications} initialUnreadCount={unreadCount} />
         </div>
       )}
 
-      {/* TAB 4: PROFILE (View & Edit Profile) */}
       {activeTab === "profile" && (
         <div className="mt-8 max-w-3xl space-y-8">
-          <div>
-            <p className="eyebrow">Player profile</p>
-            <h2 className="mt-2 headline-page">View &amp; Edit Profile</h2>
-            <p className="mt-2 text-sm text-ink/65">
-              Keep your player identity up to date. Your profile photo, age, sex, and DUPR level determine your tournament brackets and match eligibility.
-            </p>
-          </div>
-
-          {/* Public Profile Badge */}
+          <SectionHead
+            eyebrow="Player profile"
+            title="View & edit profile"
+            sub="Your photo, age, sex and DUPR level decide your tournament brackets and match eligibility."
+          />
           {profile.handle && (
-            <div className="card flex items-center justify-between p-4 bg-mist/30">
-              <div className="flex items-center gap-3">
+            <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
+              <div className="flex min-w-0 items-center gap-3">
                 <Avatar name={profile.full_name} src={profile.avatar_url} size="sm" />
-                <div>
-                  <p className="text-xs font-semibold text-ink">Public Player Page</p>
-                  <p className="font-mono text-[11px] text-ink/50">/players/{profile.handle}</p>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-ink">Public player page</p>
+                  <p className="truncate font-mono text-[11px] text-ink/50">/players/{profile.handle}</p>
                 </div>
               </div>
-              <Link
-                href={`/players/${profile.handle}`}
-                target="_blank"
-                className="btn-outline btn-sm inline-flex items-center gap-1 text-xs"
-              >
-                <span>View Public Page</span>
-                <ExternalLink size={12} />
+              <Link href={`/players/${profile.handle}`} target="_blank" className="btn-outline btn-sm">
+                View <ExternalLink size={12} />
               </Link>
             </div>
           )}
-
-          {/* Profile Form (Photo + All Compulsory & Optional Details) */}
-          <ProfileForm
-            profile={profile}
-            hideWallet={true}
-          />
+          <ProfileForm profile={profile} hideWallet={true} />
         </div>
       )}
 
-      {/* TAB 5: WALLET */}
       {activeTab === "wallet" && (
         <div className="mt-8 max-w-3xl space-y-8">
-          <div>
-            <p className="eyebrow">Sparvic Wallet</p>
-            <h2 className="mt-2 headline-page">Credit &amp; Top Up</h2>
-            <p className="mt-2 text-sm text-ink/65">
-              Prepaid balance used for instant checkout on game bookings, coaching sessions, tournaments, and shop items.
-            </p>
-          </div>
-
-          {/* Wallet Balance & Topup Card */}
+          <SectionHead
+            eyebrow="Sparvic wallet"
+            title="Credit & top up"
+            sub="Prepaid balance for instant checkout on games, coaching, tournaments and the shop."
+          />
           <div className="demo-wallet-card card p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
-                  <Wallet size={13} className="text-volt-deep" /> Current balance
-                </p>
-                <p className={`mt-1 font-display text-5xl ${walletTone}`}>{formatPaise(walletPaise)}</p>
-                {owing > 0 ? (
-                  <p className={`mt-2 rounded-lg px-3 py-2 text-xs leading-relaxed ${walletBlocked ? "bg-signal/10 text-signal" : "bg-mist text-ink/70"}`}>
-                    {walletBlocked ? (
-                      <>
-                        You have reached the {formatPaise(Math.abs(WALLET_FLOOR_PAISE))} postpaid limit. Clear{" "}
-                        {formatPaise(owing)} to book daily games again.
-                      </>
-                    ) : (
-                      <>
-                        Running on postpaid credit. You can go up to {formatPaise(Math.abs(WALLET_FLOOR_PAISE))} before
-                        bookings pause.
-                      </>
-                    )}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="mt-6 border-t border-line/60 pt-5">
-              <h3 className="text-lg font-semibold text-ink mb-3">Load wallet credit</h3>
+            <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
+              <Wallet size={13} className="text-volt-deep" /> Current balance
+            </p>
+            <p className={`mt-1 font-display text-5xl ${walletTone}`}>{formatPaise(walletPaise)}</p>
+            {owing > 0 ? (
+              <p className={`mt-2 rounded-lg px-3 py-2 text-xs leading-relaxed ${walletBlocked ? "bg-signal/10 text-signal" : "bg-mist text-ink/70"}`}>
+                {walletBlocked ? (
+                  <>
+                    You have reached the {formatPaise(Math.abs(WALLET_FLOOR_PAISE))} postpaid limit. Clear{" "}
+                    {formatPaise(owing)} to book daily games again.
+                  </>
+                ) : (
+                  <>
+                    Running on postpaid credit. You can go up to {formatPaise(Math.abs(WALLET_FLOOR_PAISE))} before
+                    bookings pause.
+                  </>
+                )}
+              </p>
+            ) : null}
+            <div className="mt-6 pt-5">
+              <h3 className="mb-3 text-lg font-semibold text-ink">Load wallet credit</h3>
               <WalletTopUp
                 razorpayEnabled={razorpayEnabled}
                 razorpayKeyId={razorpayKeyId}
@@ -765,8 +466,6 @@ export function DashboardView({
               />
             </div>
           </div>
-
-          {/* Transactions Ledger */}
           <div className="card p-6">
             <h3 className="text-2xl">Wallet history</h3>
             {walletTx.length === 0 ? (
@@ -809,6 +508,176 @@ export function DashboardView({
   );
 }
 
+function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) {
+  return (
+    <div className="mb-6">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 className="mt-2 headline-page">{title}</h2>
+      <p className="mt-2 max-w-2xl text-sm text-ink/65">{sub}</p>
+    </div>
+  );
+}
+
+function RankList({ rows, meId }: { rows: RankRow[]; meId: string }) {
+  if (rows.length === 0) return <p className="mt-4 text-sm text-ink/55">Standings appear once players join.</p>;
+  return (
+    <ol className="demo-rank-list">
+      {rows.map((r) => {
+        const inner = (
+          <>
+            <span className="demo-rank-pos">{r.rank}</span>
+            <Avatar name={r.full_name} src={r.avatar_url} size="sm" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-ink">
+                {r.full_name}
+                {r.id === meId ? " (you)" : ""}
+              </span>
+              <span className="block text-[11px] capitalize text-ink/55">
+                {LEVEL_LABEL[r.skill_level] ?? r.skill_level} · {r.games} games
+              </span>
+            </span>
+            <span className="font-mono text-sm font-bold text-ink">{r.dupr != null ? Number(r.dupr).toFixed(2) : "—"}</span>
+          </>
+        );
+        return (
+          <li key={r.id} className={r.id === meId ? "is-me" : undefined}>
+            {r.handle && r.id !== meId ? <Link href={`/players/${r.handle}`}>{inner}</Link> : <div>{inner}</div>}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+type BookingKind = "games" | "coaching" | "tournaments" | "orders";
+
+function BookingsSection({ games, coaching, entries, orders }: { games: GameRow[]; coaching: CoachRow[]; entries: EntryRow[]; orders: OrderRow[] }) {
+  const [kind, setKind] = useState<BookingKind>("games");
+  const kinds: Array<{ key: BookingKind; label: string; n: number }> = [
+    { key: "games", label: "Daily games", n: games.length },
+    { key: "coaching", label: "Coaching", n: coaching.length },
+    { key: "tournaments", label: "Tournaments", n: entries.length },
+    { key: "orders", label: "Shop orders", n: orders.length },
+  ];
+  return (
+    <div className="mt-8">
+      <SectionHead eyebrow="Booking history" title="My bookings" sub="Every game, session, entry and order in one place." />
+      <div className="demo-pill-row" role="tablist" aria-label="Booking type">
+        {kinds.map((k) => (
+          <button key={k.key} type="button" role="tab" aria-selected={kind === k.key} onClick={() => setKind(k.key)}>
+            {k.label} <span>{k.n}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-6">
+        {kind === "games" &&
+          (games.length === 0 ? (
+            <EmptyState
+              title="No games booked yet"
+              sub="Pick a slot for this week and your court number lands on WhatsApp."
+              action={<Link href="/games" className="btn-volt btn-sm mt-2">Book a slot</Link>}
+            />
+          ) : (
+            <GameBookings games={games} />
+          ))}
+
+        {kind === "coaching" &&
+          (coaching.length === 0 ? (
+            <EmptyState title="No coaching yet" sub="Book a session with a Sparvic coach." action={<Link href="/coaching" className="btn-volt btn-sm mt-2">Get coached</Link>} />
+          ) : (
+            <div className="table-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr><th>Ref</th><th>Coach</th><th>First session</th><th>Sessions</th><th>Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {coaching.map((c) => (
+                    <tr key={c.booking_no}>
+                      <td className="font-mono text-xs text-volt-deep">{c.booking_no}</td>
+                      <td>{c.coach_name}</td>
+                      <td>{c.preferred_date ? `${formatDate(c.preferred_date)} · ${c.preferred_time}` : "—"}</td>
+                      <td>{c.sessions_count}</td>
+                      <td>{formatPaise(c.amount_paise)}</td>
+                      <td><span className="chip capitalize">{c.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+
+        {kind === "tournaments" &&
+          (entries.length === 0 ? (
+            <EmptyState title="No tournament entries" sub="Entries are open to every registered player." action={<Link href="/tournaments" className="btn-volt btn-sm mt-2">See tournaments</Link>} />
+          ) : (
+            <div className="table-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr><th>Ref</th><th>Tournament</th><th>Starts</th><th>Team</th><th>Category</th><th>Group</th><th>Entry fee</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {entries.map((e) => (
+                    <tr key={e.reference}>
+                      <td className="font-mono text-xs text-volt-deep">{e.reference}</td>
+                      <td><Link href={`/tournaments/${e.tournament_slug}`} className="font-semibold hover:underline">{e.tournament_title}</Link></td>
+                      <td className="whitespace-nowrap">{formatDate(e.starts_on)}</td>
+                      <td>{e.team_name}</td>
+                      <td className="capitalize">{e.category ?? "—"}</td>
+                      <td>{e.group_name ?? "To be drawn"}</td>
+                      <td>{formatPaise(e.amount_paise)}</td>
+                      <td>
+                        <span className={e.status === "withdrawn" ? "chip" : e.payment_status === "paid" ? "chip-volt" : "chip-warn"}>
+                          {e.status === "withdrawn" ? "Withdrawn" : e.status === "waitlist" ? "Waitlisted" : e.payment_status === "paid" ? "Confirmed" : "Fee due"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+
+        {kind === "orders" &&
+          (orders.length === 0 ? (
+            <EmptyState title="No orders yet" sub="Paddles, balls and grips from the pro shop." action={<Link href="/products" className="btn-volt btn-sm mt-2">Visit the shop</Link>} />
+          ) : (
+            <div className="table-wrap">
+              <table className="tbl">
+                <thead>
+                  <tr><th>Order</th><th>Placed</th><th>Total</th><th>Payment</th><th>Status</th><th>Latest update</th></tr>
+                </thead>
+                <tbody>
+                  {orders.map((o) => (
+                    <tr key={o.order_no}>
+                      <td><Link href={`/order/${o.order_no}`} className="font-mono text-xs text-volt-deep hover:underline">{o.order_no}</Link></td>
+                      <td>{new Date(o.created_at).toLocaleDateString("en-IN")}</td>
+                      <td>{formatPaise(o.total_paise)}</td>
+                      <td className="capitalize">{o.payment_status}</td>
+                      <td><span className={o.fulfillment_status === "delivered" ? "chip-volt" : "chip"}>{ORDER_STATUS[o.fulfillment_status] ?? o.fulfillment_status}</span></td>
+                      <td className="text-xs text-ink/60">
+                        {o.last_note || o.courier || o.last_update ? (
+                          <>
+                            {o.last_note && <span className="block text-ink/75">{o.last_note}</span>}
+                            {o.courier && <span className="block">{o.courier}{o.tracking_ref ? ` · ${o.tracking_ref}` : ""}</span>}
+                            {o.last_update && <span className="block text-ink/40">{new Date(o.last_update).toLocaleDateString("en-IN")}</span>}
+                          </>
+                        ) : (
+                          <span className="text-ink/30">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+
 /**
  * The launch-time overview: what a new player should do next, in order, with
  * each step ticking itself off as the profile fills in.
@@ -846,7 +715,7 @@ function LaunchOverview({
       done: followingCount > 0,
       title: "Follow players you know",
       sub: "You will hear when they are on court.",
-      action: { label: "Find players", tab: "discover" as TabKey },
+      action: { label: "Find players", tab: "community" as TabKey },
     },
   ];
   const doneCount = steps.filter((st) => st.done).length;
@@ -910,7 +779,7 @@ function LaunchOverview({
           <p className="mt-1 text-sm leading-relaxed text-ink/60">
             Browse everyone who has registered, see their level, and follow the ones you want to rally with.
           </p>
-          <button type="button" onClick={() => switchTab("discover")} className="btn-volt mt-4 w-full">
+          <button type="button" onClick={() => switchTab("community")} className="btn-volt mt-4 w-full">
             <Users size={16} /> Discover players
           </button>
           <p className="mt-3 text-center text-xs text-ink/50">

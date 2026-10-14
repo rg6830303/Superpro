@@ -71,7 +71,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     title: "Game Booking Cancellation & Wallet Refunds",
     keywords: ["cancellation", "refund", "reschedule", "money back", "wallet refund"],
     content: `If you cancel or cannot make a booked slot, notify our venue team or cancel ahead of time. Fees paid via Sparvic Wallet are automatically refunded to your wallet balance instantly with zero deduction. Prepaid credits can be immediately used for any future slot, gear purchase, or tournament entry.`,
-    action: { label: "Manage My Wallet", href: "/dashboard?tab=wallet" },
+    action: { label: "Manage My Wallet", href: "/dashboard/wallet" },
   },
   {
     id: "shop-paddles",
@@ -111,7 +111,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     title: "DUPR Rating System Explained",
     keywords: ["dupr", "rating", "skill level", "beginner", "intermediate", "advanced", "pro", "level"],
     content: `DUPR (Dynamic Universal Pickleball Rating) is the global gold standard rating system ranging from 2.0 to 8.0. Skill bands at Sparvic: Beginner (< 3.0), Intermediate (3.0 – 3.75), Advanced (3.75 – 4.5), Pro (4.5+). Enter your DUPR ID and rating in your Sparvic account profile to ensure fair matching in daily games and tournament divisions.`,
-    action: { label: "Update My DUPR Rating", href: "/dashboard?tab=profile" },
+    action: { label: "Update My DUPR Rating", href: "/dashboard/profile" },
   },
   {
     id: "wallet-payments",
@@ -119,7 +119,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     title: "Sparvic Wallet & Payment Options",
     keywords: ["wallet", "razorpay", "upi", "card", "pay online", "venue payment", "cash"],
     content: `Sparvic Wallet offers instant one-tap checkout with zero gateway delays. Top up your balance anytime using Razorpay (UPI, Google Pay, PhonePe, credit/debit cards) or load cash with any Sparvic rep at the venue. Your balance, transactions, and auto-refunds are visible in real time under the Wallet tab in your account.`,
-    action: { label: "Open Sparvic Wallet", href: "/dashboard?tab=wallet" },
+    action: { label: "Open Sparvic Wallet", href: "/dashboard/wallet" },
   },
   {
     id: "community-discover",
@@ -127,7 +127,7 @@ export const SUPERPRO_KNOWLEDGE: KnowledgeChunk[] = [
     title: "Player Community, Discover & Following",
     keywords: ["community", "discover", "follow", "friends", "activity", "feed", "notifications", "social"],
     content: `Search and discover other picklers across Kolkata right from your account dashboard! Follow players to get live alerts in your Activity Feed whenever they book a daily game slot or enter a tournament. You can also view public player profiles to inspect ratings and match history.`,
-    action: { label: "Find players", href: "/dashboard?tab=discover" },
+    action: { label: "Find players", href: "/dashboard/community" },
   },
   {
     id: "support-contact",

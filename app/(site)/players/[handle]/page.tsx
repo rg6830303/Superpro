@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, MapPin, Trophy } from "lucide-react";
 import { Avatar, FollowButton } from "@/components/player-directory";
+import { BadgeChip } from "@/components/badge-chip";
+import { listUserBadges } from "@/lib/badges-server";
 import { Reveal } from "@/components/motion";
 import { getAdminSession, getCoachSession, getPlayerSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -81,6 +83,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   if (!profile) notFound();
 
   const isSelf = session?.id === profile.id;
+  const badges = await listUserBadges(profile.id);
   const age = ageFrom(profile.date_of_birth);
 
   // Upcoming games are public on purpose — the whole point of a profile is to
@@ -136,6 +139,11 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
           <div className="min-w-0 flex-1">
             <h1 className="headline-page">{profile.full_name}</h1>
+            {badges.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {badges.map((b) => <BadgeChip key={b.id} badge={b.badge} label={b.label} />)}
+              </div>
+            )}
             {profile.follows_me && !isSelf && (
               <span className="mt-2 inline-block rounded bg-mist px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-ink/60">
                 {profile.is_following ? "You follow each other" : "Follows you"}

@@ -327,6 +327,17 @@ export const SCHEMA_TABLES: string[] = [
     UNIQUE (tournament_id, field_key)
   )`,
 
+  // Badges an admin hands out by hand (club roles, achievements, milestones).
+  `CREATE TABLE IF NOT EXISTS user_badges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    badge TEXT NOT NULL,
+    label TEXT NOT NULL,
+    note TEXT,
+    awarded_by TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (user_id, badge)
+  )`,
   `CREATE TABLE IF NOT EXISTS follows (
     follower_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     following_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

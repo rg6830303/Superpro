@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { ArrowUpRight, CalendarDays, GraduationCap, HeartPulse, Home, MapPin, Menu, ShoppingBag, Trophy, UserRound, Users, Wallet, X } from "lucide-react";
+import { ArrowUpRight, Bell, CalendarCheck, CalendarDays, Compass, LayoutDashboard, Medal, GraduationCap, HeartPulse, Home, MapPin, Menu, ShoppingBag, Trophy, UserRound, Users, Wallet, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useCart } from "@/components/cart-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -21,6 +21,17 @@ const links = [
   { href: "/coaching", label: "Get coached", icon: GraduationCap },
   { href: "/tournaments", label: "Tournaments", icon: Trophy },
   { href: "/medical", label: "Player care", icon: HeartPulse },
+];
+
+// Signed-in players get their own clubhouse first, the rest of the club second.
+const memberLinks = [
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/bookings", label: "My bookings", icon: CalendarCheck },
+  { href: "/dashboard/community", label: "Community", icon: Compass },
+  { href: "/dashboard/rankings", label: "Rankings", icon: Medal },
+  { href: "/dashboard/activity", label: "Activity", icon: Bell },
+  { href: "/dashboard/wallet", label: "Wallet", icon: Wallet },
+  { href: "/dashboard/profile", label: "My profile", icon: UserRound },
 ];
 
 const sectionNotes: Record<string, { label: string; note: string }> = {
@@ -45,16 +56,31 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
   const section = pathname.split("/")[1];
   const sectionNote = sectionNotes[section];
   useEffect(() => setOpen(false), [pathname]);
+  // Signing in or up swaps the public site for the member clubhouse; mark that
+  // moment with a short reveal instead of a silent layout jump.
+  const [entering, setEntering] = useState(false);
+  useEffect(() => {
+    let prev: string | null = null;
+    try { prev = sessionStorage.getItem("sparvic:shell-mode"); sessionStorage.setItem("sparvic:shell-mode", signedIn ? "member" : "guest"); } catch {}
+    if (!(signedIn && prev === "guest")) return;
+    setEntering(true);
+    const t = setTimeout(() => setEntering(false), 2100);
+    return () => clearTimeout(t);
+  }, [signedIn]);
   useEffect(() => {
     if (!open) { dialog.current?.close(); return; }
     dialog.current?.showModal();
     const unlock = lockScroll();
     return () => { unlock(); dialog.current?.close(); toggle.current?.focus(); };
   }, [open]);
-  const active = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
-  const nav = (mobile = false) => <nav aria-label={mobile ? "All sections" : "Player navigation"}>{links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} onClick={() => setOpen(false)} aria-current={active(href) ? "page" : undefined}><Icon size={19} /><span>{label}</span>{active(href) && <span className="demo-nav-dot" />}</Link>)}<div className="demo-nav-divider" /><Link href="/dashboard?tab=wallet" onClick={() => setOpen(false)}><Wallet size={19} />Wallet & payments</Link><Link href="/dashboard/profile" onClick={() => setOpen(false)}><UserRound size={19} />My player profile</Link><Link href="/about" onClick={() => setOpen(false)}><ArrowUpRight size={19} />The Sparvic story</Link></nav>;
+  const active = (href: string) => href === "/" || href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+  const item = ({ href, label, icon: Icon }: (typeof links)[number]) => <Link key={href} href={href} onClick={() => setOpen(false)} aria-current={active(href) ? "page" : undefined}><Icon size={19} /><span>{label}</span>{active(href) && <span className="demo-nav-dot" />}</Link>;
+  const nav = (mobile = false) => signedIn
+    ? <nav aria-label={mobile ? "All sections" : "Your clubhouse"}><p className="demo-nav-label">YOUR CLUBHOUSE</p>{memberLinks.map(item)}<div className="demo-nav-divider" /><p className="demo-nav-label">PLAY & EXPLORE</p>{links.filter(l => l.href !== "/players").map(item)}</nav>
+    : <nav aria-label={mobile ? "All sections" : "Player navigation"}>{links.map(item)}<div className="demo-nav-divider" /><Link href="/about" onClick={() => setOpen(false)}><ArrowUpRight size={19} />The Sparvic story</Link></nav>;
   return <div data-demo-page={pathname.split("/")[1] || "home"} className={`demo-ui ${signedIn ? "demo-member" : "demo-guest"}`}>
     <ReadProgress />
+    {entering && <div className="demo-enter" aria-live="polite"><div className="demo-enter-card"><Logo height={46} href={null} /><p className="demo-nav-label">WELCOME TO YOUR CLUBHOUSE</p><h2>Hey {playerName?.split(" ")[0]}, let’s play.</h2><span className="demo-enter-bar" /></div></div>}
     {/* Living background: drifting colour fields, a slowly panning court grid and a
         few floating balls. Fixed behind every page; static under reduced motion. */}
     <div className="demo-backdrop" aria-hidden="true">
@@ -76,10 +102,10 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
       {signedIn && <div className="demo-header-context"><span className="demo-live-dot" />Your club. One place.<small><MapPin size={12} /> Kolkata, India</small></div>}
       <div className="demo-header-actions"><Link href="/cart" className="demo-icon-button" aria-label={`Shopping bag${ready && count ? `, ${count} items` : ""}`}><ShoppingBag size={20} />{ready && count > 0 && <b>{count}</b>}</Link><Link href={signedIn ? "/dashboard" : "/login"} className="demo-account" aria-label={signedIn ? `Account for ${playerName}` : "Sign in"}><UserRound size={17} /><span>{signedIn ? playerName.split(" ")[0] : "Sign in"}</span></Link><button ref={toggle} className="demo-menu-button" onClick={() => setOpen(true)} aria-label="Open all sections" aria-expanded={open}><Menu size={21} /></button></div>
     </header>
-    {signedIn && <aside className="demo-sidebar"><p className="demo-nav-label">LET’S PLAY</p>{nav()}<div className="demo-sidebar-note"><span>MAKE TIME<br />FOR PLAY.</span><p>Your next good day starts on court.</p><Link href="/games">Find a game <ArrowUpRight size={16} /></Link></div></aside>}
+    {signedIn && <aside className="demo-sidebar">{nav()}<div className="demo-sidebar-note"><span>MAKE TIME<br />FOR PLAY.</span><p>Your next good day starts on court.</p><Link href="/games">Find a game <ArrowUpRight size={16} /></Link></div></aside>}
     <div className="demo-body"><main id="main-content" tabIndex={-1}>{sectionNote && <div className={`demo-section-ribbon demo-ribbon-${section}`}><span>{sectionNote.label}</span><p>{sectionNote.note}</p><span className="demo-ribbon-court" aria-hidden="true" /></div>}{children}</main>{signedIn ? <footer className="demo-member-footer"><Logo height={25} href={null} /><span>© {new Date().getFullYear()} {SITE.legalName}</span><Link href="/about">Our story</Link><Link href="/coach/login">Coach portal</Link><a href={`mailto:${SITE.email}`}>Contact the club</a></footer> : <SiteFooter surface="demo" />}</div>
     <dialog ref={dialog} aria-label="All sections" className="demo-drawer" onCancel={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}><div className="demo-drawer-head"><Logo height={38} /><button className="demo-icon-button" onClick={() => setOpen(false)} aria-label="Close menu"><X size={22} /></button></div>{nav(true)}<Link className="btn-volt mt-6 w-full" href={signedIn ? "/dashboard" : "/signup"} onClick={() => setOpen(false)}>{signedIn ? "My clubhouse" : "Join the club"}<ArrowUpRight size={17} /></Link><div className="demo-drawer-support"><p>Need a hand? Ask the caddy or talk to the club.</p><FloatingActions /></div></dialog>
-    {signedIn && <nav className="demo-bottom-nav" aria-label="Quick navigation">{[links[0], links[1], links[2], { href: "/dashboard", label: "You", icon: UserRound }].map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={active(href) ? "page" : undefined}><Icon size={20} /><span>{label === "Find your people" ? "Community" : label === "Daily games" ? "Play" : label === "Clubhouse" ? "Home" : label}</span></Link>)}</nav>}
+    {signedIn && <nav className="demo-bottom-nav" aria-label="Quick navigation">{[{ href: "/dashboard", label: "Home", icon: LayoutDashboard }, { href: "/games", label: "Play", icon: CalendarDays }, { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck }, { href: "/dashboard/community", label: "Community", icon: Users }, { href: "/dashboard/profile", label: "You", icon: UserRound }].map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={active(href) ? "page" : undefined}><Icon size={20} /><span>{label}</span></Link>)}</nav>}
     <div className="demo-support"><FloatingActions /></div>
     <Suspense fallback={null}><WelcomePopup demo /></Suspense>
   </div>;
