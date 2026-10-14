@@ -451,3 +451,67 @@
 .demo-member .demo-sidebar{animation:demo-sidebar-in .6s cubic-bezier(.2,.8,.2,1) both}
 @keyframes demo-sidebar-in{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.demo-enter{animation:demo-enter-fade 1.2s ease forwards}.demo-enter-card,.demo-enter-bar:after,.demo-member .demo-sidebar{animation:none}@keyframes demo-enter-fade{0%,60%{opacity:1}100%{opacity:0}}}
+
+/* ── Clubhouse v2: framed player card, single tab bar, community ────────────
+   Unscoped class names: the main domain renders the same dashboard without
+   the demo shell, so these must not depend on .demo-ui. */
+.demo-account-tabs{display:flex;gap:4px;margin-top:22px;padding:6px;border-radius:16px;background:#ffffff8c;overflow-x:auto;scrollbar-width:none}
+.demo-account-tabs a{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;font-size:12px;font-weight:600;color:#52634f;white-space:nowrap}
+.demo-account-tabs a[aria-current]{background:#fff;color:#1a563f;box-shadow:0 2px 8px #193d3214}
+.demo-player-card-frame{position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(160deg,#ffffffb3,#ffffff59);backdrop-filter:blur(16px);box-shadow:0 1px 0 #fff inset,0 24px 50px -30px #193d3259}
+.demo-player-cover{position:relative;height:108px;background:linear-gradient(120deg,#1a563f,#3f7d4f 45%,#9cc28a 80%,#d9ef75);overflow:hidden}
+.demo-player-cover-lines{position:absolute;inset:-30px -10%;border:2px solid #ffffff40;transform:rotate(-8deg);border-radius:4px}
+.demo-player-cover-lines:before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px solid #ffffff40}
+.demo-player-cover-lines:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed #ffffff59}
+.demo-player-body{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"avatar id actions" "stats stats stats";gap:18px 22px;padding:0 28px 26px}
+.demo-player-avatar{grid-area:avatar;position:relative;margin-top:-46px;align-self:start}
+.demo-player-avatar>:first-child{width:112px!important;height:112px!important;border-radius:50%;box-shadow:0 0 0 5px #fff,0 12px 28px -12px #193d3266;font-size:30px}
+.demo-player-avatar-edit{position:absolute;right:4px;bottom:4px;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#d9ef75;color:#193d32;box-shadow:0 0 0 3px #fff}
+.demo-player-id{grid-area:id;min-width:0;padding-top:16px}
+.demo-player-kicker{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font:700 10px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:#1a563f}
+.demo-player-kicker>span:first-child{background:#d9ef7599;border-radius:999px;padding:3px 9px}
+.demo-player-handle{font-weight:500;letter-spacing:0;text-transform:none;color:#193d3280;overflow-wrap:anywhere}
+.demo-player-id h1{margin-top:6px;font-family:var(--font-display);font-weight:700;font-size:clamp(24px,3.4vw,34px);line-height:1.1;color:#193d32;overflow-wrap:anywhere}
+.demo-player-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.demo-player-meta span{display:inline-flex;align-items:center;gap:4px;border-radius:999px;background:#193d320d;padding:4px 10px;font-size:12px;color:#193d32b3}
+.demo-player-bio{margin-top:12px;font-size:13px;line-height:1.6;color:#193d32b3;max-width:52ch}
+.demo-player-actions{grid-area:actions;display:flex;align-items:center;gap:8px;padding-top:18px;align-self:start}
+.demo-player-stats{grid-area:stats;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.demo-player-stats a{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:16px;background:#ffffffa6;transition:transform .2s,background .2s}
+.demo-player-stats a:hover{background:#fff;transform:translateY(-2px)}
+.demo-player-stats .demo-stat-value{font-size:20px}
+@media(max-width:900px){
+  .demo-player-body{grid-template-columns:minmax(0,1fr);grid-template-areas:"avatar" "id" "stats" "actions";justify-items:center;text-align:center;padding:0 18px 20px;gap:14px}
+  .demo-player-id{padding-top:0;width:100%}
+  .demo-player-kicker,.demo-player-meta,.demo-player-id>div{justify-content:center}
+  .demo-player-bio{margin-inline:auto}
+  .demo-player-stats{width:100%;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .demo-player-stats a{align-items:center;padding:12px}
+  .demo-player-actions{width:100%;padding-top:0;justify-content:center}
+  .demo-player-actions>.btn-volt,.demo-player-actions>.btn-outline,.demo-player-actions>button{flex:1}
+  .demo-player-cover{height:92px}
+  .demo-player-avatar{margin-top:-52px}
+  .demo-player-avatar>:first-child{width:100px!important;height:100px!important}
+}
+
+/* Community: segmented filters as pills, players as glass cards. */
+.demo-ui .demo-dashboard [role=tablist][aria-label=Players]{gap:6px;border:0!important;padding:6px;border-radius:16px;background:#ffffff73;overflow-x:auto;scrollbar-width:none}
+.demo-ui .demo-dashboard [role=tablist][aria-label=Players] button{margin:0;border:0!important;border-radius:12px;padding:10px 16px;flex:1 0 auto;justify-content:center}
+.demo-ui .demo-dashboard [role=tablist][aria-label=Players] button[aria-selected=true]{background:#1a563f;color:#fff}
+.demo-ui .demo-player-card{border:0!important;background:linear-gradient(150deg,#ffffffa6,#ffffff40)!important;backdrop-filter:blur(12px);border-radius:18px!important;box-shadow:0 12px 30px -24px #193d3259}
+.demo-ui .demo-player-card:hover{background:#ffffffd9!important}
+
+/* Popups: glass, not a white box. */
+.demo-ui .demo-welcome{background:linear-gradient(150deg,#f4f9e8e6,#fdf3e3d9);border:0;backdrop-filter:blur(18px)}
+.demo-ui .demo-welcome:after{content:"";position:absolute;left:26px;right:26px;bottom:12px;height:3px;border-radius:3px;background:#1a563f33;transform-origin:left;animation:demo-quote-timer 3s linear forwards}
+.demo-ui .demo-welcome[aria-label="Welcome to the club"]:after{display:none}
+@keyframes demo-quote-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+.demo-account-cta{background:#d9ef75!important;color:#193d32}
+@media(max-width:760px){.demo-account-cta span{display:none}.demo-account-cta{padding:13px}}
+.demo-clubhouse .demo-header-context{font-size:13px;font-weight:600}
+/* Player rows: avatar · name · follow, all on one line, no divider. */
+.demo-ui .demo-player-card{grid-template-columns:52px minmax(0,1fr) auto;padding:16px 18px;gap:14px}
+.demo-ui .demo-player-card>div:last-child{grid-column:auto;border-top:0;padding-top:0}
+.demo-ui .demo-player-card>div:last-child button{min-width:0!important;min-height:40px;padding:0 14px}
+@media(max-width:420px){.demo-ui .demo-player-card>div:last-child button{padding:0 12px;font-size:12px}}
+.demo-ui .chip.bg-ink{background:#1a563f;color:#fff}

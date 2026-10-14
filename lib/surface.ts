@@ -45,6 +45,8 @@ const MAIN_PREFIXES = [
   "/dashboard",
   "/assessment",
   "/admin",
+  // Browser-notification service worker (the Activity page on either domain).
+  "/sw-notify.js",
 ];
 
 function underPrefix(pathname: string, prefix: string): boolean {

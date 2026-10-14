@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { BadgeChip } from "@/components/badge-chip";
+import { BrowserNotifyToggle } from "@/components/browser-notifier";
 import type { UserBadge } from "@/lib/badges";
 import { EmptyState } from "@/components/ui";
 import { ProfileForm } from "@/components/profile-form";
@@ -175,103 +176,27 @@ export function DashboardView({
 
   return (
     <div className="wrap section demo-dashboard">
-      {/* Player passport: who you are, your rating, quick actions. */}
-      <div className="demo-player-passport relative overflow-hidden rounded-2xl p-5 sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-volt/15 blur-3xl" />
-        <div className="demo-passport-grid relative">
-          <div className="demo-passport-id">
-            <div className="relative shrink-0">
-              <Avatar name={name} src={profile.avatar_url} size="lg" />
-              <Link
-                href={tabHref("profile")}
-                className="absolute -bottom-1 -right-1 rounded-full bg-volt p-1 text-ink shadow-xs transition-transform hover:scale-105"
-                title="Update profile photo"
-                aria-label="Update profile photo"
-              >
-                <UserCog size={12} />
-              </Link>
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-volt/15 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-volt-deep">
-                  Sparvic Player
-                </span>
-                {profile.handle && <span className="font-mono text-xs text-ink/50">@{profile.handle}</span>}
-              </div>
-              <h1 className="mt-1 truncate font-display text-2xl font-bold text-ink sm:text-3xl">{name}</h1>
-              {badges.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {badges.map((b) => <BadgeChip key={b.id} badge={b.badge} label={b.label} />)}
-                </div>
-              )}
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/65">
-                {calculatedAge ? <span>{calculatedAge} yrs</span> : null}
-                {profile.gender && <span className="capitalize">{profile.gender}</span>}
-                {profile.city && (
-                  <span className="inline-flex items-center gap-1 font-medium text-ink/75">
-                    <MapPin size={11} className="text-volt-deep" /> {profile.city}
-                  </span>
-                )}
-                <Link href={tabHref("community")} className="font-medium text-ink/75 hover:underline">
-                  <b>{followersCount}</b> followers · <b>{followingCount}</b> following
-                </Link>
-              </p>
-            </div>
-          </div>
-
-          <div className="demo-passport-stats">
-            <div>
-              <p className="demo-stat-label">DUPR</p>
-              <p className="demo-stat-value">{profile.dupr != null ? Number(profile.dupr).toFixed(2) : "Unrated"}</p>
-            </div>
-            <div>
-              <p className="demo-stat-label">Tier</p>
-              <span className="chip-volt inline-block py-0.5 text-[11px] font-semibold capitalize">
-                {LEVEL_LABEL[profile.skill_level] ?? profile.skill_level ?? "Player"}
-              </span>
-            </div>
-            <div>
-              <p className="demo-stat-label">Club rank</p>
-              <p className="demo-stat-value">{me ? `#${me.rank}` : "—"}</p>
-            </div>
-          </div>
-
-          <div className="demo-passport-actions">
-            <Link
-              href={tabHref("activity")}
-              className="demo-passport-btn relative"
-              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-            >
-              <Bell size={17} />
-              {unreadCount > 0 && <span className="demo-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+      {activeTab === "overview" && <PlayerCard profile={profile} name={name} age={calculatedAge} badges={badges} rank={me?.rank ?? null} followersCount={followersCount} followingCount={followingCount} unreadCount={unreadCount} variant="overview" />}
+      {/* The demo clubhouse switches sections from its sidebar and bottom tab bar;
+          the main domain has no clubhouse shell, so it keeps tabs here. */}
+      {launch && (
+        <nav className="demo-account-tabs" aria-label="Your account">
+          {tabs.map(({ key, label, icon: Icon }) => (
+            <Link key={key} href={tabHref(key)} aria-current={activeTab === key ? "page" : undefined}>
+              <Icon size={15} />
+              <span>{label}</span>
+              {key === "activity" && unreadCount > 0 && <span className="demo-badge-inline">{unreadCount}</span>}
             </Link>
-            {profile.handle && (
-              <Link href={`/players/${profile.handle}`} target="_blank" className="demo-passport-btn">
-                <ExternalLink size={14} /> <span>Public profile</span>
-              </Link>
-            )}
-            <LogoutButton />
-          </div>
-        </div>
-      </div>
-
-      {/* Section tabs: real pages, so every section has its own URL and back works. */}
-      <nav className="demo-account-tabs" aria-label="Your clubhouse">
-        {tabs.map(({ key, label, icon: Icon }) => (
-          <Link key={key} href={tabHref(key)} aria-current={activeTab === key ? "page" : undefined} scroll={false}>
-            <Icon size={15} />
-            <span>{label}</span>
-            {key === "activity" && unreadCount > 0 && <span className="demo-badge-inline">{unreadCount}</span>}
-          </Link>
-        ))}
-      </nav>
+          ))}
+        </nav>
+      )}
 
       {activeTab === "overview" && launch && (
         <LaunchOverview profile={profile} followingCount={followingCount} switchTab={switchTab} />
       )}
 
       {activeTab === "overview" && !launch && (
-        <div className="mt-8 space-y-8">
+        <div className="mt-6 space-y-8">
           <div className="demo-account-metrics grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {[
               { icon: CalendarDays, k: `${upcomingGames.length}`, v: "Upcoming games" },
@@ -399,6 +324,7 @@ export function DashboardView({
       {activeTab === "activity" && (
         <div className="mt-8 max-w-3xl">
           <SectionHead eyebrow="Activity" title="What’s new" sub="Follows, bookings and club updates." />
+          <div className="mb-6"><BrowserNotifyToggle /></div>
           <ActivityFeed initialNotifications={notifications} initialUnreadCount={unreadCount} />
         </div>
       )}
@@ -410,20 +336,7 @@ export function DashboardView({
             title="View & edit profile"
             sub="Your photo, age, sex and DUPR level decide your tournament brackets and match eligibility."
           />
-          {profile.handle && (
-            <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <Avatar name={profile.full_name} src={profile.avatar_url} size="sm" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-ink">Public player page</p>
-                  <p className="truncate font-mono text-[11px] text-ink/50">/players/{profile.handle}</p>
-                </div>
-              </div>
-              <Link href={`/players/${profile.handle}`} target="_blank" className="btn-outline btn-sm">
-                View <ExternalLink size={12} />
-              </Link>
-            </div>
-          )}
+          <PlayerCard profile={profile} name={name} age={calculatedAge} badges={badges} rank={me?.rank ?? null} followersCount={followersCount} followingCount={followingCount} unreadCount={unreadCount} variant="profile" />
           <ProfileForm profile={profile} hideWallet={true} />
         </div>
       )}
@@ -505,6 +418,114 @@ export function DashboardView({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The member's player card: a framed cover, the avatar in a ring, badges, and
+ * a row of stat tiles. Overview shows it with quick actions; Profile shows it
+ * as a preview of what other players see.
+ */
+function PlayerCard({
+  profile,
+  name,
+  age,
+  badges,
+  rank,
+  followersCount,
+  followingCount,
+  unreadCount,
+  variant,
+}: {
+  profile: PlayerProfileData;
+  name: string;
+  age: number | null | undefined;
+  badges: UserBadge[];
+  rank: number | null;
+  followersCount: number;
+  followingCount: number;
+  unreadCount: number;
+  variant: "overview" | "profile";
+}) {
+  const stats = [
+    { label: "DUPR", value: profile.dupr != null ? Number(profile.dupr).toFixed(2) : "Unrated", href: tabHref("profile") },
+    { label: "Club rank", value: rank ? `#${rank}` : "—", href: tabHref("rankings") },
+    { label: "Followers", value: String(followersCount), href: tabHref("community") },
+    { label: "Following", value: String(followingCount), href: tabHref("community") },
+  ];
+  return (
+    <section className="demo-player-card-frame" aria-label="Your player card">
+      <div className="demo-player-cover" aria-hidden="true">
+        <span className="demo-player-cover-lines" />
+      </div>
+      <div className="demo-player-body">
+        <div className="demo-player-avatar">
+          <Avatar name={name} src={profile.avatar_url} size="lg" />
+          <Link href={tabHref("profile")} className="demo-player-avatar-edit" title="Update profile photo" aria-label="Update profile photo">
+            <UserCog size={13} />
+          </Link>
+        </div>
+        <div className="demo-player-id">
+          <p className="demo-player-kicker">
+            <span>{LEVEL_LABEL[profile.skill_level] ?? profile.skill_level ?? "Player"}</span>
+            {profile.handle && <span className="demo-player-handle">@{profile.handle}</span>}
+          </p>
+          <h1>{name}</h1>
+          <p className="demo-player-meta">
+            {age ? <span>{age} yrs</span> : null}
+            {profile.gender && profile.gender !== "undisclosed" && <span className="capitalize">{profile.gender}</span>}
+            {profile.city && (
+              <span>
+                <MapPin size={12} /> {profile.city}
+              </span>
+            )}
+          </p>
+          {badges.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {badges.map((b) => (
+                <BadgeChip key={b.id} badge={b.badge} label={b.label} />
+              ))}
+            </div>
+          )}
+          {variant === "profile" && profile.bio && <p className="demo-player-bio">{profile.bio}</p>}
+        </div>
+        <div className="demo-player-stats">
+          {stats.map((s) => (
+            <Link key={s.label} href={s.href}>
+              <span className="demo-stat-label">{s.label}</span>
+              <span className="demo-stat-value">{s.value}</span>
+            </Link>
+          ))}
+        </div>
+        <div className="demo-player-actions">
+          {variant === "overview" ? (
+            <>
+              <Link href="/games" className="btn-volt btn-sm">
+                <CalendarDays size={14} /> Book a game
+              </Link>
+              <Link href={tabHref("activity")} className="demo-passport-btn relative" aria-label={`Activity${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}>
+                <Bell size={16} />
+                {unreadCount > 0 && <span className="demo-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              </Link>
+              {profile.handle && (
+                <Link href={`/players/${profile.handle}`} target="_blank" className="demo-passport-btn" aria-label="Public profile">
+                  <ExternalLink size={15} />
+                </Link>
+              )}
+            </>
+          ) : (
+            <>
+              {profile.handle && (
+                <Link href={`/players/${profile.handle}`} target="_blank" className="btn-outline btn-sm">
+                  <ExternalLink size={14} /> View public page
+                </Link>
+              )}
+              <LogoutButton />
+            </>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

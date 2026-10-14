@@ -103,6 +103,13 @@ export function WelcomePopup({ demo = false }: { demo?: boolean }) {
     };
   }, [quiet, welcome, demo]);
 
+  // Quotes are a passing moment, not a task: they leave on their own after 3 s.
+  useEffect(() => {
+    if (card?.kind !== "quote") return;
+    const t = window.setTimeout(close, 3000);
+    return () => window.clearTimeout(t);
+  }, [card, close]);
+
   useEffect(() => {
     if (!card) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();

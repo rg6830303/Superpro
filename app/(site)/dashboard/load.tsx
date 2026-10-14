@@ -90,7 +90,7 @@ export async function renderDashboard(tab: TabKey) {
   ).catch(() => [{ n: 0 }]);
   // Community standings: players ordered by DUPR (unrated last), then by games
   // played. Only public directory columns leave the database.
-  const standings = tab === "rankings" || tab === "overview"
+  const standings = tab === "rankings" || tab === "overview" || tab === "profile"
     ? await query<RankRow>(
         `WITH played AS (
            SELECT r.user_id, COUNT(*)::int AS games
