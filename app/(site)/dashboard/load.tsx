@@ -88,6 +88,10 @@ export async function renderDashboard(tab: TabKey) {
     `SELECT count(*)::int AS n FROM follows WHERE following_id = $1`,
     [session.id],
   ).catch(() => [{ n: 0 }]);
+  const partnerRequests = await query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM open_pairs WHERE partner_id = $1 AND status = 'pending'`,
+    [session.id],
+  ).then((r) => r[0]?.n ?? 0).catch(() => 0);
   const standings = tab === "rankings" || tab === "profile" || tab === "overview" ? await getLeaderboard(session.id) : [];
 
   const [profile, walletTx, notifications, unreadCount, badges] = await Promise.all([
@@ -132,6 +136,7 @@ export async function renderDashboard(tab: TabKey) {
       followingCount={following[0]?.n ?? 0}
       followersCount={followers[0]?.n ?? 0}
       standings={standings}
+      partnerRequests={partnerRequests}
       badges={badges}
     />
   );

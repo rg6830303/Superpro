@@ -13,7 +13,7 @@ import { markPaid } from "@/lib/coaching-registrations";
 import { DOCTOR, markAppointmentPaid } from "@/lib/doctor";
 import { sendAppointmentEmail } from "@/lib/doctor-emails";
 import { sendRegistrationEmail } from "@/lib/coaching-emails";
-import { markOpenEntryPaid } from "@/lib/sparvic-open-server";
+import { afterEntryPaid, markOpenEntryPaid } from "@/lib/sparvic-open-server";
 import { OPEN, OPEN_CATEGORIES } from "@/lib/sparvic-open";
 import { createNotification } from "@/lib/notifications";
 
@@ -237,21 +237,20 @@ async function settleOpenEntry(p: Payload) {
   if (!p.reference) return NextResponse.json({ error: "Missing entry reference." }, { status: 400 });
   // Only matches when the order id is the one we created for this entry.
   const entry = await markOpenEntryPaid(p.reference, p.razorpay_order_id, p.razorpay_payment_id);
-  if (!entry) return NextResponse.json({ error: "That payment does not match this entry." }, { status: 409 });
-  const names = entry.categories.map((c) => OPEN_CATEGORIES.find((x) => x.id === c.category)?.label ?? c.category);
-  await createNotification({
-    userId: entry.user_id,
-    kind: "tournament_entry",
-    title: `You're in the ${OPEN.name}`,
-    message: `Entry ${entry.reference} confirmed: ${names.join(", ")}. Fixtures will be shared on Sparvic.`,
-    linkUrl: "/dashboard/sparvic-open",
-  }).catch(() => {});
+  if (!entry) {
+    const already = await queryOne<{ payment_status: string; razorpay_order_id: string }>(
+      `SELECT payment_status, razorpay_order_id FROM open_entries WHERE reference = $1`, [p.reference]);
+    if (already?.payment_status === "paid" && already.razorpay_order_id === p.razorpay_order_id) return NextResponse.json({ ok: true, already: true, reference: p.reference });
+    return NextResponse.json({ error: "That payment does not match this entry." }, { status: 409 });
+  }
+  await afterEntryPaid(entry);
   if (entry.player_phone) {
+    const names = entry.categories.map((c) => OPEN_CATEGORIES.find((x) => x.id === c.category)?.label ?? c.category);
     await sendWhatsApp({
       kind: "tournament_paid",
       target: "number",
       phone: `91${entry.player_phone}`,
-      message: `🏆 ${OPEN.name}: entry ${entry.reference} confirmed for ${names.join(", ")}. ${OPEN.dates} at ${OPEN.venue}. Questions: ${OPEN.contactDisplay}.`,
+      message: `🏆 ${OPEN.name}: entry ${entry.reference} confirmed for ${names.join(", ")}. ${OPEN.dates}. Questions: ${OPEN.contactDisplay}.`,
       refTable: "open_entries",
       refId: entry.id,
     }).catch(() => {});

@@ -9,7 +9,7 @@ import { isRazorpayEnabled } from "@/lib/razorpay";
 import { formatPaise } from "@/lib/money";
 import { LAUNCH_AT } from "@/lib/site";
 import { ELIGIBILITY, MATCH_FORMAT, OPEN, OPEN_CATEGORIES, OPEN_RULES } from "@/lib/sparvic-open";
-import { myEntries } from "@/lib/sparvic-open-server";
+import { entriesForUser, pairsFor } from "@/lib/sparvic-open-server";
 import { SparvicOpenForm } from "@/components/sparvic-open-form";
 import { JsonLd } from "@/components/json-ld";
 import { sparvicOpenLd } from "@/lib/seo";
@@ -35,13 +35,17 @@ export default async function SparvicOpenPage() {
   let form: React.ReactNode = null;
   if (clubhouse && session) {
     await ensureSchema();
-    const [profile, entries] = await Promise.all([getUserRow(session.id), myEntries(session.id)]);
+    const [profile, entries, pairs] = await Promise.all([getUserRow(session.id), entriesForUser(session.id), pairsFor(session.id)]);
     if (profile) {
       form = (
         <SparvicOpenForm
           razorpayEnabled={isRazorpayEnabled}
           earlyBird={Boolean(profile.created_at) && new Date(profile.created_at).getTime() < LAUNCH_AT}
+          pairs={pairs}
           profile={{
+            id: profile.id,
+            dupr_singles: profile.dupr_singles != null ? Number(profile.dupr_singles) : null,
+            dupr_doubles: profile.dupr_doubles != null ? Number(profile.dupr_doubles) : null,
             name: profile.full_name,
             email: profile.email,
             phone: profile.phone ?? "",
@@ -49,7 +53,7 @@ export default async function SparvicOpenPage() {
             dupr: profile.dupr != null ? Number(profile.dupr) : null,
             dupr_id: profile.dupr_id ?? null,
           }}
-          entries={entries.map((e) => ({ reference: e.reference, categories: e.categories, amount_paise: e.amount_paise, payment_status: e.payment_status, created_at: e.created_at }))}
+          entries={entries.map((e) => ({ reference: e.reference, categories: e.categories, amount_paise: e.amount_paise, payment_status: e.payment_status, created_at: e.created_at, as_partner: e.as_partner, player_name: e.player_name }))}
         />
       );
     }

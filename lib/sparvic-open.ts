@@ -57,19 +57,45 @@ export const OPEN_RULES: Array<{ title: string; points: string[] }> = [
 
 export const ELIGIBILITY = [
   { title: "Meet the threshold", body: `You and your partner must be under the DUPR band of every category you enter, as on ${OPEN.duprAsOf}. Each category's band is its limit.` },
+  { title: "Singles and doubles ratings", body: "DUPR rates singles and doubles separately. Singles categories use your singles rating; doubles categories use your doubles rating, and your partner's doubles rating must fit the band too." },
   { title: "Checked at registration", body: "If any manipulation of DUPR is found, the player or team is disqualified." },
   { title: "Multiple accounts", body: "If a player has more than one DUPR account, the one with the higher rating counts." },
   { title: "Reliability cap 50%", body: "In a < 3.599 category, a player rated 3.6 with reliability of 50% or less is still permitted." },
 ];
 
-export type PlayerFacts = { dupr: number | null; gender: string | null };
-export type EntryInput = { category: string; partner_name?: string; partner_phone?: string; partner_dupr?: number | null };
+/**
+ * A player's facts for eligibility. Singles and doubles ratings are separate
+ * on DUPR; `dupr` is the older single rating, used only when the specific
+ * one hasn't been entered.
+ */
+export type PlayerFacts = {
+  dupr: number | null;
+  dupr_singles?: number | null;
+  dupr_doubles?: number | null;
+  gender: string | null;
+};
+
+/** One category in a checkout. Doubles carry the accepted Sparvic partner. */
+export type EntryInput = {
+  category: string;
+  partner_user_id?: string;
+  partner_name?: string;
+  partner_phone?: string;
+  partner_dupr?: number | null;
+  pair_id?: string;
+};
+
+const num = (v: number | null | undefined) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+
+/** The rating that counts for a category type. */
+export function ratingFor(type: "singles" | "doubles", p: PlayerFacts): number | null {
+  return type === "singles" ? num(p.dupr_singles) ?? num(p.dupr) : num(p.dupr_doubles) ?? num(p.dupr);
+}
 
 /** Why a player can't enter the event at all, or null when they can. */
 export function playerBlock(p: PlayerFacts): string | null {
-  if (p.dupr == null || !Number.isFinite(p.dupr)) return "Add your DUPR rating to enter: draws and eligibility run off it.";
-  if (p.dupr > OPEN.maxDupr) return `Your DUPR ${p.dupr.toFixed(2)} is above every category band (the highest is < ${OPEN.maxDupr}).`;
   if (p.gender !== "male" && p.gender !== "female") return "Set your gender in your profile so we can offer the right categories.";
+  if (ratingFor("singles", p) == null && ratingFor("doubles", p) == null) return "Add your DUPR singles and/or doubles rating to enter: eligibility runs off them.";
   return null;
 }
 
@@ -79,11 +105,33 @@ export function categoryBlock(cat: OpenCategory, p: PlayerFacts): string | null 
   if (base) return base;
   if (cat.gender === "men" && p.gender !== "male") return "Men's category";
   if (cat.gender === "women" && p.gender !== "female") return "Women's category";
-  if ((p.dupr as number) > cat.band) return `Your DUPR ${(p.dupr as number).toFixed(2)} is above this band`;
+  const r = ratingFor(cat.type, p);
+  if (r == null) return `Add your DUPR ${cat.type} rating`;
+  if (r > cat.band) return `Your ${cat.type} DUPR ${r.toFixed(2)} is above this band`;
   return null;
 }
 
-/** Full validation of one checkout's selections. Returns an error message, or null. */
+/**
+ * Whether `partner` can pair with `me` in a doubles category: the partner's
+ * doubles rating must sit in the band, and genders must fit the category
+ * (men's: both men; women's: both women; mixed: one of each).
+ */
+export function partnerBlock(cat: OpenCategory, me: PlayerFacts, partner: PlayerFacts, partnerName = "This player"): string | null {
+  if (cat.type !== "doubles") return "Partners are only for doubles categories.";
+  if (partner.gender !== "male" && partner.gender !== "female") return `${partnerName} hasn't set their gender yet, so they can't be paired.`;
+  if (cat.gender === "men" && partner.gender !== "male") return `${cat.label} needs a male partner.`;
+  if (cat.gender === "women" && partner.gender !== "female") return `${cat.label} needs a female partner.`;
+  if (cat.gender === "mixed" && partner.gender === me.gender) return `Mixed doubles needs a partner of the opposite gender.`;
+  const r = ratingFor("doubles", partner);
+  if (r == null) return `${partnerName} hasn't added a DUPR doubles rating, so they can't enter a DUPR-banded category yet.`;
+  if (r > cat.band) return `${partnerName}'s doubles DUPR ${r.toFixed(2)} is above the ${cat.label.split("DUPR ")[1]} band.`;
+  return null;
+}
+
+/**
+ * Validation of one checkout's selections (the server re-checks that every
+ * doubles partner is an accepted Sparvic pairing). Returns an error, or null.
+ */
 export function validateEntries(entries: EntryInput[], p: PlayerFacts, taken: Set<string> = new Set()): string | null {
   const base = playerBlock(p);
   if (base) return base;
@@ -97,13 +145,7 @@ export function validateEntries(entries: EntryInput[], p: PlayerFacts, taken: Se
     if (taken.has(cat.id)) return `You're already entered in ${cat.label}.`;
     const why = categoryBlock(cat, p);
     if (why) return `${cat.label}: ${why}.`;
-    if (cat.type === "doubles") {
-      if (!e.partner_name || e.partner_name.trim().length < 2) return `${cat.label}: add your partner's name.`;
-      if (!/^\d{10}$/.test(e.partner_phone ?? "")) return `${cat.label}: add your partner's 10-digit phone number.`;
-      const d = e.partner_dupr;
-      if (d == null || !Number.isFinite(d)) return `${cat.label}: add your partner's DUPR rating.`;
-      if (d > cat.band) return `${cat.label}: your partner's DUPR ${d.toFixed(2)} is above this band.`;
-    }
+    if (cat.type === "doubles" && !e.partner_user_id) return `${cat.label}: pick a Sparvic partner and wait for them to accept your request.`;
   }
   return null;
 }

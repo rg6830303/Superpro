@@ -327,6 +327,20 @@ export const SCHEMA_TABLES: string[] = [
     UNIQUE (tournament_id, field_key)
   )`,
 
+  // Sparvic Open doubles pairings: a request from one member to another for a
+  // category, accepted or declined by the partner. Kept as the pairing record.
+  `CREATE TABLE IF NOT EXISTS open_pairs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category TEXT NOT NULL,
+    requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    partner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined','cancelled')),
+    message TEXT,
+    team_entry_ref TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    responded_at TIMESTAMPTZ,
+    CHECK (requester_id <> partner_id)
+  )`,
   // Sparvic Open entries: one row per checkout, any number of categories.
   `CREATE TABLE IF NOT EXISTS open_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -636,12 +650,15 @@ export const SCHEMA_MIGRATIONS: string[] = [
   // cover + gallery columns, which are still kept in sync for older readers.
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS media JSONB NOT NULL DEFAULT '[]'::jsonb`,
   `ALTER TABLE open_entries ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0`,
+  // DUPR keeps separate singles and doubles ratings; tournaments check the right one.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS dupr_singles NUMERIC(4,2)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS dupr_doubles NUMERIC(4,2)`,
   // Paid tournament entries are financial records: deleting an account keeps them.
   `ALTER TABLE open_entries ALTER COLUMN user_id DROP NOT NULL`,
   `ALTER TABLE open_entries DROP CONSTRAINT IF EXISTS open_entries_user_id_fkey`,
   `ALTER TABLE open_entries ADD CONSTRAINT open_entries_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL`,
   `ALTER TABLE open_entries DROP CONSTRAINT IF EXISTS open_entries_status_check`,
-  `ALTER TABLE open_entries ADD CONSTRAINT open_entries_status_check CHECK (payment_status IN ('pending','paid'))`,
+  `ALTER TABLE open_entries ADD CONSTRAINT open_entries_status_check CHECK (payment_status IN ('pending','paid','cancelled'))`,
   `UPDATE products SET media = (
        SELECT COALESCE(jsonb_agg(jsonb_build_object('type', 'image', 'url', u) ORDER BY o), '[]'::jsonb)
        FROM (
@@ -816,6 +833,11 @@ $repair$`,
 
 export const SCHEMA_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_open_entries_user ON open_entries(user_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_open_pairs_partner ON open_pairs(partner_id, status, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_open_pairs_requester ON open_pairs(requester_id, status, created_at DESC)`,
+  // One live request per pair and category (a declined one can be re-sent).
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_open_pairs_live ON open_pairs(category, requester_id, partner_id) WHERE status IN ('pending','accepted')`,
+  `CREATE INDEX IF NOT EXISTS idx_open_entries_partners ON open_entries USING GIN (categories jsonb_path_ops)`,
   `CREATE INDEX IF NOT EXISTS idx_open_entries_status ON open_entries(payment_status, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_account_events_recent ON account_events(created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_account_events_actor ON account_events(actor_id, created_at DESC)`,

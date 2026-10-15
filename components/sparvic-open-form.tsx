@@ -1,186 +1,213 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CircleAlert, PartyPopper, Trophy } from "lucide-react";
+import { Check, CircleAlert, Clock, Handshake, Search, Send, Trophy, UserPlus, X } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
+import { Avatar, FollowButton } from "@/components/player-directory";
 import { useRazorpayPreload } from "@/components/razorpay-client";
 import { payForRegistration, type PayStart } from "@/components/coaching-pay";
 import { formatPaise } from "@/lib/money";
-import { OPEN, OPEN_CATEGORIES, categoryBlock, earlyBirdPaise, playerBlock, totalPaise, type EntryInput } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, categoryBlock, earlyBirdPaise, playerBlock, ratingFor, totalPaise, type EntryInput, type OpenCategory } from "@/lib/sparvic-open";
 
-type Profile = { name: string; email: string; phone: string; gender: string | null; dupr: number | null; dupr_id: string | null };
-type Entry = { reference: string; categories: EntryInput[]; amount_paise: number; payment_status: string; created_at: string };
-type Partner = { name: string; phone: string; dupr: string };
+type Profile = { id: string; name: string; email: string; phone: string; gender: string | null; dupr: number | null; dupr_singles: number | null; dupr_doubles: number | null; dupr_id: string | null };
+type Entry = { reference: string; categories: EntryInput[]; amount_paise: number; payment_status: string; created_at: string; as_partner?: boolean; player_name?: string };
+export type Pair = {
+  id: string; category: string; status: "pending" | "accepted" | "declined" | "cancelled"; message: string | null; team_entry_ref: string | null;
+  created_at: string; direction: "incoming" | "outgoing"; other_id: string; other_name: string; other_handle: string | null; other_avatar: string | null; other_dupr_doubles: number | null;
+};
+type Candidate = { id: string; name: string; handle: string | null; avatar_url: string | null; dupr_doubles: number | null; rank: number | null; eligible: boolean; reason: string | null };
 
 const label = (id: string) => OPEN_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+const toNum = (v: string) => (v.trim() === "" ? null : Number(v));
 
 /**
- * Clubhouse registration for the Sparvic Open: details come from the profile,
- * the player ticks any categories they're eligible for (the total follows),
- * adds a partner for doubles, and pays on Razorpay to confirm.
+ * Clubhouse registration for the Sparvic Open.
+ * - Ratings: DUPR singles and doubles are separate; each category checks its own.
+ * - Doubles: search registered Sparvic players (with club rank), send a partner
+ *   request; once the partner accepts, either of you can register and pay.
+ * - Requests you receive pile up at the top; accept the ones you want.
+ * - Any category can be added later; nothing is confirmed until it's paid.
  */
-export function SparvicOpenForm({ profile, entries, razorpayEnabled, earlyBird = false }: { profile: Profile; entries: Entry[]; razorpayEnabled: boolean; earlyBird?: boolean }) {
+export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earlyBird = false }: { profile: Profile; entries: Entry[]; pairs: Pair[]; razorpayEnabled: boolean; earlyBird?: boolean }) {
   useRazorpayPreload(razorpayEnabled);
   const router = useRouter();
-  const [dupr, setDupr] = useState(profile.dupr != null ? String(profile.dupr) : "");
-  const [duprId, setDuprId] = useState(profile.dupr_id ?? "");
+  const [singles, setSingles] = useState(profile.dupr_singles != null ? String(profile.dupr_singles) : profile.dupr != null ? String(profile.dupr) : "");
+  const [doubles, setDoubles] = useState(profile.dupr_doubles != null ? String(profile.dupr_doubles) : profile.dupr != null ? String(profile.dupr) : "");
+  const [savedRatings, setSavedRatings] = useState({ s: singles, d: doubles });
   const [picked, setPicked] = useState<string[]>([]);
-  const [partners, setPartners] = useState<Record<string, Partner>>({});
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [acceptedNow, setAcceptedNow] = useState<{ category: string; partner: { id: string; name: string; handle: string | null }; following: boolean } | null>(null);
 
-  const facts = { dupr: dupr === "" ? null : Number(dupr), gender: profile.gender };
+  const facts = { dupr: profile.dupr, dupr_singles: toNum(singles), dupr_doubles: toNum(doubles), gender: profile.gender };
+  const ratingsDirty = singles !== savedRatings.s || doubles !== savedRatings.d;
   const blocked = playerBlock(facts);
-  const paid = useMemo(
-    () => new Set(entries.filter((e) => e.payment_status === "paid").flatMap((e) => e.categories.map((c) => c.category))),
-    [entries],
-  );
+
+  const paid = useMemo(() => {
+    const s = new Set<string>();
+    for (const e of entries) if (e.payment_status === "paid") for (const c of e.categories) if (!e.as_partner || c.partner_user_id === profile.id) s.add(c.category);
+    return s;
+  }, [entries, profile.id]);
+  const accepted = (cat: string) => pairs.find((p) => p.category === cat && p.status === "accepted" && !p.team_entry_ref);
+  const waiting = (cat: string) => pairs.filter((p) => p.category === cat && p.status === "pending" && p.direction === "outgoing");
+  const incoming = pairs.filter((p) => p.direction === "incoming" && p.status === "pending");
+  const partners = pairs.filter((p) => p.status === "accepted");
+
   const gross = totalPaise(picked);
   const discount = earlyBirdPaise(gross, earlyBird);
   const total = gross - discount;
-
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
-  const setPartner = (id: string, k: keyof Partner, v: string) =>
-    setPartners((p) => ({ ...p, [id]: { ...(p[id] ?? { name: "", phone: "", dupr: "" }), [k]: v } }));
+
+  async function call(url: string, method: string, body: object) {
+    const res = await fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
+    return data;
+  }
+  const run = async (key: string, fn: () => Promise<void>) => {
+    setError(null); setNotice(null); setBusy(key);
+    try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusy(null); }
+  };
+
+  const saveRatings = () => run("ratings", async () => {
+    await call("/api/sparvic-open/ratings", "POST", { dupr_singles: toNum(singles), dupr_doubles: toNum(doubles) });
+    setSavedRatings({ s: singles, d: doubles });
+    setNotice("Ratings saved to your profile.");
+    router.refresh();
+  });
+
+  const respond = (p: Pair, action: "accept" | "decline" | "cancel") => run(`${action}-${p.id}`, async () => {
+    const data = await call("/api/sparvic-open/pairs", "PATCH", { id: p.id, action });
+    if (action === "accept") {
+      setAcceptedNow({ category: data.category, partner: data.partner, following: data.following });
+      setPicked((x) => (x.includes(data.category) ? x : [...x, data.category]));
+    } else setNotice(action === "decline" ? "Request declined." : "Pairing withdrawn.");
+    router.refresh();
+  });
 
   async function pay(start: PayStart & { description?: string }) {
     const outcome = await payForRegistration(start, { kind: "sparvic_open", name: OPEN.name, description: start.description });
-    if (outcome === "paid" || outcome === "failed") {
-      // Paid: confirmed. Failed verification: the page shows "pending" and
-      // explains, and the webhook-free recheck happens when it loads.
-      router.push(`/dashboard/sparvic-open/confirmation/${start.reference}`);
-    } else {
-      router.refresh();
-    }
+    if (outcome === "paid" || outcome === "failed") router.push(`/dashboard/sparvic-open/confirmation/${start.reference}`);
+    else router.refresh();
   }
 
-  async function submit() {
-    setError(null);
-    setBusy(true);
-    try {
-      const res = await fetch("/api/sparvic-open", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          dupr: profile.dupr == null && dupr ? Number(dupr) : undefined,
-          dupr_id: profile.dupr == null ? duprId || undefined : undefined,
-          entries: picked.map((id) => {
-            const cat = OPEN_CATEGORIES.find((c) => c.id === id)!;
-            const p = partners[id];
-            return cat.type === "doubles"
-              ? { category: id, partner_name: p?.name ?? "", partner_phone: (p?.phone ?? "").replace(/\D/g, ""), partner_dupr: p?.dupr ? Number(p.dupr) : null }
-              : { category: id };
-          }),
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Could not start the registration.");
-      await pay(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start the registration.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const submit = () => run("pay", async () => {
+    const data = await call("/api/sparvic-open", "POST", {
+      dupr_singles: toNum(singles),
+      dupr_doubles: toNum(doubles),
+      entries: picked.map((id) => {
+        const cat = OPEN_CATEGORIES.find((c) => c.id === id)!;
+        return cat.type === "doubles" ? { category: id, partner_user_id: accepted(id)?.other_id } : { category: id };
+      }),
+    });
+    await pay(data);
+  });
 
-  async function payLater(reference: string) {
-    setError(null);
-    setBusy(true);
-    try {
-      const res = await fetch("/api/sparvic-open/pay", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reference }) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Could not start the payment.");
-      await pay(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start the payment.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const payLater = (reference: string) => run(`later-${reference}`, async () => pay(await call("/api/sparvic-open/pay", "POST", { reference })));
 
   return (
-    <div className="space-y-6">
-      {done && (
-        <div className="card flex items-start gap-3 p-5">
-          <PartyPopper className="shrink-0 text-volt-deep" size={22} />
-          <div>
-            <p className="font-semibold text-ink">You&apos;re registered! Entry {done} is confirmed.</p>
-            <p className="text-sm text-ink/65">We&apos;ve sent the details to your notifications. Fixtures will follow on Sparvic.</p>
-          </div>
-        </div>
+    <div className="space-y-5">
+      {earlyBird && <div className="so-earlybird">🎉 Congratulations! You joined Sparvic before launch, so you get an early-bird {OPEN.earlyBirdPct}% off your tournament total. The discount is applied at payment.</div>}
+
+      {/* Requests waiting for you */}
+      {incoming.length > 0 && (
+        <section className="so-requests">
+          <p className="so-requests-head"><Handshake size={16} /> {incoming.length} partner request{incoming.length === 1 ? "" : "s"} for you</p>
+          <ul className="mt-3 space-y-2">
+            {incoming.map((p) => (
+              <li key={p.id} className="so-req">
+                <Avatar name={p.other_name} src={p.other_avatar} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">{p.other_name}</p>
+                  <p className="text-[11px] text-ink/60">{label(p.category)}{p.other_dupr_doubles != null ? ` · doubles DUPR ${Number(p.other_dupr_doubles).toFixed(2)}` : ""}</p>
+                  {p.message && <p className="mt-1 text-xs italic text-ink/60">“{p.message}”</p>}
+                </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <button type="button" className="btn-volt btn-sm" disabled={!!busy} onClick={() => respond(p, "accept")}>{busy === `accept-${p.id}` ? <Spinner /> : <Check size={14} />} Accept</button>
+                  <button type="button" className="btn-outline btn-sm" disabled={!!busy} onClick={() => respond(p, "decline")} aria-label="Decline"><X size={14} /></button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-ink/55">Accept as many as you like across categories (one partner per category). After accepting, register the team below; either partner can pay.</p>
+        </section>
       )}
 
-      {earlyBird && (
-        <div className="so-earlybird">🎉 Congratulations! You joined Sparvic before launch, so you get an early-bird {OPEN.earlyBirdPct}% off your tournament total. The discount is applied at payment.</div>
+      {acceptedNow && (
+        <section className="so-accepted">
+          <p className="font-semibold text-ink">You&apos;re paired with {acceptedNow.partner.name} for {label(acceptedNow.category)}.</p>
+          <p className="mt-1 text-sm text-ink/65">It&apos;s ticked below: complete the team registration and payment now to lock your place.</p>
+          {!acceptedNow.following && acceptedNow.partner.handle && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink/70">
+              <span>Follow your partner to see when they&apos;re on court:</span>
+              <FollowButton handle={acceptedNow.partner.handle} initialFollowing={false} initialFollowers={0} followsMe={false} signedIn />
+            </div>
+          )}
+        </section>
       )}
 
+      {/* Details and ratings */}
       <section className="card p-5 sm:p-6">
         <p className="eyebrow">Your details (from your profile)</p>
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div><dt className="text-ink/50">Name</dt><dd className="font-semibold text-ink">{profile.name}</dd></div>
           <div><dt className="text-ink/50">Phone</dt><dd className="font-semibold text-ink">{profile.phone || "—"}</dd></div>
-          <div><dt className="text-ink/50">Email</dt><dd className="font-semibold text-ink break-all">{profile.email}</dd></div>
+          <div><dt className="text-ink/50">Email</dt><dd className="break-all font-semibold text-ink">{profile.email}</dd></div>
           <div><dt className="text-ink/50">Gender</dt><dd className="font-semibold capitalize text-ink">{profile.gender ?? "Not set"}</dd></div>
         </dl>
-        {profile.dupr != null ? (
-          <p className="mt-3 text-sm text-ink/70">DUPR <strong className="font-mono text-ink">{Number(profile.dupr).toFixed(2)}</strong>{profile.dupr_id ? ` · ID ${profile.dupr_id}` : ""}</p>
-        ) : (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm font-semibold">Your DUPR rating
-              <input className="field mt-1" inputMode="decimal" value={dupr} onChange={(e) => setDupr(e.target.value)} placeholder="e.g. 3.45" />
-            </label>
-            <label className="block text-sm font-semibold">DUPR ID <span className="font-normal text-ink/50">(optional)</span>
-              <input className="field mt-1" value={duprId} onChange={(e) => setDuprId(e.target.value)} placeholder="e.g. ABC123" />
-            </label>
-          </div>
-        )}
-        <Link href="/dashboard/profile" className="mt-3 inline-block text-xs font-semibold text-volt-deep hover:underline">Edit profile</Link>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm font-semibold">DUPR singles
+            <input className="field mt-1" inputMode="decimal" value={singles} onChange={(e) => setSingles(e.target.value)} placeholder="e.g. 3.56" />
+          </label>
+          <label className="block text-sm font-semibold">DUPR doubles
+            <input className="field mt-1" inputMode="decimal" value={doubles} onChange={(e) => setDoubles(e.target.value)} placeholder="e.g. 3.80" />
+          </label>
+        </div>
+        <p className="mt-2 text-[11px] text-ink/55">DUPR rates singles and doubles separately: singles categories use your singles rating, doubles use your doubles rating (as on {OPEN.duprAsOf}). Ratings are verified by the organisers.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {ratingsDirty && <button type="button" className="btn-volt btn-sm" disabled={!!busy} onClick={saveRatings}>{busy === "ratings" ? <Spinner /> : null} Save ratings</button>}
+          <Link href="/dashboard/profile" className="text-xs font-semibold text-volt-deep hover:underline">Edit profile</Link>
+        </div>
       </section>
+
+      {notice && <Alert tone="ok">{notice}</Alert>}
+      {error && <Alert tone="error">{error}</Alert>}
 
       {blocked ? (
         <Alert tone="error">{blocked}</Alert>
       ) : (
         <section className="card p-5 sm:p-6">
           <p className="eyebrow">Pick your categories</p>
-          <p className="mt-1 text-sm text-ink/60">Enter as many as you&apos;re eligible for. Doubles fees are per team.</p>
+          <p className="mt-1 text-sm text-ink/60">Add as many as you&apos;re eligible for, now or later. Doubles fees are per team; a place is confirmed only once it&apos;s paid.</p>
           {(["singles", "doubles"] as const).map((type) => (
             <div key={type} className="mt-5">
-              <p className="text-sm font-semibold capitalize text-ink">{type}</p>
+              <p className="text-sm font-semibold capitalize text-ink">{type} <span className="font-normal normal-case text-ink/50">· your {type} DUPR {ratingFor(type, facts)?.toFixed(2) ?? "not set"}</span></p>
               <div className="mt-2 grid gap-2">
-                {OPEN_CATEGORIES.filter((c) => c.type === type).map((c) => {
-                  const why = paid.has(c.id) ? "Already entered" : categoryBlock(c, facts);
-                  const on = picked.includes(c.id);
-                  const p = partners[c.id];
-                  return (
-                    <div key={c.id} className={`so-cat ${on ? "is-on" : ""} ${why ? "is-off" : ""}`}>
-                      <button type="button" disabled={Boolean(why)} onClick={() => toggle(c.id)} aria-pressed={on} className="so-cat-head">
-                        <span className="so-check">{on ? <Check size={14} /> : null}</span>
-                        <span className="min-w-0 flex-1 text-left">
-                          <span className="block text-sm font-semibold text-ink">{c.label}</span>
-                          <span className="block text-[11px] text-ink/55">{why ?? `Gold ₹${c.gold.toLocaleString("en-IN")} · Silver ₹${c.silver.toLocaleString("en-IN")}`}</span>
-                        </span>
-                        <span className="font-mono text-sm font-bold text-ink">{formatPaise(c.feePaise)}</span>
-                      </button>
-                      {on && c.type === "doubles" && (
-                        <div className="so-partner">
-                          <input className="field" placeholder={c.gender === "mixed" ? "Partner's name (opposite gender)" : "Partner's name"} value={p?.name ?? ""} onChange={(e) => setPartner(c.id, "name", e.target.value)} />
-                          <input className="field" inputMode="numeric" maxLength={10} placeholder="Partner's phone" value={p?.phone ?? ""} onChange={(e) => setPartner(c.id, "phone", e.target.value.replace(/\D/g, ""))} />
-                          <input className="field" inputMode="decimal" placeholder={`Partner's DUPR (under ${c.band})`} value={p?.dupr ?? ""} onChange={(e) => setPartner(c.id, "dupr", e.target.value)} />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {OPEN_CATEGORIES.filter((c) => c.type === type).map((c) => (
+                  <CategoryRow
+                    key={c.id}
+                    cat={c}
+                    why={paid.has(c.id) ? "Confirmed" : categoryBlock(c, facts)}
+                    confirmed={paid.has(c.id)}
+                    on={picked.includes(c.id)}
+                    toggle={() => toggle(c.id)}
+                    accepted={accepted(c.id)}
+                    waiting={waiting(c.id)}
+                    ratingsDirty={ratingsDirty}
+                    busy={busy}
+                    onCancel={(p) => respond(p, "cancel")}
+                    onSent={(name) => { setNotice(`Request sent to ${name}. You'll be notified when they respond.`); router.refresh(); }}
+                    onError={setError}
+                  />
+                ))}
               </div>
             </div>
           ))}
         </section>
       )}
-
-      {error && <Alert tone="error">{error}</Alert>}
 
       {!blocked && (
         <div className="so-paybar">
@@ -189,8 +216,8 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled, earlyBird =
             <p className="font-display text-2xl text-ink">{formatPaise(total)}</p>
             {discount > 0 && <p className="text-[11px] font-semibold text-volt-deep"><s className="text-ink/40">{formatPaise(gross)}</s> · Early bird −{OPEN.earlyBirdPct}%</p>}
           </div>
-          <button type="button" className="btn-volt" disabled={busy || picked.length === 0 || !razorpayEnabled} onClick={submit}>
-            {busy ? <Spinner /> : <Trophy size={16} />} Pay {picked.length ? formatPaise(total) : ""} &amp; confirm
+          <button type="button" className="btn-volt" disabled={!!busy || picked.length === 0 || !razorpayEnabled} onClick={submit}>
+            {busy === "pay" ? <Spinner /> : <Trophy size={16} />} Pay {picked.length ? formatPaise(total) : ""} &amp; confirm
           </button>
         </div>
       )}
@@ -203,24 +230,147 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled, earlyBird =
             {entries.map((e) => (
               <li key={e.reference} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="font-mono text-xs text-volt-deep">{e.reference}</p>
-                  <p className="text-sm font-semibold text-ink">{e.categories.map((c) => label(c.category)).join(" · ")}</p>
-                  {e.categories.filter((c) => c.partner_name).map((c) => (
+                  <p className="font-mono text-xs text-volt-deep">{e.reference}{e.as_partner ? ` · registered by ${e.player_name}` : ""}</p>
+                  <p className="text-sm font-semibold text-ink">{(e.as_partner ? e.categories.filter((c) => c.partner_user_id === profile.id) : e.categories).map((c) => label(c.category)).join(" · ")}</p>
+                  {!e.as_partner && e.categories.filter((c) => c.partner_name).map((c) => (
                     <p key={c.category} className="text-[11px] text-ink/55">Partner ({label(c.category).split(" DUPR")[0]}): {c.partner_name}</p>
                   ))}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm">{formatPaise(e.amount_paise)}</span>
-                  {e.payment_status === "paid" ? (
-                    <span className="chip-volt">Confirmed</span>
-                  ) : (
-                    <button type="button" className="btn-outline btn-sm" disabled={busy} onClick={() => payLater(e.reference)}>Pay now</button>
-                  )}
+                  {!e.as_partner && <span className="font-mono text-sm">{formatPaise(e.amount_paise)}</span>}
+                  {e.payment_status === "paid" ? <Link href={`/dashboard/sparvic-open/confirmation/${e.reference}`} className="chip-volt">Confirmed</Link>
+                    : <button type="button" className="btn-outline btn-sm" disabled={!!busy} onClick={() => payLater(e.reference)}>Pay now</button>}
                 </div>
               </li>
             ))}
           </ul>
         </section>
+      )}
+
+      {partners.length > 0 && (
+        <section className="card p-5 sm:p-6">
+          <p className="eyebrow">Your tournament partners</p>
+          <ul className="mt-3 space-y-2">
+            {partners.map((p) => (
+              <li key={p.id} className="flex items-center gap-3">
+                <Avatar name={p.other_name} src={p.other_avatar} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">{p.other_name}</p>
+                  <p className="text-[11px] text-ink/55">{label(p.category)} · {p.team_entry_ref ? `team registered (${p.team_entry_ref})` : "paired, awaiting payment"}</p>
+                </div>
+                {p.other_handle && <Link href={`/players/${p.other_handle}`} className="text-xs font-semibold text-volt-deep hover:underline">Profile</Link>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/** One category: tick to register; doubles also handle the partner request. */
+function CategoryRow({ cat, why, confirmed, on, toggle, accepted, waiting, ratingsDirty, busy, onCancel, onSent, onError }: {
+  cat: OpenCategory; why: string | null; confirmed: boolean; on: boolean; toggle: () => void; accepted?: Pair; waiting: Pair[];
+  ratingsDirty: boolean; busy: string | null; onCancel: (p: Pair) => void; onSent: (name: string) => void; onError: (m: string) => void;
+}) {
+  const doubles = cat.type === "doubles";
+  const ready = !why && (!doubles || Boolean(accepted));
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`so-cat ${on ? "is-on" : ""} ${why && !confirmed ? "is-off" : ""} ${confirmed ? "is-done" : ""}`}>
+      <button type="button" disabled={!ready} onClick={toggle} aria-pressed={on} className="so-cat-head">
+        <span className="so-check">{on || confirmed ? <Check size={14} /> : null}</span>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block text-sm font-semibold text-ink">{cat.label}</span>
+          <span className="block text-[11px] text-ink/55">
+            {why ?? (doubles ? (accepted ? `With ${accepted.other_name} ✓` : waiting.length ? `Waiting for ${waiting.map((w) => w.other_name.split(" ")[0]).join(", ")}` : "Find a partner to register") : `Gold ₹${cat.gold.toLocaleString("en-IN")} · Silver ₹${cat.silver.toLocaleString("en-IN")}`)}
+          </span>
+        </span>
+        <span className="font-mono text-sm font-bold text-ink">{formatPaise(cat.feePaise)}</span>
+      </button>
+      {doubles && !why && !confirmed && (
+        <div className="so-partner-zone">
+          {accepted ? (
+            <p className="flex items-center justify-between gap-2 text-xs text-ink/70">
+              <span><Check size={12} className="inline text-volt-deep" /> Paired with <strong>{accepted.other_name}</strong>. Tick the category to pay the team entry.</span>
+              <button type="button" className="text-signal hover:underline" disabled={!!busy} onClick={() => onCancel(accepted)}>Withdraw</button>
+            </p>
+          ) : (
+            <>
+              {waiting.map((w) => (
+                <p key={w.id} className="flex items-center justify-between gap-2 text-xs text-ink/70">
+                  <span><Clock size={12} className="inline" /> Request sent to <strong>{w.other_name}</strong>: waiting for them to accept.</span>
+                  <button type="button" className="text-signal hover:underline" disabled={!!busy} onClick={() => onCancel(w)}>Cancel</button>
+                </p>
+              ))}
+              {open ? (
+                <PartnerSearch cat={cat} ratingsDirty={ratingsDirty} onClose={() => setOpen(false)} onSent={(n) => { setOpen(false); onSent(n); }} onError={onError} exclude={waiting.map((w) => w.other_id)} />
+              ) : (
+                <button type="button" className="btn-outline btn-sm mt-1" onClick={() => setOpen(true)}><UserPlus size={14} /> {waiting.length ? "Ask someone else" : "Find a Sparvic partner"}</button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Search registered players for this doubles category, ranked, with eligibility. */
+function PartnerSearch({ cat, ratingsDirty, onClose, onSent, onError, exclude }: {
+  cat: OpenCategory; ratingsDirty: boolean; onClose: () => void; onSent: (name: string) => void; onError: (m: string) => void; exclude: string[];
+}) {
+  const [q, setQ] = useState("");
+  const [list, setList] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+
+  const load = useCallback(async (term: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/sparvic-open/partners?category=${cat.id}&q=${encodeURIComponent(term)}`, { cache: "no-store" });
+      const data = await res.json();
+      setList(data.players ?? []);
+    } finally { setLoading(false); }
+  }, [cat.id]);
+  useEffect(() => { const t = setTimeout(() => load(q.trim()), q ? 250 : 0); return () => clearTimeout(t); }, [q, load]);
+
+  async function send(c: Candidate) {
+    if (ratingsDirty) return onError("Save your ratings first, then send the request.");
+    setSending(c.id);
+    try {
+      const res = await fetch("/api/sparvic-open/pairs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ category: cat.id, partner_id: c.id, message: message || undefined }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Could not send the request.");
+      onSent(c.name);
+    } catch (e) { onError(e instanceof Error ? e.message : "Could not send the request."); } finally { setSending(null); }
+  }
+
+  return (
+    <div className="so-search">
+      <div className="flex items-center gap-2">
+        <label className="so-search-box"><Search size={14} /><input data-native value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Sparvic players" aria-label="Search Sparvic players" /></label>
+        <button type="button" className="demo-passport-btn" onClick={onClose} aria-label="Close search"><X size={15} /></button>
+      </div>
+      <input className="field mt-2" value={message} maxLength={200} onChange={(e) => setMessage(e.target.value)} placeholder="Add a note (optional)" />
+      <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-ink/50">Ranked by Sparvic leaderboard · doubles DUPR must be under {cat.band}</p>
+      {loading ? <div className="py-3"><Spinner /></div> : list.length === 0 ? <p className="py-3 text-xs text-ink/55">No players found.</p> : (
+        <ol className="so-cands">
+          {list.filter((c) => !exclude.includes(c.id)).map((c) => (
+            <li key={c.id} className={c.eligible ? "" : "is-off"}>
+              <span className="so-rank">{c.rank ?? "—"}</span>
+              <Avatar name={c.name} src={c.avatar_url} size="xs" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-ink">{c.name}</span>
+                <span className="block text-[11px] text-ink/55">{c.eligible ? `Doubles DUPR ${c.dupr_doubles?.toFixed(2) ?? "—"}` : c.reason}</span>
+              </span>
+              <button type="button" className="btn-volt btn-sm" disabled={!c.eligible || !!sending} onClick={() => send(c)} title={c.reason ?? undefined}>
+                {sending === c.id ? <Spinner /> : <Send size={13} />} Request
+              </button>
+            </li>
+          ))}
+        </ol>
       )}
     </div>
   );

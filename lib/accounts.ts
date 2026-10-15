@@ -26,6 +26,8 @@ export type UserRow = {
   skill_level: string;
   dupr: number | null;
   dupr_id: string | null;
+  dupr_singles?: number | null;
+  dupr_doubles?: number | null;
   date_of_birth: string | null;
   gender: string | null;
   bio: string | null;

@@ -139,6 +139,7 @@ export function DashboardView({
   followersCount = 0,
   standings = [],
   badges = [],
+  partnerRequests = 0,
 }: {
   session: { id: string; name: string; email: string };
   profile: PlayerProfileData;
@@ -158,6 +159,7 @@ export function DashboardView({
   followersCount?: number;
   standings?: RankRow[];
   badges?: UserBadge[];
+  partnerRequests?: number;
 }) {
   const router = useRouter();
   const tabs = TAB_META.filter((t) => !(launch && t.member));
@@ -179,6 +181,15 @@ export function DashboardView({
 
   return (
     <div className="wrap section demo-dashboard">
+      {partnerRequests > 0 && (
+        <Link href="/dashboard/sparvic-open" className="so-banner">
+          <span className="so-banner-dot" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <strong>{partnerRequests} doubles partner request{partnerRequests === 1 ? "" : "s"}</strong> for the Sparvic Open. Review and accept in the tournament tab.
+          </span>
+          <ArrowRight size={16} />
+        </Link>
+      )}
       {/* The demo clubhouse switches sections from its sidebar and bottom tab bar;
           the main domain has no clubhouse shell, so it keeps tabs here. */}
       {launch && (

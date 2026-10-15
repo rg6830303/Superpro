@@ -7,9 +7,8 @@ import { queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { formatPaise } from "@/lib/money";
 import { OPEN, OPEN_CATEGORIES } from "@/lib/sparvic-open";
-import { markOpenEntryPaid, type OpenEntry } from "@/lib/sparvic-open-server";
+import { afterEntryPaid, markOpenEntryPaid, type OpenEntry } from "@/lib/sparvic-open-server";
 import { capturedPayment, fetchOrderPayments, isRazorpayEnabled } from "@/lib/razorpay";
-import { createNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Registration confirmed · Sparvic Open", robots: { index: false } };
@@ -22,8 +21,8 @@ export default async function OpenConfirmationPage({ params }: { params: Promise
   if (!/^SO-[A-F0-9]{8}$/.test(reference)) notFound();
   await ensureSchema();
   let e = await queryOne<OpenEntry & { discount_paise: number }>(
-    `SELECT * FROM open_entries WHERE reference = $1 AND user_id = $2`,
-    [reference, session.id],
+    `SELECT * FROM open_entries WHERE reference = $1 AND (user_id = $2 OR categories @> $3::jsonb)`,
+    [reference, session.id, JSON.stringify([{ partner_user_id: session.id }])],
   );
   if (!e) notFound();
   // Razorpay took the money but the browser never confirmed it (closed tab,
@@ -34,13 +33,7 @@ export default async function OpenConfirmationPage({ params }: { params: Promise
       const settled = await markOpenEntryPaid(e.reference, e.razorpay_order_id, captured.id);
       if (settled) {
         e = { ...e, ...settled };
-        await createNotification({
-          userId: session.id,
-          kind: "tournament_entry",
-          title: `You're in the ${OPEN.name}`,
-          message: `Entry ${e.reference} confirmed. Fixtures will be shared on Sparvic.`,
-          linkUrl: "/dashboard/sparvic-open",
-        }).catch(() => {});
+        await afterEntryPaid(settled);
       }
     }
   }
