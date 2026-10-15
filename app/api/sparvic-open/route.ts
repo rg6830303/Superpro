@@ -7,7 +7,7 @@ import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { createRazorpayOrder, isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { LAUNCH_AT } from "@/lib/site";
-import { OPEN, OPEN_CATEGORIES, earlyBirdPaise, partnerBlock, totalPaise, validateEntries, type EntryInput } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, PAIRING_ENABLED, earlyBirdPaise, partnerBlock, totalPaise, validateEntries, type EntryInput } from "@/lib/sparvic-open";
 import { acceptedPair, entriesForUser, factsOf, member, newReference, paidCategories } from "@/lib/sparvic-open-server";
 
 export const runtime = "nodejs";
@@ -16,7 +16,18 @@ export const dynamic = "force-dynamic";
 const rating = z.coerce.number().min(1).max(8).nullable().optional();
 const schema = z.object({
   entries: z
-    .array(z.object({ category: z.string().max(20), partner_user_id: z.string().uuid().optional() }))
+    .array(
+      z.object({
+        category: z.string().max(20),
+        partner_user_id: z.string().uuid().optional(),
+        // A partner typed in by hand (used while member pairing is switched off).
+        partner_name: z.string().trim().max(80).optional(),
+        partner_dupr_id: z.string().trim().max(30).optional(),
+        partner_dupr: z.coerce.number().min(1).max(8).nullable().optional(),
+        partner_phone: z.string().trim().max(10).optional(),
+        partner_email: z.string().trim().toLowerCase().max(120).optional(),
+      }),
+    )
     .min(1, "Pick at least one category.")
     .max(OPEN_CATEGORIES.length),
   // DUPR keeps singles and doubles ratings apart; both are saved to the profile.
@@ -71,7 +82,19 @@ export async function POST(req: Request) {
       const cat = OPEN_CATEGORIES.find((c) => c.id === e.category);
       if (!cat) return NextResponse.json({ error: "One of those categories doesn't exist." }, { status: 400 });
       if (cat.type === "singles") { entries.push({ category: cat.id }); continue; }
-      if (!e.partner_user_id) return NextResponse.json({ error: `${cat.label}: pick a Sparvic partner first.` }, { status: 400 });
+      if (!e.partner_user_id) {
+        if (PAIRING_ENABLED) return NextResponse.json({ error: `${cat.label}: pick a Sparvic partner first.` }, { status: 400 });
+        entries.push({
+          category: cat.id,
+          partner_name: e.partner_name,
+          partner_dupr_id: e.partner_dupr_id,
+          partner_dupr: e.partner_dupr ?? null,
+          partner_phone: (e.partner_phone ?? "").replace(/\D/g, ""),
+          partner_email: e.partner_email,
+        });
+        continue;
+      }
+      if (!PAIRING_ENABLED) return NextResponse.json({ error: `${cat.label}: enter your partner's details.` }, { status: 400 });
       const pair = await acceptedPair(cat.id, session.id, e.partner_user_id);
       if (!pair) return NextResponse.json({ error: `${cat.label}: your partner hasn't accepted the request yet.` }, { status: 400 });
       const partner = await member(e.partner_user_id);

@@ -9,7 +9,7 @@ import { Avatar, FollowButton } from "@/components/player-directory";
 import { useRazorpayPreload } from "@/components/razorpay-client";
 import { payForRegistration, type PayStart } from "@/components/coaching-pay";
 import { formatPaise } from "@/lib/money";
-import { OPEN, OPEN_CATEGORIES, categoryBlock, earlyBirdPaise, playerBlock, ratingFor, totalPaise, type EntryInput, type OpenCategory } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, PAIRING_ENABLED, categoryBlock, earlyBirdPaise, manualPartnerBlock, playerBlock, ratingFor, totalPaise, type EntryInput, type OpenCategory } from "@/lib/sparvic-open";
 
 type Profile = { id: string; name: string; email: string; phone: string; gender: string | null; dupr: number | null; dupr_singles: number | null; dupr_doubles: number | null; dupr_id: string | null };
 type Entry = { reference: string; categories: EntryInput[]; amount_paise: number; payment_status: string; created_at: string; as_partner?: boolean; player_name?: string };
@@ -21,6 +21,12 @@ type Candidate = { id: string; name: string; handle: string | null; avatar_url: 
 
 const label = (id: string) => OPEN_CATEGORIES.find((c) => c.id === id)?.label ?? id;
 const toNum = (v: string) => (v.trim() === "" ? null : Number(v));
+type Manual = { name: string; duprId: string; dupr: string; phone: string; email: string };
+const EMPTY: Manual = { name: "", duprId: "", dupr: "", phone: "", email: "" };
+const manualEntry = (id: string, m: Manual = EMPTY): EntryInput => ({
+  category: id, partner_name: m.name.trim(), partner_dupr_id: m.duprId.trim(), partner_dupr: toNum(m.dupr),
+  partner_phone: m.phone.replace(/\D/g, ""), partner_email: m.email.trim(),
+});
 
 /**
  * Clubhouse registration for the Sparvic Open.
@@ -40,6 +46,8 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [manual, setManual] = useState<Record<string, Manual>>({});
+  const setPartner = (id: string, k: keyof Manual, v: string) => setManual((m) => ({ ...m, [id]: { ...(m[id] ?? EMPTY), [k]: v } }));
   const [acceptedNow, setAcceptedNow] = useState<{ category: string; partner: { id: string; name: string; handle: string | null }; following: boolean } | null>(null);
 
   const facts = { dupr: profile.dupr, dupr_singles: toNum(singles), dupr_doubles: toNum(doubles), gender: profile.gender };
@@ -53,8 +61,8 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
   }, [entries, profile.id]);
   const accepted = (cat: string) => pairs.find((p) => p.category === cat && p.status === "accepted" && !p.team_entry_ref);
   const waiting = (cat: string) => pairs.filter((p) => p.category === cat && p.status === "pending" && p.direction === "outgoing");
-  const incoming = pairs.filter((p) => p.direction === "incoming" && p.status === "pending");
-  const partners = pairs.filter((p) => p.status === "accepted");
+  const incoming = PAIRING_ENABLED ? pairs.filter((p) => p.direction === "incoming" && p.status === "pending") : [];
+  const partners = PAIRING_ENABLED ? pairs.filter((p) => p.status === "accepted") : [];
 
   const gross = totalPaise(picked);
   const discount = earlyBirdPaise(gross, earlyBird);
@@ -95,12 +103,20 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
   }
 
   const submit = () => run("pay", async () => {
+    if (!PAIRING_ENABLED) {
+      for (const id of picked) {
+        const cat = OPEN_CATEGORIES.find((c) => c.id === id)!;
+        const why = cat.type === "doubles" ? manualPartnerBlock(cat, manualEntry(id, manual[id])) : null;
+        if (why) throw new Error(`${cat.label}: ${why}`);
+      }
+    }
     const data = await call("/api/sparvic-open", "POST", {
       dupr_singles: toNum(singles),
       dupr_doubles: toNum(doubles),
       entries: picked.map((id) => {
         const cat = OPEN_CATEGORIES.find((c) => c.id === id)!;
-        return cat.type === "doubles" ? { category: id, partner_user_id: accepted(id)?.other_id } : { category: id };
+        if (cat.type !== "doubles") return { category: id };
+        return PAIRING_ENABLED ? { category: id, partner_user_id: accepted(id)?.other_id } : manualEntry(id, manual[id]);
       }),
     });
     await pay(data);
@@ -151,7 +167,7 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
 
       {/* Details and ratings */}
       <section className="card p-5 sm:p-6">
-        <p className="eyebrow">Your details (from your profile)</p>
+        <p className="so-step"><span>1</span> Your details</p>
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div><dt className="text-ink/50">Name</dt><dd className="font-semibold text-ink">{profile.name}</dd></div>
           <div><dt className="text-ink/50">Phone</dt><dd className="font-semibold text-ink">{profile.phone || "—"}</dd></div>
@@ -180,7 +196,7 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
         <Alert tone="error">{blocked}</Alert>
       ) : (
         <section className="card p-5 sm:p-6">
-          <p className="eyebrow">Pick your categories</p>
+          <p className="so-step"><span>2</span> Pick your categories</p>
           <p className="mt-1 text-sm text-ink/60">Add as many as you&apos;re eligible for, now or later. Doubles fees are per team; a place is confirmed only once it&apos;s paid.</p>
           {(["singles", "doubles"] as const).map((type) => (
             <div key={type} className="mt-5">
@@ -201,6 +217,8 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
                     onCancel={(p) => respond(p, "cancel")}
                     onSent={(name) => { setNotice(`Request sent to ${name}. You'll be notified when they respond.`); router.refresh(); }}
                     onError={setError}
+                    manual={manual[c.id] ?? EMPTY}
+                    setPartner={(k, v) => setPartner(c.id, k, v)}
                   />
                 ))}
               </div>
@@ -212,7 +230,7 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
       {!blocked && (
         <div className="so-paybar">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-ink/55">{picked.length} categor{picked.length === 1 ? "y" : "ies"}</p>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-ink/55"><span className="so-step-mini">3</span> {picked.length} categor{picked.length === 1 ? "y" : "ies"}</p>
             <p className="font-display text-2xl text-ink">{formatPaise(total)}</p>
             {discount > 0 && <p className="text-[11px] font-semibold text-volt-deep"><s className="text-ink/40">{formatPaise(gross)}</s> · Early bird −{OPEN.earlyBirdPct}%</p>}
           </div>
@@ -269,12 +287,13 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
 }
 
 /** One category: tick to register; doubles also handle the partner request. */
-function CategoryRow({ cat, why, confirmed, on, toggle, accepted, waiting, ratingsDirty, busy, onCancel, onSent, onError }: {
+function CategoryRow({ cat, why, confirmed, on, toggle, accepted, waiting, ratingsDirty, busy, onCancel, onSent, onError, manual, setPartner }: {
   cat: OpenCategory; why: string | null; confirmed: boolean; on: boolean; toggle: () => void; accepted?: Pair; waiting: Pair[];
   ratingsDirty: boolean; busy: string | null; onCancel: (p: Pair) => void; onSent: (name: string) => void; onError: (m: string) => void;
+  manual: Manual; setPartner: (k: keyof Manual, v: string) => void;
 }) {
   const doubles = cat.type === "doubles";
-  const ready = !why && (!doubles || Boolean(accepted));
+  const ready = !why && (!doubles || !PAIRING_ENABLED || Boolean(accepted));
   const [open, setOpen] = useState(false);
   return (
     <div className={`so-cat ${on ? "is-on" : ""} ${why && !confirmed ? "is-off" : ""} ${confirmed ? "is-done" : ""}`}>
@@ -283,12 +302,24 @@ function CategoryRow({ cat, why, confirmed, on, toggle, accepted, waiting, ratin
         <span className="min-w-0 flex-1 text-left">
           <span className="block text-sm font-semibold text-ink">{cat.label}</span>
           <span className="block text-[11px] text-ink/55">
-            {why ?? (doubles ? (accepted ? `With ${accepted.other_name} ✓` : waiting.length ? `Waiting for ${waiting.map((w) => w.other_name.split(" ")[0]).join(", ")}` : "Find a partner to register") : `Gold ₹${cat.gold.toLocaleString("en-IN")} · Silver ₹${cat.silver.toLocaleString("en-IN")}`)}
+            {why ?? (doubles && !PAIRING_ENABLED ? (on ? "Add your partner's details below" : `Per team · Gold ₹${cat.gold.toLocaleString("en-IN")}`) : doubles ? (accepted ? `With ${accepted.other_name} ✓` : waiting.length ? `Waiting for ${waiting.map((w) => w.other_name.split(" ")[0]).join(", ")}` : "Find a partner to register") : `Gold ₹${cat.gold.toLocaleString("en-IN")} · Silver ₹${cat.silver.toLocaleString("en-IN")}`)}
           </span>
         </span>
         <span className="font-mono text-sm font-bold text-ink">{formatPaise(cat.feePaise)}</span>
       </button>
-      {doubles && !why && !confirmed && (
+      {doubles && !PAIRING_ENABLED && on && (
+        <div className="so-manual">
+          <p className="so-manual-title">Your partner{cat.gender === "mixed" ? " (opposite gender)" : cat.gender === "women" ? " (female)" : " (male)"}</p>
+          <label>Full name<input className="field" value={manual.name} onChange={(e) => setPartner("name", e.target.value)} autoComplete="off" placeholder="Partner's full name" /></label>
+          <div className="so-manual-row">
+            <label>DUPR ID<input className="field" value={manual.duprId} onChange={(e) => setPartner("duprId", e.target.value)} placeholder="e.g. ABC123" /></label>
+            <label>Doubles DUPR<input className="field" inputMode="decimal" value={manual.dupr} onChange={(e) => setPartner("dupr", e.target.value)} placeholder={`under ${cat.band}`} /></label>
+          </div>
+          <label>Phone<input className="field" inputMode="numeric" maxLength={10} value={manual.phone} onChange={(e) => setPartner("phone", e.target.value.replace(/\D/g, ""))} placeholder="10-digit mobile" /></label>
+          <label>Email<input className="field" type="email" inputMode="email" value={manual.email} onChange={(e) => setPartner("email", e.target.value)} placeholder="partner@email.com" /></label>
+        </div>
+      )}
+      {PAIRING_ENABLED && doubles && !why && !confirmed && (
         <div className="so-partner-zone">
           {accepted ? (
             <p className="flex items-center justify-between gap-2 text-xs text-ink/70">

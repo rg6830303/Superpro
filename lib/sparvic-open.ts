@@ -21,6 +21,13 @@ export const OPEN = {
   earlyOffer: "Participants registered before 15 October get a special offer.",
 } as const;
 
+/**
+ * Sparvic-member partner pairing (search, requests, accept/decline). Built and
+ * tested, but switched off for now: doubles take a partner typed in by hand.
+ * Flip to true to bring the pairing flow back.
+ */
+export const PAIRING_ENABLED = false;
+
 export type OpenCategory = {
   id: string;
   label: string;
@@ -82,6 +89,8 @@ export type EntryInput = {
   partner_name?: string;
   partner_phone?: string;
   partner_dupr?: number | null;
+  partner_dupr_id?: string;
+  partner_email?: string;
   pair_id?: string;
 };
 
@@ -128,6 +137,18 @@ export function partnerBlock(cat: OpenCategory, me: PlayerFacts, partner: Player
   return null;
 }
 
+/** A partner typed in by hand: every detail present and the doubles rating in the band. */
+export function manualPartnerBlock(cat: OpenCategory, e: EntryInput): string | null {
+  if (!e.partner_name || e.partner_name.trim().length < 2) return "add your partner's full name.";
+  if (!e.partner_dupr_id || e.partner_dupr_id.trim().length < 3) return "add your partner's DUPR ID.";
+  const d = e.partner_dupr;
+  if (d == null || !Number.isFinite(d)) return "add your partner's doubles DUPR rating.";
+  if (d > cat.band) return `your partner's doubles DUPR ${d.toFixed(2)} is above this band.`;
+  if (!/^\d{10}$/.test(e.partner_phone ?? "")) return "add your partner's 10-digit phone number.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.partner_email ?? "")) return "add a valid email for your partner.";
+  return null;
+}
+
 /**
  * Validation of one checkout's selections (the server re-checks that every
  * doubles partner is an accepted Sparvic pairing). Returns an error, or null.
@@ -145,7 +166,11 @@ export function validateEntries(entries: EntryInput[], p: PlayerFacts, taken: Se
     if (taken.has(cat.id)) return `You're already entered in ${cat.label}.`;
     const why = categoryBlock(cat, p);
     if (why) return `${cat.label}: ${why}.`;
-    if (cat.type === "doubles" && !e.partner_user_id) return `${cat.label}: pick a Sparvic partner and wait for them to accept your request.`;
+    if (cat.type === "doubles" && !e.partner_user_id) {
+      if (PAIRING_ENABLED) return `${cat.label}: pick a Sparvic partner and wait for them to accept your request.`;
+      const why = manualPartnerBlock(cat, e);
+      if (why) return `${cat.label}: ${why}`;
+    }
   }
   return null;
 }

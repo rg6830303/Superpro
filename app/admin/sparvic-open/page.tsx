@@ -130,7 +130,7 @@ function Entries({ entries, busy, act }: { entries: OpenEntry[]; busy: string | 
                   <td className="text-xs">
                     {e.categories.map((c) => (
                       <span key={c.category} className="flex items-center gap-2">
-                        <span>{label(c.category)}{c.partner_name ? ` — with ${c.partner_name} (DUPR ${c.partner_dupr ?? "—"})` : ""}</span>
+                        <span>{label(c.category)}{c.partner_name ? ` — with ${c.partner_name} (DUPR ${c.partner_dupr ?? "—"}${c.partner_dupr_id ? `, ID ${c.partner_dupr_id}` : ""}${c.partner_phone ? `, ${c.partner_phone}` : ""}${c.partner_email ? `, ${c.partner_email}` : ""})` : ""}</span>
                         {e.categories.length > 1 && <button type="button" className="text-signal hover:underline" disabled={!!busy} onClick={() => act(`rm-${e.id}-${c.category}`, { action: "entry_remove_category", reference: e.reference, category: c.category }, `Remove ${label(c.category)} from ${e.reference}? Refund offline if it was paid.`)}>remove</button>}
                       </span>
                     ))}

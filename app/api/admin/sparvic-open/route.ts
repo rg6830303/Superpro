@@ -37,10 +37,10 @@ export async function GET(req: Request) {
       ),
     ]);
     if (new URL(req.url).searchParams.get("format") === "csv") {
-      const lines = [["Reference", "Status", "Player", "Phone", "Email", "DUPR", "Category", "Partner", "Partner phone", "Partner DUPR", "Amount (Rs)", "Early-bird discount (Rs)", "Paid at", "Created"].map(csvCell).join(",")];
+      const lines = [["Reference", "Status", "Player", "Phone", "Email", "DUPR", "Category", "Partner", "Partner phone", "Partner email", "Partner DUPR ID", "Partner DUPR", "Amount (Rs)", "Early-bird discount (Rs)", "Paid at", "Created"].map(csvCell).join(",")];
       for (const e of entries) {
         for (const c of e.categories) {
-          lines.push([e.reference, e.payment_status, e.player_name, e.player_phone, e.player_email, e.player_dupr, catLabel(c.category), c.partner_name, c.partner_phone, c.partner_dupr,
+          lines.push([e.reference, e.payment_status, e.player_name, e.player_phone, e.player_email, e.player_dupr, catLabel(c.category), c.partner_name, c.partner_phone, c.partner_email, c.partner_dupr_id, c.partner_dupr,
             (e.amount_paise / 100).toFixed(2), ((e.discount_paise ?? 0) / 100).toFixed(2), e.paid_at, e.created_at].map(csvCell).join(","));
         }
       }

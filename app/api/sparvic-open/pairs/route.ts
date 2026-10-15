@@ -5,7 +5,7 @@ import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { createNotification } from "@/lib/notifications";
-import { OPEN, OPEN_CATEGORIES, categoryBlock, partnerBlock } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, PAIRING_ENABLED, categoryBlock, partnerBlock } from "@/lib/sparvic-open";
 import { acceptedPairInCategory, catLabel, factsOf, member, paidCategories, pairsFor } from "@/lib/sparvic-open-server";
 import { sendOpenEmail } from "@/lib/sparvic-open-emails";
 
@@ -30,6 +30,7 @@ const createSchema = z.object({
 export async function POST(req: Request) {
   const session = await getPlayerSession();
   if (!session) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  if (!PAIRING_ENABLED) return NextResponse.json({ error: "Partner requests are paused: enter your partner's details on the form." }, { status: 403 });
   const rl = await checkRateLimit(`open-pair:${session.id}:${getClientIp(req)}`, 30, 15 * 60 * 1000);
   if (!rl.ok) return NextResponse.json({ error: `Too many requests. Try again in ${rl.retryAfterSec}s.` }, { status: 429 });
   const parsed = createSchema.safeParse(await req.json().catch(() => ({})));

@@ -1,3 +1,4 @@
+import { PAIRING_ENABLED } from "@/lib/sparvic-open";
 import { getLeaderboard } from "@/lib/leaderboard";
 import { listUserBadges } from "@/lib/badges-server";
 import type { Metadata } from "next";
@@ -88,7 +89,7 @@ export async function renderDashboard(tab: TabKey) {
     `SELECT count(*)::int AS n FROM follows WHERE following_id = $1`,
     [session.id],
   ).catch(() => [{ n: 0 }]);
-  const partnerRequests = await query<{ n: number }>(
+  const partnerRequests = !PAIRING_ENABLED ? 0 : await query<{ n: number }>(
     `SELECT count(*)::int AS n FROM open_pairs WHERE partner_id = $1 AND status = 'pending'`,
     [session.id],
   ).then((r) => r[0]?.n ?? 0).catch(() => 0);
