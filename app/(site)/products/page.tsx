@@ -33,7 +33,7 @@ export default async function ProductsPage({
       <p className="lede mt-4 max-w-2xl">
         {active
           ? active.blurb
-          : "Everything we put on our own courts. Pickup free at TurfXL, New Alipore — or delivered anywhere in Kolkata, free over ₹5,000."}
+          : "Everything we put on our own courts. Free pickup from a Sparvic venue, or delivered anywhere in Kolkata, free over ₹5,000."}
       </p>
 
       <div className="demo-pill-scroll mt-8 flex flex-wrap gap-2">

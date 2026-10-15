@@ -245,7 +245,7 @@ export function CheckoutForm({ razorpayEnabled, razorpayKeyId, walletPaise = 0, 
             <button type="button" onClick={() => setMode("pickup")} className={`tile ${mode === "pickup" ? "tile-selected" : ""}`}>
               <Store size={18} className="text-volt-deep" />
               <p className="mt-2 font-display text-lg uppercase text-ink">Pickup — free</p>
-              <p className="mt-1 text-xs text-ink/65">Collect at TurfXL, New Alipore. Ready in 24 hours.</p>
+              <p className="mt-1 text-xs text-ink/65">Collect from a Sparvic venue in Kolkata. Ready in 24 hours.</p>
             </button>
             <button type="button" onClick={() => setMode("delivery")} className={`tile ${mode === "delivery" ? "tile-selected" : ""}`}>
               <Truck size={18} className="text-volt-deep" />

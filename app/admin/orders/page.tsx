@@ -118,7 +118,7 @@ export default function AdminOrdersPage() {
                   </p>
                   <p className="mt-1 text-[11px] text-ink/45">
                     {new Date(o.created_at).toLocaleString("en-IN")} ·{" "}
-                    {o.delivery_mode === "pickup" ? "Pickup at TurfXL" : "Delivery"} · paid by {o.payment_method}
+                    {o.delivery_mode === "pickup" ? "Pickup" : "Delivery"} · paid by {o.payment_method}
                   </p>
                 </div>
                 <p className="font-display text-3xl text-volt-deep">{formatPaise(o.total_paise)}</p>

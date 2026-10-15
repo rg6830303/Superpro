@@ -9,7 +9,7 @@ import { OPEN, OPEN_CATEGORIES } from "@/lib/sparvic-open";
 
 export const SEO_TITLE = "Sparvic — Kolkata's pickleball community: daily games, coaching, tournaments & gear";
 export const SEO_DESCRIPTION =
-  "Sparvic is Kolkata's pickleball community and sports platform: book daily open-play games at TurfXL New Alipore, Sportsplex Indoor Topsia and Ballygunge Arena, find players at your level, get coached, enter DUPR-rated tournaments like the Sparvic Open, and buy Champion Series paddles and balls.";
+  "Sparvic is Kolkata's pickleball community and sports platform: book daily open-play games at venues across the city, find players at your level, get coached, enter DUPR-rated tournaments like the Sparvic Open, and buy Champion Series paddles and balls.";
 
 export const SEO_KEYWORDS = [
   "pickleball Kolkata",
@@ -34,13 +34,13 @@ export const VENUES = [
 
 export const FAQ: Array<{ q: string; a: string }> = [
   { q: "What is Sparvic?", a: "Sparvic is a pickleball community and sports platform in Kolkata. Members book daily open-play games, find and follow players at their level, book coaching and clinic consultations, enter tournaments, and buy pickleball gear, all from one account." },
-  { q: "Where can I play pickleball in Kolkata?", a: "Sparvic runs daily games at TurfXL in New Alipore, Sportsplex Indoor in Topsia and Ballygunge Arena in Ballygunge. The club posts the week's slots with venue and court number, and members book a slot from their Sparvic clubhouse." },
+  { q: "Where can I play pickleball in Kolkata?", a: "Sparvic runs daily games at partner venues across Kolkata, including New Alipore, Topsia and Ballygunge. The club posts the week's slots with venue and court number, and members book a slot from their Sparvic clubhouse." },
   { q: "How do I book a pickleball game with Sparvic?", a: "Create a free Sparvic account, open your clubhouse, choose Book a game, pick a slot that matches your level and pay from your wallet or online. Your name and court number are shared with the players in that slot." },
   { q: "Is Sparvic good for beginners?", a: "Yes. Slots are tagged by level (beginner, intermediate, advanced or all levels), so beginners play with people at a similar standard. Coaching is available if you want to learn the basics first." },
   { q: "Does Sparvic offer pickleball coaching in Kolkata?", a: "Yes. Sparvic offers group coaching batches and sessions with its coaches, including a monthly programme with coach Ishaan Chetani, booked and paid from the member clubhouse." },
   { q: "What is the Sparvic Open Tournament?", a: `The ${OPEN.name} is a three-day pickleball tournament on ${OPEN.dates} at ${OPEN.venue}, with nine DUPR-banded singles and doubles categories. Members register and pay online from their Sparvic clubhouse.` },
   { q: "Do I need a DUPR rating to play?", a: "Not for daily games: you pick a level when you join. Tournaments such as the Sparvic Open use DUPR bands, so you add your DUPR rating to your profile before you register." },
-  { q: "Can I buy pickleball paddles and balls in Kolkata from Sparvic?", a: "Yes. The Sparvic pro shop sells Champion Series paddles, balls and accessories with free pickup at TurfXL New Alipore or delivery across Kolkata. You can check out as a guest." },
+  { q: "Can I buy pickleball paddles and balls in Kolkata from Sparvic?", a: "Yes. The Sparvic pro shop sells Champion Series paddles, balls and accessories with free pickup from a Sparvic venue or delivery across Kolkata. You can check out as a guest." },
 ];
 
 const url = (path = "") => `${SITE.url}${path}`;

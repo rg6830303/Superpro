@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Checkout",
-  description: "Complete your Sparvic order — pickup at TurfXL or delivery across Kolkata.",
+  description: "Complete your Sparvic order — pickup from a Sparvic venue or delivery across Kolkata.",
   robots: { index: false },
 };
 

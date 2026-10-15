@@ -76,7 +76,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <dl className="mt-8 grid grid-cols-2 gap-4 border-t border-line pt-7 text-sm">
             <div>
               <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Pickup</dt>
-              <dd className="mt-1 text-ink/75">Free at TurfXL, New Alipore</dd>
+              <dd className="mt-1 text-ink/75">Free from a Sparvic venue</dd>
             </div>
             <div>
               <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">Delivery</dt>

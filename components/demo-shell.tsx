@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Bell, CalendarCheck, CalendarDays, Compass, LayoutDashboard, Medal, GraduationCap, HeartPulse, Home, Menu, ShoppingBag, Trophy, UserRound, Users, Wallet, X } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, ArrowUpRight, Bell, CalendarCheck, CalendarDays, Compass, LayoutDashboard, Medal, GraduationCap, HeartPulse, Home, Menu, ShoppingBag, Trophy, UserRound, Users, Wallet, X } from "lucide-react";
 import { BrowserNotifier } from "@/components/browser-notifier";
 import { DEMO_URL, MAIN_URL } from "@/lib/surface";
 import { LAUNCH_AT } from "@/lib/site";
@@ -109,24 +109,44 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
       if (url.origin !== location.origin || url.pathname === location.pathname) return;
       root.dataset.nav = "forward";
       setNavigating(true);
+      const toClubhouse = url.pathname === "/dashboard" || url.pathname.startsWith("/dashboard/");
+      const fromClubhouse = location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");
+      if (toClubhouse !== fromClubhouse) {
+        try { sessionStorage.setItem("sparvic:iface", toClubhouse ? "clubhouse" : "website"); } catch {}
+        startTransition(toClubhouse ? "enter" : "leave");
+      }
     };
     const onPop = () => { root.dataset.nav = "back"; };
     document.addEventListener("click", onClick);
     window.addEventListener("popstate", onPop);
     return () => { document.removeEventListener("click", onClick); window.removeEventListener("popstate", onPop); };
   }, []);
-  // Crossing between the two interfaces gets its own short transition:
-  // into the clubhouse (after signing in, or from the website) and back out.
+  // Crossing between the two interfaces gets its own transition. It covers
+  // the screen from the tap until the new interface has rendered (so the
+  // half-loaded page and its footer are never seen), shows for at least a
+  // beat, then plays out.
   const [transition, setTransition] = useState<"enter" | "leave" | null>(null);
+  const [phase, setPhase] = useState<"hold" | "out">("hold");
+  const startedAt = useRef(0);
+  const startTransition = (kind: "enter" | "leave") => {
+    startedAt.current = Date.now();
+    setPhase("hold");
+    setTransition(kind);
+  };
   useEffect(() => {
     const mode = clubhouse ? "clubhouse" : "website";
     let prev: string | null = null;
     try { prev = sessionStorage.getItem("sparvic:iface"); sessionStorage.setItem("sparvic:iface", mode); } catch {}
-    if (!prev || prev === mode) return;
-    setTransition(mode === "clubhouse" ? "enter" : "leave");
-    const t = setTimeout(() => setTransition(null), mode === "clubhouse" ? 2100 : 1900);
-    return () => clearTimeout(t);
+    if (prev && prev !== mode) startTransition(mode === "clubhouse" ? "enter" : "leave");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubhouse]);
+  useEffect(() => {
+    if (!transition || navigating) return;
+    const wait = Math.max(0, 900 - (Date.now() - startedAt.current));
+    const out = setTimeout(() => setPhase("out"), wait);
+    const done = setTimeout(() => setTransition(null), wait + 650);
+    return () => { clearTimeout(out); clearTimeout(done); };
+  }, [transition, navigating, pathname]);
   useEffect(() => {
     if (!open) { dialog.current?.close(); return; }
     dialog.current?.showModal();
@@ -143,8 +163,8 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
     {navigating && <div className="demo-nav-progress" aria-hidden="true" />}
     {sectionNote && <div key={pathname} className={`demo-section-toast demo-ribbon-${section}`} role="status"><span>{sectionNote.label}</span><p>{sectionNote.note}</p></div>}
     {signedIn && <BrowserNotifier onUnread={setUnread} />}
-    {transition === "enter" && <div className="demo-enter" aria-live="polite"><div className="demo-enter-card"><Logo height={46} href={null} /><p className="demo-nav-label">WELCOME TO YOUR CLUBHOUSE</p><h2>Hey {playerName?.split(" ")[0]}, let’s play.</h2><span className="demo-enter-bar" /></div></div>}
-    {transition === "leave" && <div className="demo-leave" aria-live="polite"><span className="demo-leave-wipe" /><div className="demo-leave-card"><Logo height={40} href={null} /><p className="demo-nav-label">LEAVING THE CLUBHOUSE</p><h2>Off to the club website.</h2><span className="demo-leave-court" aria-hidden="true" /></div></div>}
+    {transition === "enter" && <div className={`demo-enter is-${phase}`} aria-live="polite"><div className="demo-enter-card"><Logo height={46} href={null} /><p className="demo-nav-label">WELCOME TO YOUR CLUBHOUSE</p><h2>Hey {playerName?.split(" ")[0]}, let’s play.</h2><span className="demo-enter-bar" /></div></div>}
+    {transition === "leave" && <div className={`demo-leave is-${phase}`} aria-live="polite"><span className="demo-leave-wipe" /><div className="demo-leave-card"><Logo height={40} href={null} /><p className="demo-nav-label">LEAVING THE CLUBHOUSE</p><h2>Off to the club website.</h2><span className="demo-leave-court" aria-hidden="true" /></div></div>}
     {/* Living background: drifting colour fields, a slowly panning court grid and a
         few floating balls. Fixed behind every page; static under reduced motion. */}
     <div className="demo-backdrop" aria-hidden="true">
@@ -177,8 +197,8 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
           ? <Link href="/dashboard/activity" className="demo-icon-button" aria-label={`Activity${unread ? `, ${unread} unread` : ""}`}><Bell size={20} />{unread > 0 && <b>{unread > 9 ? "9+" : unread}</b>}</Link>
           : <Link href="/cart" className="demo-icon-button" aria-label={`Shopping bag${ready && count ? `, ${count} items` : ""}`}><ShoppingBag size={20} />{ready && count > 0 && <b>{count}</b>}</Link>}
         {clubhouse
-          ? <Link href="/dashboard/play" className="demo-account demo-account-cta"><CalendarDays size={17} /><span>Book a game</span></Link>
-          : <Link href="/dashboard" className="demo-account" aria-label="Clubhouse: sign in"><UserRound size={17} /><span>Clubhouse</span></Link>}
+          ? <Link href="/" className="demo-account demo-switch" aria-label="Switch to the website"><ArrowLeftRight size={16} /><span>Website</span></Link>
+          : <Link href="/dashboard" className="demo-account demo-switch" aria-label="Switch to the clubhouse"><ArrowLeftRight size={16} /><span>Clubhouse</span></Link>}
         <button ref={toggle} className="demo-menu-button" onClick={() => setOpen(true)} aria-label={clubhouse ? "Open clubhouse menu" : "Open all sections"} aria-expanded={open}><Menu size={21} /></button>
       </div>
     </header>

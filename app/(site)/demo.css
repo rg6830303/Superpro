@@ -786,3 +786,49 @@
 .so-feature h2{margin-top:12px;font-family:var(--font-display);font-weight:700;font-size:clamp(24px,3.4vw,36px);line-height:1.05;color:#fff}
 .so-feature .so-facts{margin-top:14px}
 .so-feature-cta{display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:10px 16px;border-radius:12px;background:#d9ef75;font-weight:700;font-size:13px;color:#193d32}
+
+/* The paddle studio: the full-size, touch-draggable 3D paddle. */
+.demo-ui .demo-paddle-interactive{width:min(320px,100%)}
+@media(max-width:760px){.demo-ui .demo-paddle-interactive{width:min(270px,82vw)}}
+.demo-ui .demo-paddle-studio{grid-template-columns:1fr 340px}@media(max-width:760px){.demo-ui .demo-paddle-studio{grid-template-columns:1fr}}
+
+/* Interface switch button (top right). */
+.demo-switch{background:#d9ef75!important;color:#193d32}
+@media(max-width:760px){.demo-switch{padding:10px 12px}.demo-switch span{display:inline!important;font-size:11px}}
+/* Transitions hold until the next interface has painted beneath them. */
+.demo-enter,.demo-leave{animation-duration:1.7s!important}
+.demo-enter-card,.demo-leave-card,.demo-leave-wipe{animation-duration:1.7s!important}
+
+/* Readability over the moving background: a soft halo behind text, and the
+   decorative paddles and court lines pulled further back. */
+.demo-ui main :is(h1,h2,h3,p,li,dt,dd,label,summary,td,th,small,span){text-shadow:0 0 1px #ffffffcc,0 0 10px #ffffffb3,0 0 22px #ffffff80}
+.demo-ui main :is(.btn-primary,.btn-volt,.so-hero,.so-hero *,.so-feature,.so-feature *,footer *,.chip-volt,.demo-badge,.demo-rank-move,.tile-selected *) {text-shadow:none}
+.demo-ui main :is([class*="bg-ink"],[class*="bg-ink"] *){text-shadow:none}
+.demo-paddle{opacity:.22!important}
+.demo-paddle-3,.demo-paddle-4{opacity:.16!important}
+.demo-court-grid{opacity:.5!important}
+.demo-ball{opacity:.55!important}
+
+/* Clubhouse footer: tidy on phones. */
+@media(max-width:760px){
+  .demo-ui .demo-member-footer{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:24px 20px 28px;margin-top:24px;text-align:left}
+  .demo-ui .demo-member-footer>:first-child{grid-column:1/-1}
+  .demo-ui .demo-member-footer>span{grid-column:1/-1;font-size:11px}
+}
+
+/* Interface transitions, two phases: hold (covers the screen while the next
+   interface loads) and out (plays away once it has rendered). */
+.demo-enter.is-hold,.demo-leave.is-hold{animation:none!important;opacity:1}
+.demo-enter.is-hold .demo-enter-card,.demo-leave.is-hold .demo-leave-card{animation:demo-iface-card-in .35s cubic-bezier(.2,.8,.2,1) both!important}
+.demo-leave.is-hold .demo-leave-wipe{animation:demo-iface-wipe-in .4s cubic-bezier(.7,0,.2,1) both!important}
+.demo-enter.is-out{animation:demo-iface-out-circle .6s cubic-bezier(.7,0,.2,1) forwards!important}
+.demo-leave.is-out{animation:demo-iface-out-fade .6s ease forwards!important}
+.demo-enter.is-out .demo-enter-card,.demo-leave.is-out .demo-leave-card{animation:demo-iface-card-out .4s ease forwards!important}
+.demo-leave.is-out .demo-leave-wipe{animation:demo-iface-wipe-out .6s cubic-bezier(.7,0,.2,1) forwards!important}
+@keyframes demo-iface-card-in{from{opacity:0;transform:translateY(14px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes demo-iface-card-out{to{opacity:0;transform:scale(1.05)}}
+@keyframes demo-iface-out-circle{from{clip-path:circle(150% at 50% 50%)}to{clip-path:circle(0% at 50% 50%)}}
+@keyframes demo-iface-out-fade{to{opacity:0}}
+@keyframes demo-iface-wipe-in{from{transform:translateX(-110%) skewX(-12deg)}to{transform:translateX(0) skewX(-12deg)}}
+@keyframes demo-iface-wipe-out{from{transform:translateX(0) skewX(-12deg)}to{transform:translateX(115%) skewX(-12deg)}}
+

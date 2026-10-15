@@ -45,7 +45,7 @@ export const OPEN_CATEGORIES: OpenCategory[] = [
   { id: "xd-4099", label: "Mixed Doubles DUPR < 4.099", type: "doubles", gender: "mixed", band: 4.099, feePaise: 250000, gold: 12000, silver: 9000 },
 ];
 
-export const MATCH_FORMAT = { group: 11, knockouts: 11, semis: 15, finals: "11 (best of 3)" };
+export const MATCH_FORMAT = { group: 11, knockouts: 11, semis: 15, doublesFinals: "11, best of 3", singlesFinals: 15 };
 
 export const OPEN_RULES: Array<{ title: string; points: string[] }> = [
   { title: "Scoring", points: ["All matches are played to 11 points on service, win by 2.", "Only the serving team may score. At 10–10, continue until a 2-point lead.", "Standard USA Pickleball serving rules; the server continues until the serving team faults."] },

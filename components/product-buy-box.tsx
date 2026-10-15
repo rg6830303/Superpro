@@ -113,7 +113,7 @@ export function ProductBuyBox({ product }: { product: Product }) {
           <p className="pb-2 text-base text-ink/45 line-through">{formatPaise(product.compare_at_paise)}</p>
         )}
       </div>
-      <p className="mt-2 text-xs text-ink/55">Inclusive of all taxes · Free pickup at TurfXL</p>
+      <p className="mt-2 text-xs text-ink/55">Inclusive of all taxes · Free pickup in Kolkata</p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="flex items-center rounded-full border border-line">

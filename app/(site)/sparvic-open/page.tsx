@@ -117,10 +117,18 @@ export default async function SparvicOpenPage() {
 
           <section>
             <h2 className="headline-section">Match format</h2>
-            <p className="mt-2 text-sm text-ink/65">
-              Every category: group stages to {MATCH_FORMAT.group}, knockouts to {MATCH_FORMAT.knockouts}, semi-finals to {MATCH_FORMAT.semis},
-              finals to {MATCH_FORMAT.finals}. All service points, win by 2. Schedule to be confirmed by the organiser.
-            </p>
+            <div className="table-wrap mt-4">
+              <table className="tbl">
+                <thead><tr><th>Stage</th><th>Singles</th><th>Doubles</th></tr></thead>
+                <tbody>
+                  <tr><td>Group stages</td><td>{MATCH_FORMAT.group}</td><td>{MATCH_FORMAT.group}</td></tr>
+                  <tr><td>Knockouts</td><td>{MATCH_FORMAT.knockouts}</td><td>{MATCH_FORMAT.knockouts}</td></tr>
+                  <tr><td>Semi-finals</td><td>{MATCH_FORMAT.semis}</td><td>{MATCH_FORMAT.semis}</td></tr>
+                  <tr><td>Finals</td><td>{MATCH_FORMAT.singlesFinals} (one game)</td><td>{MATCH_FORMAT.doublesFinals}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-sm text-ink/65">All values are service points, win by 2 (at 10–10, play continues until a 2-point lead). Schedule to be confirmed by the organiser.</p>
           </section>
 
           <section>

@@ -7,8 +7,9 @@ import { RotateCcw } from "lucide-react";
 /**
  * The hero paddle, draggable.
  *
- * Drag rotates it on the Y axis with momentum; let go and the spin decays and
- * settles back to face-on. Past a quarter turn it shows the spec face, so the
+ * Drag (mouse or finger) spins it on the Y axis with momentum and tips it on
+ * the X axis; let go and the spin decays, the tilt springs back, and it
+ * settles to face-on. Fidget away. Past a quarter turn it shows the spec face, so the
  * same element serves as both the product shot and its detail.
  *
  * Reduced-motion users get a static, face-on paddle with no drift.
@@ -19,6 +20,9 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
   const velocity = useRef(0);
   const dragging = useRef(false);
   const lastX = useRef(0);
+  const lastY = useRef(0);
+  const pitch = useRef(0);
+  const pitchVel = useRef(0);
   const raf = useRef<number | null>(null);
   const [flipped, setFlipped] = useState(false);
   const [grabbed, setGrabbed] = useState(false);
@@ -49,6 +53,12 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
         }
       }
       angle.current += velocity.current;
+      if (!dragging.current) {
+        // A springy tilt: overshoots a little, then settles.
+        pitchVel.current += -pitch.current * 0.08;
+        pitchVel.current *= 0.82;
+        pitch.current += pitchVel.current;
+      }
 
       const normalised = ((angle.current % 360) + 360) % 360;
       const nowFlipped = normalised > 90 && normalised < 270;
@@ -61,7 +71,7 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
       }
 
       const tiltX = 4 + Math.sin(angle.current / 90) * 3;
-      el.style.transform = `rotateY(${angle.current.toFixed(2)}deg) rotateX(${tiltX.toFixed(2)}deg)`;
+      el.style.transform = `rotateY(${angle.current.toFixed(2)}deg) rotateX(${(tiltX + pitch.current).toFixed(2)}deg)`;
       raf.current = requestAnimationFrame(loop);
     };
 
@@ -108,15 +118,20 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
     dragging.current = true;
     setGrabbed(true);
     lastX.current = e.clientX;
+    lastY.current = e.clientY;
     velocity.current = 0;
+    pitchVel.current = 0;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   }
   function onPointerMove(e: React.PointerEvent) {
     if (!dragging.current) return;
     const dx = e.clientX - lastX.current;
+    const dy = e.clientY - lastY.current;
     lastX.current = e.clientX;
-    angle.current += dx * 0.55;
-    velocity.current = dx * 0.35;
+    lastY.current = e.clientY;
+    angle.current += dx * 0.7;
+    velocity.current = dx * 0.45;
+    pitch.current = Math.max(-38, Math.min(38, pitch.current - dy * 0.45));
   }
   function onPointerUp() {
     dragging.current = false;
@@ -134,14 +149,14 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
           onPointerCancel={onPointerUp}
           role="img"
           aria-label="Sparvic Champion Series T700 paddle — drag to spin"
-          className={`preserve-3d relative aspect-[3/4] w-full touch-pan-y ${
+          className={`preserve-3d relative aspect-[3/4] w-full touch-none ${
             grabbed ? "cursor-grabbing" : "cursor-grab"
           }`}
         >
           {/* Face */}
           <div className="backface-hidden absolute inset-0 flex items-center justify-center">
             <Image
-              src="/products/paddle-champion-t700.png"
+              src="/products/paddle-champion-t700-cutout.png"
               alt=""
               width={380}
               height={507}
@@ -155,13 +170,13 @@ export function Paddle3D({ priority = false }: { priority?: boolean }) {
             className="backface-hidden absolute inset-0 flex items-center justify-center"
             style={{ transform: "rotateY(180deg)" }}
           >
-            <div className="flex h-[86%] w-[64%] flex-col justify-between rounded-[46px] border border-line bg-ink p-6 text-paper shadow-lift">
+            <div className="flex h-[86%] w-[70%] flex-col justify-between rounded-[46px] border border-line bg-ink px-5 py-6 text-paper shadow-lift">
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-volt">Champion Series</p>
               <div>
                 <p className="font-display text-5xl leading-none">T700</p>
                 <p className="mt-1 font-mono text-[11px] text-paper/60">Toray carbon</p>
               </div>
-              <dl className="space-y-2 font-mono text-[11px] text-paper/70">
+              <dl className="space-y-2 font-mono text-[11px] text-paper/70 [&>div]:gap-3 [&_dd]:whitespace-nowrap [&_dt]:whitespace-nowrap">
                 <div className="flex justify-between border-t border-paper/15 pt-2">
                   <dt>Core</dt>
                   <dd className="text-paper">16 mm</dd>

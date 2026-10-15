@@ -114,7 +114,7 @@ export function SparvicOpenForm({ profile, entries, razorpayEnabled, earlyBird =
       )}
 
       {earlyBird && (
-        <div className="so-earlybird">🎉 Congratulations! You joined Sparvic before launch, so you get an early-bird {OPEN.earlyBirdPct}% off your tournament total. The discounted amount is what Razorpay will charge.</div>
+        <div className="so-earlybird">🎉 Congratulations! You joined Sparvic before launch, so you get an early-bird {OPEN.earlyBirdPct}% off your tournament total. The discount is applied at payment.</div>
       )}
 
       <section className="card p-5 sm:p-6">
