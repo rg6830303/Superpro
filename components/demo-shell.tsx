@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { Play } from "lucide-react";
+import { WelcomeIntro } from "@/components/welcome-intro";
 import { ArrowLeft, ArrowLeftRight, ArrowUpRight, Bell, CalendarCheck, CalendarDays, Compass, LayoutDashboard, Medal, GraduationCap, HeartPulse, Home, Menu, ShoppingBag, Trophy, UserRound, Users, Wallet, X } from "lucide-react";
 import { BrowserNotifier } from "@/components/browser-notifier";
 import { DEMO_URL, MAIN_URL } from "@/lib/surface";
@@ -27,6 +29,7 @@ const links = [
   { href: "/tournaments", label: "Tournaments", icon: Trophy },
   { href: "/sparvic-open", label: "Sparvic Open", icon: Medal },
   { href: "/medical", label: "Player care", icon: HeartPulse },
+  { href: "/intro", label: "Intro", icon: Play },
 ];
 
 // Signed-in players get their own clubhouse first, the rest of the club second.
@@ -160,6 +163,8 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
     : <nav aria-label={mobile ? "All sections" : "Main navigation"}>{links.map(item)}<div className="demo-nav-divider" /><Link href="/about" onClick={() => setOpen(false)}><ArrowUpRight size={19} />The Sparvic story</Link></nav>;
   return <div data-demo-page={section || "home"} className={`demo-ui ${clubhouse ? "demo-member demo-clubhouse" : "demo-guest"}`}>
     <ReadProgress />
+    {/* Opening film: once per page load, website only (never the clubhouse, never on the Intro tab itself). */}
+    <WelcomeIntro enabled={!clubhouse && pathname !== "/intro"} />
     {navigating && <div className="demo-nav-progress" aria-hidden="true" />}
     {sectionNote && <div key={pathname} className={`demo-section-toast demo-ribbon-${section}`} role="status"><span>{sectionNote.label}</span><p>{sectionNote.note}</p></div>}
     {signedIn && <BrowserNotifier onUnread={setUnread} />}
@@ -190,7 +195,7 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
     <a className="demo-skip" href="#main-content">Skip to content</a>
     <header className="demo-header">
       <div className="demo-brand"><Logo height={42} priority href={clubhouse ? "/dashboard" : "/"} /><span className="demo-brand-caption">{clubhouse ? "THE CLUBHOUSE" : "THE PICKLEBALL CLUB"}</span></div>
-      {!clubhouse && <nav className="demo-public-nav" aria-label="Main navigation">{links.filter((l) => l.href !== "/" && l.href !== "/medical" && l.href !== "/coaching").map(l => <Link key={l.href} href={l.href} aria-current={active(l.href) ? "page" : undefined}>{l.label}</Link>)}</nav>}
+      {!clubhouse && <nav className="demo-public-nav" aria-label="Main navigation">{links.filter((l) => l.href !== "/" && l.href !== "/medical" && l.href !== "/coaching" && l.href !== "/intro").map(l => <Link key={l.href} href={l.href} aria-current={active(l.href) ? "page" : undefined}>{l.label}</Link>)}</nav>}
       {clubhouse && <div className="demo-header-context"><span className="demo-live-dot" />Hi {playerName.split(" ")[0]}, welcome back.</div>}
       <div className="demo-header-actions">
         {clubhouse

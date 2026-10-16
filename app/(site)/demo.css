@@ -920,3 +920,25 @@
 /* Page slide-in releases its transform when done (fill "backwards"), so fixed
    bars inside pages stay pinned to the screen, not the page container. */
 .demo-ui .route-shell,:root[data-nav="back"] .demo-ui .route-shell{animation-fill-mode:backwards!important}
+
+/* ── Welcome to Sparvic: opening film ─────────────────────────────────────── */
+.welcome-intro{position:fixed;inset:0;z-index:500;display:grid;place-items:center;background:#08182e;cursor:pointer;animation:welcome-in .35s ease both}
+.welcome-intro video{width:100%;height:100%;object-fit:contain;background:#08182e}
+@media(max-aspect-ratio:4/5){.welcome-intro video{width:auto;height:auto;max-width:100%;max-height:100%}}
+.welcome-intro.is-leaving{animation:welcome-out .55s cubic-bezier(.7,0,.2,1) forwards;pointer-events:none}
+.welcome-intro-skip{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));padding:9px 16px;border-radius:999px;background:#ffffff1f;color:#fff;font-size:12px;font-weight:700;letter-spacing:.06em;backdrop-filter:blur(8px)}
+.welcome-intro-skip:hover{background:#ffffff38}
+@keyframes welcome-in{from{opacity:0}to{opacity:1}}
+@keyframes welcome-out{to{opacity:0;transform:scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.welcome-intro{display:none}}
+/* Intro tab player */
+.intro-player{position:relative;overflow:hidden;max-width:960px;border-radius:24px;background:#08182e;box-shadow:0 30px 60px -36px #08182e}
+.intro-player video{display:block;width:100%;aspect-ratio:16/9;object-fit:contain}
+.intro-player-bar{position:absolute;right:12px;bottom:12px;display:flex;gap:8px}
+.intro-player-bar button{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#ffffff26;color:#fff;backdrop-filter:blur(8px)}
+.intro-player-replay{position:absolute;inset:0;margin:auto;width:max-content;height:max-content;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#d9ef75;color:#193d32;font-weight:700}
+
+/* Opening film framing: the vertical cut fills a phone; widescreen sits centred on laptops. */
+@media(max-aspect-ratio:4/5){.welcome-intro video{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover}}
+.intro-player.is-portrait{max-width:420px;margin-inline:auto}
+.intro-player.is-portrait video{aspect-ratio:9/16;max-height:78vh}

@@ -24,6 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/products", 0.8),
     page("/medical", 0.6),
     page("/about", 0.6, "monthly"),
+    page("/intro", 0.5, "monthly"),
     page("/signup", 0.5, "monthly"),
     ...products.map((p) => page(`/products/${p.slug}`, 0.6)),
     ...tournaments.map((t) => page(`/tournaments/${t.slug}`, 0.6)),
