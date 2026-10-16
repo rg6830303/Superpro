@@ -36,7 +36,7 @@ const manualEntry = (id: string, m: Manual = EMPTY): EntryInput => ({
  * - Requests you receive pile up at the top; accept the ones you want.
  * - Any category can be added later; nothing is confirmed until it's paid.
  */
-export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earlyBird = false }: { profile: Profile; entries: Entry[]; pairs: Pair[]; razorpayEnabled: boolean; earlyBird?: boolean }) {
+export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earlyBird = false, walletPaise = 0 }: { profile: Profile; entries: Entry[]; pairs: Pair[]; razorpayEnabled: boolean; earlyBird?: boolean; walletPaise?: number }) {
   useRazorpayPreload(razorpayEnabled);
   const router = useRouter();
   const [singles, setSingles] = useState(profile.dupr_singles != null ? String(profile.dupr_singles) : profile.dupr != null ? String(profile.dupr) : "");
@@ -47,6 +47,7 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [manual, setManual] = useState<Record<string, Manual>>({});
+  const [method, setMethod] = useState<"online" | "wallet">(razorpayEnabled ? "online" : "wallet");
   const setPartner = (id: string, k: keyof Manual, v: string) => setManual((m) => ({ ...m, [id]: { ...(m[id] ?? EMPTY), [k]: v } }));
   const [acceptedNow, setAcceptedNow] = useState<{ category: string; partner: { id: string; name: string; handle: string | null }; following: boolean } | null>(null);
 
@@ -111,6 +112,7 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
       }
     }
     const data = await call("/api/sparvic-open", "POST", {
+      pay_method: method,
       dupr_singles: toNum(singles),
       dupr_doubles: toNum(doubles),
       entries: picked.map((id) => {
@@ -119,10 +121,15 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
         return PAIRING_ENABLED ? { category: id, partner_user_id: accepted(id)?.other_id } : manualEntry(id, manual[id]);
       }),
     });
+    if (data.paid_via === "wallet") { router.push(`/dashboard/sparvic-open/confirmation/${data.reference}`); return; }
     await pay(data);
   });
 
-  const payLater = (reference: string) => run(`later-${reference}`, async () => pay(await call("/api/sparvic-open/pay", "POST", { reference })));
+  const payLater = (reference: string, via: "online" | "wallet" = "online") => run(`later-${reference}`, async () => {
+    const data = await call("/api/sparvic-open/pay", "POST", { reference, pay_method: via });
+    if (data.paid_via === "wallet") { router.push(`/dashboard/sparvic-open/confirmation/${data.reference}`); return; }
+    await pay(data);
+  });
 
   return (
     <div className="so-layout">
@@ -246,7 +253,10 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
                 <div className="flex items-center gap-3">
                   {!e.as_partner && <span className="font-mono text-sm">{formatPaise(e.amount_paise)}</span>}
                   {e.payment_status === "paid" ? <Link href={`/dashboard/sparvic-open/confirmation/${e.reference}`} className="chip-volt">Confirmed</Link>
-                    : <button type="button" className="btn-outline btn-sm" disabled={!!busy} onClick={() => payLater(e.reference)}>Pay now</button>}
+                    : <span className="flex gap-1.5">
+                        <button type="button" className="btn-outline btn-sm" disabled={!!busy || !razorpayEnabled} onClick={() => payLater(e.reference)}>Pay online</button>
+                        <button type="button" className="btn-outline btn-sm" disabled={!!busy || walletPaise < e.amount_paise} onClick={() => payLater(e.reference, "wallet")} title={walletPaise < e.amount_paise ? "Not enough in your wallet" : undefined}>Wallet</button>
+                      </span>}
                 </div>
               </li>
             ))}
@@ -298,10 +308,21 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
           <span className="so-total-label">{picked.length} categor{picked.length === 1 ? "y" : "ies"}</span>
           <span className="so-total-amount">{formatPaise(total)}</span>
         </div>
-        <button type="button" className="btn-volt so-pay" disabled={!!busy || picked.length === 0 || !razorpayEnabled} onClick={submit}>
-          {busy === "pay" ? <Spinner /> : <Trophy size={16} />} Pay {picked.length ? formatPaise(total) : ""} &amp; confirm
+        <div className="so-methods" role="radiogroup" aria-label="How do you want to pay?">
+          <button type="button" role="radio" aria-checked={method === "online"} disabled={!razorpayEnabled} onClick={() => setMethod("online")}>
+            <span>Pay online</span><small>UPI, cards, net banking</small>
+          </button>
+          <button type="button" role="radio" aria-checked={method === "wallet"} onClick={() => setMethod("wallet")}>
+            <span>Sparvic Wallet</span><small className={walletPaise < total ? "text-signal" : undefined}>Balance {formatPaise(walletPaise)}</small>
+          </button>
+        </div>
+        {method === "wallet" && picked.length > 0 && walletPaise < total && (
+          <p className="so-wallet-short">Your wallet is {formatPaise(total - walletPaise)} short. <Link href="/dashboard/wallet">Top up</Link> or pay online.</p>
+        )}
+        <button type="button" className="btn-volt so-pay" disabled={!!busy || picked.length === 0 || (method === "online" ? !razorpayEnabled : walletPaise < total)} onClick={submit}>
+          {busy === "pay" ? <Spinner /> : <Trophy size={16} />} {method === "wallet" ? "Pay from wallet" : "Pay"} {picked.length ? formatPaise(total) : ""} &amp; confirm
         </button>
-        <p className="so-fine">Secure online payment. Your place is confirmed once payment goes through.</p>
+        <p className="so-fine">{method === "wallet" ? "Deducted from your Sparvic Wallet instantly; your place is confirmed right away." : "Secure online payment. Your place is confirmed once payment goes through."}</p>
       </aside>
     )}
     </div>

@@ -24,6 +24,7 @@ export const isPortrait = () => window.matchMedia("(max-aspect-ratio: 4/5)").mat
 export function WelcomeIntro({ enabled }: { enabled: boolean }) {
   const [show, setShow] = useState(enabled);
   const [leaving, setLeaving] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const video = useRef<HTMLVideoElement>(null);
   const done = useRef(false);
   // Chosen on the client (screen shape is unknown to the server); the cover
@@ -73,6 +74,8 @@ export function WelcomeIntro({ enabled }: { enabled: boolean }) {
         playsInline
         autoPlay
         preload="auto"
+        onPlaying={() => setPlaying(true)}
+        className={playing ? "is-playing" : undefined}
         onEnded={finish}
         onError={finish}
         aria-hidden="true"

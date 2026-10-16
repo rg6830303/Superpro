@@ -988,3 +988,25 @@ input[type="time"]::-webkit-calendar-picker-indicator { opacity: .55; filter: hu
 @media(max-width:1100px){.demo-member .quote-toast{bottom:150px}}
 @media(max-width:640px){.quote-toast{left:16px;right:16px;width:auto;bottom:90px}}
 @media(prefers-reduced-motion:reduce){.quote-toast,.quote-toast-timer{animation:none}}
+
+/* ── Typography system ───────────────────────────────────────────────────────
+   Inter for text, Plus Jakarta Sans for headlines. One scale, consistent
+   weights, and calm tracking: no typewriter labels, no oversized letter
+   spacing, nothing below a readable size. */
+:root{--font-mono:var(--font-sans)}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+body{font-family:var(--font-sans),system-ui,sans-serif;font-size:15px;line-height:1.6;letter-spacing:-0.006em;font-feature-settings:"cv11","ss01","ss03"}
+h1,h2,h3,h4,.font-display,.headline-page,.headline-section{font-family:var(--font-display),system-ui,sans-serif;letter-spacing:-0.025em;line-height:1.12;text-wrap:balance}
+h1,.headline-page{font-weight:800}
+h2,h3,.headline-section{font-weight:700}
+p,li{text-wrap:pretty}
+/* Former monospace labels: Inter, tabular figures, modest tracking. */
+.font-mono{font-family:var(--font-sans),system-ui,sans-serif!important;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.uppercase{letter-spacing:.06em}
+.font-mono.uppercase,.eyebrow,[class*="tracking-[0.1"],[class*="tracking-[0.2"]{letter-spacing:.08em!important}
+.eyebrow{font-family:var(--font-sans),system-ui,sans-serif;font-weight:600;font-size:11.5px;text-transform:uppercase;color:#1a563f}
+/* Nothing smaller than legible. */
+[class*="text-[9px]"],[class*="text-[8px]"]{font-size:10.5px!important}
+[class*="text-[10px]"]{font-size:11px!important}
+/* Numbers that sit in columns line up. */
+td,.tbl,.so-total-amount,.demo-stat-value,.demo-rank-list .font-mono{font-variant-numeric:tabular-nums}

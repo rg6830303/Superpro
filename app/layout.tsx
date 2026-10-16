@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { IntroGate } from "@/components/boot-cover";
 import { CartProvider } from "@/components/cart-provider";
@@ -9,28 +9,23 @@ import { SEO_DESCRIPTION, SEO_KEYWORDS, SEO_TITLE, organizationLd, websiteLd } f
 import { JsonLd } from "@/components/json-ld";
 
 /**
- * Three faces, three jobs: Archivo sets headlines with a wide grotesque cut,
- * Public Sans carries running text, and Plex Mono handles labels, scores and
- * every number the club reads off a screen.
+ * Two faces. Plus Jakarta Sans sets headlines: a confident, modern grotesque
+ * with a sporty edge. Inter carries everything else, including labels, prices
+ * and scores, with tabular figures so numbers line up. The old monospace label
+ * face is retired; `font-mono` now maps to Inter so existing classes keep
+ * working without the typewriter look.
  */
-const display = Archivo({
+const display = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["600", "700", "800"],
   variable: "--font-display",
   display: "swap",
 });
 
-const sans = Public_Sans({
+const sans = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
-  display: "swap",
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-mono",
   display: "swap",
 });
 
@@ -85,7 +80,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <head>
         {/* Razorpay's checkout script is fetched from these two hosts the moment
             a payment page mounts. Opening the DNS/TLS connections up front takes

@@ -8,7 +8,10 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { createRazorpayOrder, isRazorpayEnabled, razorpayKeyId } from "@/lib/razorpay";
 import { LAUNCH_AT } from "@/lib/site";
 import { OPEN, OPEN_CATEGORIES, PAIRING_ENABLED, earlyBirdPaise, partnerBlock, totalPaise, validateEntries, type EntryInput } from "@/lib/sparvic-open";
-import { acceptedPair, entriesForUser, factsOf, member, newReference, paidCategories } from "@/lib/sparvic-open-server";
+import { acceptedPair, afterEntryPaid, entriesForUser, factsOf, member, newReference, paidCategories, type OpenEntry } from "@/lib/sparvic-open-server";
+import { debitForTournament, refundTournament } from "@/lib/sparvic-open-wallet";
+
+const inr = (x: number) => `₹${(Number(x) / 100).toLocaleString("en-IN")}`;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +37,7 @@ const schema = z.object({
   dupr_singles: rating,
   dupr_doubles: rating,
   dupr_id: z.string().trim().max(20).optional(),
+  pay_method: z.enum(["online", "wallet"]).default("online"),
 });
 
 /** The signed-in player's entries (paid for, or registered as a partner). */
@@ -114,13 +118,39 @@ export async function POST(req: Request) {
     const error = validateEntries(entries, facts, await paidCategories(session.id));
     if (error) return NextResponse.json({ error }, { status: 400 });
 
-    if (!isRazorpayEnabled) return NextResponse.json({ error: "Online payment isn't available right now. Please call us." }, { status: 503 });
     // Early bird: accounts created before the coming-soon countdown ended.
     const early = Boolean(profile.created_at) && new Date(profile.created_at).getTime() < LAUNCH_AT;
     const gross = totalPaise(entries.map((e) => e.category));
     const discount = earlyBirdPaise(gross, early);
     const amount = gross - discount;
     const reference = newReference();
+
+    if (parsed.data.pay_method === "wallet") {
+      // Sparvic Wallet: debit first (all or nothing), then save the paid entry.
+      const debit = await debitForTournament(session.id, amount, reference);
+      if (!debit.ok) {
+        return NextResponse.json(
+          { error: `Your wallet has ${inr(debit.balancePaise)}, the entry is ${inr(amount)}. Top up your wallet or pay online.`, code: "wallet_insufficient", balance_paise: debit.balancePaise },
+          { status: 402 },
+        );
+      }
+      const paidEntry = await queryOne<OpenEntry>(
+        `INSERT INTO open_entries (reference, user_id, player_name, player_phone, player_email, player_dupr, player_dupr_id,
+           player_gender, categories, amount_paise, discount_paise, payment_status, razorpay_payment_id, paid_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,'paid','wallet', now()) RETURNING *`,
+        [reference, session.id, me.full_name, me.phone, me.email, facts.dupr_doubles ?? facts.dupr_singles ?? facts.dupr,
+         profile.dupr_id ?? dupr_id ?? null, me.gender, JSON.stringify(entries), amount, discount],
+      ).catch(async (err) => {
+        console.error("[sparvic-open] wallet entry insert failed, refunding:", err);
+        await refundTournament(session.id, amount, reference);
+        return null;
+      });
+      if (!paidEntry) return NextResponse.json({ error: "Could not save your entry. Your wallet was not charged." }, { status: 500 });
+      await afterEntryPaid(paidEntry);
+      return NextResponse.json({ ok: true, reference, paid_via: "wallet", balance_paise: debit.balancePaise });
+    }
+
+    if (!isRazorpayEnabled) return NextResponse.json({ error: "Online payment isn't available right now. Pay from your Sparvic Wallet or call us." }, { status: 503 });
     const order = await createRazorpayOrder({ amountPaise: amount, receipt: reference, notes: { kind: "sparvic_open", reference } });
     await queryOne(
       `INSERT INTO open_entries (reference, user_id, player_name, player_phone, player_email, player_dupr, player_dupr_id,

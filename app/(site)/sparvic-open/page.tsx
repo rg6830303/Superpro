@@ -42,6 +42,7 @@ export default async function SparvicOpenPage() {
           razorpayEnabled={isRazorpayEnabled}
           earlyBird={Boolean(profile.created_at) && new Date(profile.created_at).getTime() < LAUNCH_AT}
           pairs={pairs}
+          walletPaise={Number(profile.wallet_balance_paise ?? 0)}
           profile={{
             id: profile.id,
             dupr_singles: profile.dupr_singles != null ? Number(profile.dupr_singles) : null,
