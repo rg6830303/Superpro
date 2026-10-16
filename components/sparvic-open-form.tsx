@@ -125,7 +125,8 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
   const payLater = (reference: string) => run(`later-${reference}`, async () => pay(await call("/api/sparvic-open/pay", "POST", { reference })));
 
   return (
-    <div className="space-y-5">
+    <div className="so-layout">
+    <div className="so-main space-y-5">
       {earlyBird && <div className="so-earlybird">🎉 Congratulations! You joined Sparvic before launch, so you get an early-bird {OPEN.earlyBirdPct}% off your tournament total. The discount is applied at payment.</div>}
 
       {/* Requests waiting for you */}
@@ -227,18 +228,6 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
         </section>
       )}
 
-      {!blocked && (
-        <div className="so-paybar">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-ink/55"><span className="so-step-mini">3</span> {picked.length} categor{picked.length === 1 ? "y" : "ies"}</p>
-            <p className="font-display text-2xl text-ink">{formatPaise(total)}</p>
-            {discount > 0 && <p className="text-[11px] font-semibold text-volt-deep"><s className="text-ink/40">{formatPaise(gross)}</s> · Early bird −{OPEN.earlyBirdPct}%</p>}
-          </div>
-          <button type="button" className="btn-volt" disabled={!!busy || picked.length === 0 || !razorpayEnabled} onClick={submit}>
-            {busy === "pay" ? <Spinner /> : <Trophy size={16} />} Pay {picked.length ? formatPaise(total) : ""} &amp; confirm
-          </button>
-        </div>
-      )}
       {!razorpayEnabled && <p className="text-xs text-ink/55"><CircleAlert size={12} className="inline" /> Online payment is unavailable right now. Call {OPEN.contactDisplay}.</p>}
 
       {entries.length > 0 && (
@@ -282,6 +271,39 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
           </ul>
         </section>
       )}
+    </div>
+    {!blocked && (
+      <aside className={`so-summary ${picked.length ? "" : "is-empty"}`} aria-label="Order summary">
+        <p className="so-step"><span>3</span> Review &amp; pay</p>
+        {picked.length === 0 ? (
+          <p className="mt-3 text-sm text-ink/55">Tick the categories you want to enter and your total appears here.</p>
+        ) : (
+          <ul className="so-lines">
+            {picked.map((id) => {
+              const cat = OPEN_CATEGORIES.find((c) => c.id === id)!;
+              return (
+                <li key={id}>
+                  <span className="min-w-0 flex-1 truncate">{cat.label}</span>
+                  <span className="font-mono">{formatPaise(cat.feePaise)}</span>
+                  <button type="button" onClick={() => toggle(id)} aria-label={`Remove ${cat.label}`}><X size={13} /></button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {discount > 0 && (
+          <p className="so-line-discount"><span>Early bird {OPEN.earlyBirdPct}% off</span><span className="font-mono">−{formatPaise(discount)}</span></p>
+        )}
+        <div className="so-total">
+          <span className="so-total-label">{picked.length} categor{picked.length === 1 ? "y" : "ies"}</span>
+          <span className="so-total-amount">{formatPaise(total)}</span>
+        </div>
+        <button type="button" className="btn-volt so-pay" disabled={!!busy || picked.length === 0 || !razorpayEnabled} onClick={submit}>
+          {busy === "pay" ? <Spinner /> : <Trophy size={16} />} Pay {picked.length ? formatPaise(total) : ""} &amp; confirm
+        </button>
+        <p className="so-fine">Secure online payment. Your place is confirmed once payment goes through.</p>
+      </aside>
+    )}
     </div>
   );
 }

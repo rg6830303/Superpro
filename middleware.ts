@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken, ADMIN_COOKIE, PLAYER_COOKIE } from "@/lib/auth";
-import { isMainPath, surfaceOfHost, isMainClosedApi, isLaunched, MAIN_URL } from "@/lib/surface";
+import { isMainPath, surfaceOfHost, isMainClosedApi, isLaunched, MAIN_URL, DEMO_URL } from "@/lib/surface";
 
 /**
  * One domain for everything: https://www.sparvic.com.
@@ -66,6 +66,20 @@ export async function middleware(req: NextRequest) {
   // API routes are shared by both faces and never redirected.
   const surface = surfaceOfHost(host);
   const isApi = pathname.startsWith("/api/");
+  if (isApi && MUTATING.has(req.method)) {
+    // Cross-site requests: a browser sends Origin on every POST/PATCH/DELETE.
+    // Anything from another site is refused, so a malicious page can't act
+    // with a signed-in player's cookies. Server-to-server calls send no Origin.
+    const origin = req.headers.get("origin");
+    if (origin && !sameSite(origin, host)) {
+      return NextResponse.json({ error: "Cross-site request refused." }, { status: 403 });
+    }
+    // A coarse per-address ceiling on writes, ahead of the per-endpoint limits.
+    const ip = req.headers.get("x-vercel-forwarded-for") ?? req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    if (!writeBudget(ip)) {
+      return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429, headers: { "Retry-After": "60" } });
+    }
+  }
   if (surface === "main" && isApi && isMainClosedApi(pathname)) {
     return NextResponse.json(
       { error: "Bookings and the shop open at launch. For now, build your profile and find players to follow." },
@@ -96,6 +110,33 @@ export async function middleware(req: NextRequest) {
   const res = await gate(req, pathname);
   if (surface === "demo") res.headers.set("X-Robots-Tag", "noindex, nofollow");
   return res;
+}
+
+const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const TRUSTED_HOSTS = new Set(["www.sparvic.com", "sparvic.com", new URL(DEMO_URL).hostname, "localhost", "127.0.0.1"]);
+
+/** The Origin is this site (same host, or one of Sparvic's own domains). */
+function sameSite(origin: string, host: string): boolean {
+  try {
+    const o = new URL(origin).hostname.toLowerCase();
+    return o === host.split(":")[0].toLowerCase() || TRUSTED_HOSTS.has(o);
+  } catch {
+    return false;
+  }
+}
+
+/** 120 write requests per minute per address, per instance (edge memory). */
+const writes = new Map<string, { n: number; t: number }>();
+function writeBudget(ip: string): boolean {
+  const now = Date.now();
+  const w = writes.get(ip);
+  if (!w || now - w.t > 60_000) {
+    writes.set(ip, { n: 1, t: now });
+    if (writes.size > 10_000) writes.clear();
+    return true;
+  }
+  w.n++;
+  return w.n <= 120;
 }
 
 /** Admin console and player dashboard sign-in gates. */

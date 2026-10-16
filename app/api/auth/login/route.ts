@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { syncUserRow, verifyCredentials } from "@/lib/accounts";
 import { hasSigningSecret, signToken, PLAYER_COOKIE, PLAYER_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
 import { ensureSchema } from "@/lib/schema";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { accountKey, checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { formatZodError, loginSchema } from "@/lib/validation";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { recordAccountEvent } from "@/lib/activity";
@@ -26,6 +26,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
     const { email, password } = parsed.data;
+    // Per account too: stops one account being tried from many addresses.
+    const perAccount = await checkRateLimit(`login-acct:${accountKey(email)}`, 10, 15 * 60 * 1000);
+    if (!perAccount.ok) {
+      return NextResponse.json(
+        { error: `Too many attempts for this account. Try again in ${perAccount.retryAfterSec}s, or reset your password.` },
+        { status: 429, headers: { "Retry-After": String(perAccount.retryAfterSec) } },
+      );
+    }
 
     if (!hasSigningSecret()) {
       return NextResponse.json(

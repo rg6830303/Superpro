@@ -72,7 +72,7 @@ export default async function SparvicOpenPage() {
   return (
     <div className="wrap section">
       <JsonLd data={sparvicOpenLd()} />
-      <section className="so-hero">
+      <section className={`so-hero ${clubhouse ? "so-hero-compact" : ""}`}>
         <p className="so-kicker"><Trophy size={14} /> Tournament · DUPR-banded categories</p>
         <h1>{OPEN.name}</h1>
         <p className="so-tagline">{OPEN.tagline}</p>
@@ -81,10 +81,15 @@ export default async function SparvicOpenPage() {
           <span><MapPin size={15} /> {OPEN.venue}</span>
           <a href={`tel:+${OPEN.contactDigits}`}><Phone size={15} /> {OPEN.contactDisplay}</a>
         </div>
-        <p className="so-offer">{OPEN.earlyOffer}</p>
+        {Date.now() < Date.parse("2026-10-15T00:00:00+05:30") && <p className="so-offer">{OPEN.earlyOffer}</p>}
       </section>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+      {clubhouse ? (
+        <>
+          <div className="so-form-wrap mt-6">{form}</div>
+          <details className="so-details mt-8">
+            <summary>Tournament details: categories, prizes, eligibility, format and rules</summary>
+            <div className="mt-6">
         <div className="space-y-8 min-w-0">
           <section>
             <h2 className="headline-section">Categories &amp; entry fees</h2>
@@ -150,17 +155,79 @@ export default async function SparvicOpenPage() {
           </section>
         </div>
 
-        <aside className={`min-w-0 lg:sticky lg:top-24 ${clubhouse ? "order-first lg:order-none" : ""}`}>
-          {clubhouse ? (
-            <>
-              <h2 className="headline-section mb-4">Register</h2>
-              {form}
-            </>
-          ) : (
-            cta
-          )}
-        </aside>
-      </div>
+            </div>
+          </details>
+        </>
+      ) : (
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+        <div className="space-y-8 min-w-0">
+          <section>
+            <h2 className="headline-section">Categories &amp; entry fees</h2>
+            <p className="mt-1 text-sm text-ink/60">Doubles fees are per team. Enter as many categories as you&apos;re eligible for.</p>
+            <div className="table-wrap mt-4">
+              <table className="tbl">
+                <thead><tr><th>Category</th><th>Entry fee</th><th>Gold</th><th>Silver</th></tr></thead>
+                <tbody>
+                  {OPEN_CATEGORIES.map((c) => (
+                    <tr key={c.id}>
+                      <td className="font-semibold">{c.label}</td>
+                      <td>{formatPaise(c.feePaise)}</td>
+                      <td>₹{c.gold.toLocaleString("en-IN")}</td>
+                      <td>₹{c.silver.toLocaleString("en-IN")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11px] text-ink/50">Prize pool is tentative. Semi-finalist prizes to be confirmed.</p>
+          </section>
+
+          <section>
+            <h2 className="headline-section flex items-center gap-2"><ShieldCheck size={20} className="text-volt-deep" /> Eligibility</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {ELIGIBILITY.map((e) => (
+                <div key={e.title} className="card p-5">
+                  <p className="font-semibold text-ink">{e.title}</p>
+                  <p className="mt-1 text-sm text-ink/65">{e.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="headline-section">Match format</h2>
+            <div className="table-wrap mt-4">
+              <table className="tbl">
+                <thead><tr><th>Stage</th><th>Singles</th><th>Doubles</th></tr></thead>
+                <tbody>
+                  <tr><td>Group stages</td><td>{MATCH_FORMAT.group}</td><td>{MATCH_FORMAT.group}</td></tr>
+                  <tr><td>Knockouts</td><td>{MATCH_FORMAT.knockouts}</td><td>{MATCH_FORMAT.knockouts}</td></tr>
+                  <tr><td>Semi-finals</td><td>{MATCH_FORMAT.semis}</td><td>{MATCH_FORMAT.semis}</td></tr>
+                  <tr><td>Finals</td><td>{MATCH_FORMAT.singlesFinals} (one game)</td><td>{MATCH_FORMAT.doublesFinals}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-sm text-ink/65">All values are service points, win by 2 (at 10–10, play continues until a 2-point lead). Schedule to be confirmed by the organiser.</p>
+          </section>
+
+          <section>
+            <h2 className="headline-section">Rules &amp; regulations</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {OPEN_RULES.map((r, i) => (
+                <div key={r.title} className="card p-5">
+                  <p className="font-semibold text-ink">{i + 1}. {r.title}</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-ink/65">
+                    {r.points.map((pt) => <li key={pt}>{pt}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+          <aside className="min-w-0 lg:sticky lg:top-24">{cta}</aside>
+        </div>
+      )}
     </div>
   );
 }

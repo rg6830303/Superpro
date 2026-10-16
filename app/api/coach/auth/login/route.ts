@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensureSchema } from "@/lib/schema";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { accountKey, checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { checkDecoy, checkPassword, findCoachAccount, normaliseEmail, startCoachSession } from "@/lib/coach-auth";
 import { recordAccountEvent } from "@/lib/activity";
 
@@ -23,6 +23,8 @@ export async function POST(req: Request) {
 
   await ensureSchema();
   const email = normaliseEmail(parsed.data.email);
+  const acct = await checkRateLimit(`coach-login-acct:${accountKey(email)}`, 8, 15 * 60 * 1000);
+  if (!acct.ok) return NextResponse.json({ error: `Too many attempts. Try again in ${acct.retryAfterSec}s.` }, { status: 429 });
   const account = await findCoachAccount(email);
   if (!account) {
     await recordAccountEvent({ req, actorType: "coach", email, kind: "login_failed" });

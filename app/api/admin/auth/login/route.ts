@@ -9,7 +9,7 @@ import {
   verifyCredentials,
 } from "@/lib/accounts";
 import { hasSigningSecret, signToken, ADMIN_COOKIE, ADMIN_SESSION_MAX_AGE, secureCookieOptions } from "@/lib/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { accountKey, checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 export const runtime = "nodejs";
@@ -54,6 +54,14 @@ export async function POST(req: Request) {
     const parsed = schema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid details." }, { status: 400 });
+    }
+    // The console has a handful of accounts: cap guesses per account across all addresses.
+    const acct = await checkRateLimit(`admin-login-acct:${accountKey(String(parsed.data.email))}`, 6, 30 * 60 * 1000);
+    if (!acct.ok) {
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${acct.retryAfterSec}s.` },
+        { status: 429, headers: { "Retry-After": String(acct.retryAfterSec) } },
+      );
     }
 
     if (!hasSigningSecret()) {

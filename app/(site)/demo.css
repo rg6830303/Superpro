@@ -879,3 +879,44 @@
   .demo-ui .demo-dashboard .card.p-5,.demo-ui main .card.p-5{padding:16px}
   .so-earlybird{font-size:12px;padding:10px 12px}
 }
+
+/* ── Tournament registration: app-style on phones, two-column on laptops ── */
+.so-layout{display:grid;gap:20px;align-items:start}
+@media(min-width:1024px){.so-layout{grid-template-columns:minmax(0,1fr) 340px}.so-summary{position:sticky;top:104px}}
+.so-summary{padding:20px;border-radius:22px;background:linear-gradient(160deg,#ffffffe6,#ffffffb3);box-shadow:0 24px 50px -32px #193d3266}
+.so-lines{margin-top:12px;display:grid;gap:6px}
+.so-lines li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:#f4f8ee;font-size:12.5px;color:#193d32}
+.so-lines button{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;color:#193d3280}
+.so-lines button:hover{background:#193d3214;color:#193d32}
+.so-line-discount{display:flex;justify-content:space-between;margin-top:8px;padding:0 4px;font-size:12px;font-weight:700;color:#1a563f}
+.so-total{display:flex;align-items:baseline;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px dashed #193d3226}
+.so-total-label{font:700 10px var(--font-mono,monospace);letter-spacing:.12em;text-transform:uppercase;color:#193d3280}
+.so-total-amount{font-family:var(--font-display);font-weight:700;font-size:28px;color:#193d32}
+.so-pay{width:100%;justify-content:center;margin-top:12px;min-height:50px;font-size:14px}
+.so-fine{margin-top:8px;font-size:11px;color:#193d3280;text-align:center}
+.so-hero-compact{padding:20px 22px}
+.so-hero-compact h1{font-size:clamp(24px,3.2vw,34px)}
+.so-hero-compact .so-tagline{display:none}
+.so-hero-compact .so-facts{margin-top:12px}
+.so-details{padding:16px 18px;border-radius:20px;background:#ffffff8c}
+.so-details>summary{cursor:pointer;list-style:none;font-weight:700;color:#193d32}
+.so-details>summary::-webkit-details-marker{display:none}
+.so-details>summary:after{content:"+";float:right;font-weight:700;color:#1a563f}
+.so-details[open]>summary:after{content:"–"}
+@media(max-width:1023px){
+  .so-summary{position:fixed;z-index:40;left:12px;right:12px;bottom:84px;padding:12px 14px;border-radius:20px;background:#fffffff5;box-shadow:0 18px 50px -14px #193d3266;animation:so-sheet-in .28s cubic-bezier(.2,.8,.2,1)}
+  .so-summary.is-empty{display:none}
+  .so-summary>.so-step,.so-summary .so-lines,.so-summary .so-fine,.so-summary>p.text-sm{display:none}
+  .so-summary .so-total{margin-top:0;padding-top:0;border-top:0}
+  .so-summary .so-total-amount{font-size:22px}
+  .so-summary .so-pay{margin-top:8px;min-height:46px}
+  .so-layout{padding-bottom:120px}
+}
+@media(max-width:1100px) and (min-width:761px){.so-summary{bottom:96px}}
+@keyframes so-sheet-in{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@media(max-width:760px){.so-hero-compact{padding:16px 16px 18px;border-radius:20px}.so-hero-compact h1{font-size:24px}.so-hero-compact .so-facts>*{padding:6px 10px;font-size:11.5px}}
+/* The checkout bar is fixed to the screen: nothing above it may animate a transform. */
+.demo-ui .so-form-wrap,.demo-ui .so-layout{animation:none!important;transform:none!important}
+/* Page slide-in releases its transform when done (fill "backwards"), so fixed
+   bars inside pages stay pinned to the screen, not the page container. */
+.demo-ui .route-shell,:root[data-nav="back"] .demo-ui .route-shell{animation-fill-mode:backwards!important}
