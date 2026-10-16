@@ -28,3 +28,7 @@ output/playwright/**/frames-*
 output/publish-meta*
 .codex-remote-attachments
 output/*.bundle
+
+# Old "coming soon" intro films: kept locally, not stored in the repo.
+public/intro/sparvic-intro-desktop.mp4
+public/intro/sparvic-intro-mobile.mp4
