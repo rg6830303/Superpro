@@ -21,11 +21,11 @@ type Candidate = { id: string; name: string; handle: string | null; avatar_url: 
 
 const label = (id: string) => OPEN_CATEGORIES.find((c) => c.id === id)?.label ?? id;
 const toNum = (v: string) => (v.trim() === "" ? null : Number(v));
-type Manual = { name: string; duprId: string; dupr: string; phone: string; email: string };
-const EMPTY: Manual = { name: "", duprId: "", dupr: "", phone: "", email: "" };
+type Manual = { name: string; duprId: string; dupr: string; phone: string };
+const EMPTY: Manual = { name: "", duprId: "", dupr: "", phone: "" };
 const manualEntry = (id: string, m: Manual = EMPTY): EntryInput => ({
   category: id, partner_name: m.name.trim(), partner_dupr_id: m.duprId.trim(), partner_dupr: toNum(m.dupr),
-  partner_phone: m.phone.replace(/\D/g, ""), partner_email: m.email.trim(),
+  partner_phone: m.phone.replace(/\D/g, ""),
 });
 
 /**
@@ -373,7 +373,6 @@ function CategoryRow({ cat, why, confirmed, on, toggle, accepted, waiting, ratin
             <label>Doubles DUPR<input className="field" inputMode="decimal" value={manual.dupr} onChange={(e) => setPartner("dupr", e.target.value)} placeholder={`under ${cat.band}`} /></label>
           </div>
           <label>Phone<input className="field" inputMode="numeric" maxLength={10} value={manual.phone} onChange={(e) => setPartner("phone", e.target.value.replace(/\D/g, ""))} placeholder="10-digit mobile" /></label>
-          <label>Email<input className="field" type="email" inputMode="email" value={manual.email} onChange={(e) => setPartner("email", e.target.value)} placeholder="partner@email.com" /></label>
         </div>
       )}
       {PAIRING_ENABLED && doubles && !why && !confirmed && (

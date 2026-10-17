@@ -158,7 +158,6 @@ export function manualPartnerBlock(cat: OpenCategory, e: EntryInput): string | n
   if (d == null || !Number.isFinite(d)) return "add your partner's doubles DUPR rating.";
   if (d > cat.band) return `your partner's doubles DUPR ${d.toFixed(2)} is above this band.`;
   if (!/^\d{10}$/.test(e.partner_phone ?? "")) return "add your partner's 10-digit phone number.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.partner_email ?? "")) return "add a valid email for your partner.";
   return null;
 }
 
