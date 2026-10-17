@@ -341,6 +341,14 @@ export const SCHEMA_TABLES: string[] = [
     responded_at TIMESTAMPTZ,
     CHECK (requester_id <> partner_id)
   )`,
+  // Sparvic Open "need a partner" board: a member looking for a doubles
+  // partner in a category. Members on the same board see each other.
+  `CREATE TABLE IF NOT EXISTS open_partner_seekers (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, category)
+  )`,
   // Sparvic Open entries: one row per checkout, any number of categories.
   `CREATE TABLE IF NOT EXISTS open_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

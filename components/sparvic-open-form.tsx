@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Check, CircleAlert, Clock, Handshake, Search, Send, Trophy, UserPlus, X } from "lucide-react";
 import { Alert, Spinner } from "@/components/ui";
 import { Avatar, FollowButton } from "@/components/player-directory";
+import { PartnerBoard } from "@/components/partner-board";
 import { useRazorpayPreload } from "@/components/razorpay-client";
 import { payForRegistration, type PayStart } from "@/components/coaching-pay";
 import { formatPaise } from "@/lib/money";
@@ -244,6 +245,7 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
                   />
                 ))}
               </div>
+              {type === "doubles" && <PartnerBoard eligible={OPEN_CATEGORIES.filter((c) => c.type === "doubles" && !paid.has(c.id) && !categoryBlock(c, facts))} />}
             </div>
           ))}
         </section>
