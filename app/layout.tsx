@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Barlow_Condensed, Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { IntroGate } from "@/components/boot-cover";
 import { CartProvider } from "@/components/cart-provider";
@@ -26,6 +26,15 @@ const sans = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+// Italic condensed face for small kicker labels: a scoreboard, jersey-number feel.
+const sport = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  style: ["italic"],
+  variable: "--font-sport",
   display: "swap",
 });
 
@@ -80,7 +89,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${sport.variable}`}>
       <head>
         {/* Razorpay's checkout script is fetched from these two hosts the moment
             a payment page mounts. Opening the DNS/TLS connections up front takes

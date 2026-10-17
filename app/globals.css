@@ -1010,3 +1010,6 @@ p,li{text-wrap:pretty}
 [class*="text-[10px]"]{font-size:11px!important}
 /* Numbers that sit in columns line up. */
 td,.tbl,.so-total-amount,.demo-stat-value,.demo-rank-list .font-mono{font-variant-numeric:tabular-nums}
+
+/* Sporty italic kicker labels */
+.eyebrow{font-family:var(--font-sport),"Arial Narrow",sans-serif!important;font-style:italic;font-weight:800;font-size:14px;letter-spacing:.1em!important}

@@ -242,9 +242,6 @@
 .demo-ui button:is([aria-label="Chat with a Sparvic representative"],[aria-label="Close WhatsApp menu"]){width:48px;height:48px;border-radius:16px;background:#e2efe3;color:#325a40;border:1px solid #bfd6bd;box-shadow:0 4px 12px #26402d14}
 .demo-ui aside[aria-label="Sparvic AI Assistant"]>div .bg-ink{background:#264d3e}
 .demo-ui .media-plate .bg-ink{background:#244c37;color:#eef8c1}
-.demo-ui[data-demo-page=games] .route-shell>.wrap>.eyebrow:before,.demo-ui[data-demo-page=products] .route-shell>.wrap>.eyebrow:before,.demo-ui[data-demo-page=players] .route-shell>.wrap>.eyebrow:before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:9px;background:#bdd777}
-.demo-ui[data-demo-page=products] .route-shell>.wrap>.eyebrow:before{background:#dfaa87}
-.demo-ui[data-demo-page=players] .route-shell>.wrap>.eyebrow:before{background:#b7acd5}
 .demo-ui[data-demo-page=products] article.card-hover{border-radius:22px;box-shadow:none}
 .demo-ui[data-demo-page=products] article.card-hover .media-plate{aspect-ratio:1.12}
 .demo-ui[data-demo-page=products] article.card-hover h3{font-size:23px}
@@ -977,3 +974,11 @@
   .demo-ui .headline-section{font-size:21px}
   .demo-ui .lede{font-size:14.5px}
 }
+
+/* Sporty italic kicker labels across site + clubhouse */
+.eyebrow,.demo-ui .eyebrow,.demo-brand-caption,.demo-home-topline,.demo-overline{font-family:var(--font-sport),"Arial Narrow",sans-serif!important;font-style:italic!important;font-weight:800!important;letter-spacing:.1em!important;text-transform:uppercase}
+.eyebrow,.demo-ui .eyebrow{font-size:14px!important}
+.demo-brand-caption{font-size:12px!important;line-height:1.35!important}
+.demo-home-topline{font-size:13px!important}
+.demo-overline{font-size:13px!important}
+.demo-home-topline i{display:none}
