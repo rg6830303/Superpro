@@ -1,5 +1,6 @@
 "use client";
 
+import { SparvicOpenMini } from "@/components/sparvic-open-mini";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -222,7 +223,7 @@ export function DashboardView({
       {activeTab === "overview" && !launch && (
         <div className="space-y-8">
           <div className="demo-overview-head">
-            <p className="eyebrow">Your clubhouse</p>
+            <p className="eyebrow">Your clubhouse<SparvicOpenMini href="/dashboard/tournaments" /></p>
             <h1>Hi {name.split(" ")[0]}, ready to play?</h1>
           </div>
           <div className="demo-account-metrics grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

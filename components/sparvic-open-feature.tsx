@@ -18,7 +18,7 @@ export function SparvicOpenFeature({ href = "/sparvic-open", confirmed = [], mor
       {confirmed.length > 0 && (
         <p className="mt-3 text-sm font-semibold">Confirmed: {confirmed.join(" · ")}</p>
       )}
-      <span className="so-feature-cta">{confirmed.length ? (more ? `Add ${more} more eligible categor${more === 1 ? "y" : "ies"}` : "View your entry") : <>See details &amp; register</>} <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
+      <span className="so-feature-cta">{confirmed.length ? (more ? `Add ${more} more eligible categor${more === 1 ? "y" : "ies"}` : "View your entry") : href === "/sparvic-open" ? <>Sign up or log in to register</> : <>See details &amp; register</>} <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
     </Link>
   );
 }

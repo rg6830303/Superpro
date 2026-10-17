@@ -982,3 +982,10 @@
 .demo-home-topline{font-size:13px!important}
 .demo-overline{font-size:13px!important}
 .demo-home-topline i{display:none}
+
+/* Sparvic Open mini promo: inline pill, no added height */
+.so-mini{display:inline-flex;align-items:center;gap:6px;margin-left:12px;padding:2px 10px;border-radius:999px;background:#1d1747;color:#e9f5b0!important;font-family:var(--font-sans),system-ui,sans-serif!important;font-style:normal!important;font-size:10.5px!important;font-weight:600!important;letter-spacing:.04em!important;line-height:1.5;text-transform:none;vertical-align:middle;white-space:nowrap;text-decoration:none;transition:transform .15s ease,background .15s ease}
+.so-mini b{color:#d9ef75;font-weight:800}
+.so-mini:hover{background:#2a2266;transform:translateY(-1px)}
+.so-mini i{font-style:normal}.so-mini-arrow{display:none}
+@media(max-width:520px){.so-mini i,.so-mini b:not(.so-mini-arrow){display:none}.so-mini-arrow{display:inline}.so-mini{margin-left:8px}}
