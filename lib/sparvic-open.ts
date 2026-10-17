@@ -52,6 +52,19 @@ export const OPEN_CATEGORIES: OpenCategory[] = [
   { id: "xd-4099", label: "Mixed Doubles DUPR < 4.099", type: "doubles", gender: "mixed", band: 4.099, feePaise: 250000, gold: 12000, silver: 9000 },
 ];
 
+/** Match schedule by category, from the organiser's deck (page 4). */
+export const OPEN_SCHEDULE: Array<{ day: string; date: string; time: string; category: string }> = [
+  { day: "Friday", date: "30 October", time: "7:00 PM – 11:00 PM", category: "md-4299" },
+  { day: "Saturday", date: "31 October", time: "4:00 PM – 5:30 PM", category: "wd-3599" },
+  { day: "Saturday", date: "31 October", time: "5:00 PM – 7:00 PM", category: "wd-4099" },
+  { day: "Saturday", date: "31 October", time: "6:00 PM – 8:00 PM", category: "ms-3599" },
+  { day: "Saturday", date: "31 October", time: "6:30 PM – 10:00 PM", category: "md-3599" },
+  { day: "Sunday", date: "1 November", time: "3:00 PM – 5:30 PM", category: "xd-3599" },
+  { day: "Sunday", date: "1 November", time: "4:30 PM – 7:30 PM", category: "xd-4099" },
+  { day: "Sunday", date: "1 November", time: "5:00 PM – 8:30 PM", category: "ms-4099" },
+  { day: "Sunday", date: "1 November", time: "7:30 PM – 10:00 PM", category: "ms-4599" },
+];
+
 export const MATCH_FORMAT = { group: 11, knockouts: 11, semis: 15, doublesFinals: "11, best of 3", singlesFinals: 15 };
 
 export const OPEN_RULES: Array<{ title: string; points: string[] }> = [

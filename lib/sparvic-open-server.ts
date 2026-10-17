@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { query, queryOne } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
-import { OPEN, OPEN_CATEGORIES, type EntryInput, type PlayerFacts } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, categoryBlock, type EntryInput, type PlayerFacts } from "@/lib/sparvic-open";
 import { sendOpenEmail } from "@/lib/sparvic-open-emails";
+import { sendTournamentInvoice } from "@/lib/receipts";
 
 export type OpenEntry = {
   id: string;
@@ -18,6 +19,7 @@ export type OpenEntry = {
   discount_paise?: number;
   payment_status: "pending" | "paid" | "cancelled";
   razorpay_order_id: string | null;
+  razorpay_payment_id?: string | null;
   created_at: string;
   paid_at: string | null;
 };
@@ -94,6 +96,18 @@ export async function paidCategories(userId: string): Promise<Set<string>> {
   return out;
 }
 
+/**
+ * Categories the player could still enter: their DUPR and gender fit the band
+ * and they don't already hold a paid place in it.
+ */
+export async function moreEligible(userId: string): Promise<string[]> {
+  const m = await member(userId);
+  if (!m) return [];
+  const facts = factsOf(m);
+  const taken = await paidCategories(userId);
+  return OPEN_CATEGORIES.filter((c) => !taken.has(c.id) && !categoryBlock(c, facts)).map((c) => c.id);
+}
+
 /** Every pairing request the player sent or received, newest first. */
 export function pairsFor(userId: string): Promise<PairRow[]> {
   return query<PairRow>(
@@ -152,7 +166,22 @@ export async function afterEntryPaid(entry: OpenEntry): Promise<void> {
       linkUrl: `/dashboard/sparvic-open/confirmation/${entry.reference}`,
     }).catch(() => {});
   }
-  if (payer) await sendOpenEmail("entry_confirmed", payer, { entry, categories: names });
+  const more = entry.user_id ? (await moreEligible(entry.user_id)).map(catLabel) : [];
+  if (payer) {
+    await sendOpenEmail("entry_confirmed", payer, { entry, categories: names, more });
+    await sendTournamentInvoice(entry, { name: payer.full_name, email: payer.email, phone: payer.phone });
+  } else if (entry.player_email) {
+    await sendTournamentInvoice(entry, { name: entry.player_name, email: entry.player_email, phone: entry.player_phone });
+  }
+  if (entry.user_id && more.length) {
+    await createNotification({
+      userId: entry.user_id,
+      kind: "tournament_entry",
+      title: `You can enter ${more.length} more categor${more.length === 1 ? "y" : "ies"}`,
+      message: `Your DUPR also fits: ${more.join(", ")}. Add them from the tournament tab.`,
+      linkUrl: "/dashboard/sparvic-open",
+    }).catch(() => {});
+  }
 
   for (const c of entry.categories) {
     if (!c.partner_user_id || !entry.user_id) continue;

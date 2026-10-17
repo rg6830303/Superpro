@@ -56,6 +56,8 @@ export async function createRazorpayOrder(args: {
       currency: "INR",
       receipt: args.receipt,
       notes: args.notes ?? {},
+      // Capture on authorisation, so a successful checkout is final money.
+      payment_capture: 1,
     }),
     signal: AbortSignal.timeout(ORDER_TIMEOUT_MS),
     cache: "no-store",
@@ -121,6 +123,28 @@ export async function fetchOrderPayments(orderId: string): Promise<RazorpayPayme
 /** A payment counts as money received only once it is captured. */
 export function capturedPayment(payments: RazorpayPayment[]): RazorpayPayment | null {
   return payments.find((p) => p.status === "captured") ?? null;
+}
+
+/**
+ * Whether Razorpay itself reports this payment as captured on this order. A
+ * valid checkout signature only proves the payment was authorised; money is
+ * final once it is captured. Lookup failures count as "not yet": the
+ * reconcilers settle it later, so nothing is confirmed on a guess.
+ */
+export async function isPaymentCaptured(orderId: string, paymentId: string): Promise<boolean> {
+  // Auto-capture can trail the checkout callback by a moment: look a few times.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const payments = await fetchOrderPayments(orderId);
+      const p = payments.find((x) => x.id === paymentId);
+      if (p?.status === "captured") return true;
+      if (p && p.status !== "authorized" && p.status !== "created") return false;
+    } catch (err) {
+      console.error("[razorpay] capture check failed:", err instanceof Error ? err.message : err);
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return false;
 }
 
 export type CredentialCheck = {

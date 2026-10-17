@@ -3,6 +3,8 @@ import { z } from "zod";
 import { adminGate, audit, serverError } from "@/lib/admin";
 import { WALLET_FLOOR_PAISE, adjustWallet, listWalletTransactions } from "@/lib/wallet";
 import { getUserRow } from "@/lib/accounts";
+import { newRef } from "@/lib/money";
+import { afterWalletRecharge } from "@/lib/receipts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,6 +70,10 @@ export async function POST(req: Request) {
     }
 
     await audit(gate, "wallet.adjust", "users", user_id, { deltaPaise, kind, reason });
+    // A recharge paid at the desk gets the same notification, confirmation and invoice as an online one.
+    if (kind === "topup" && deltaPaise > 0) {
+      await afterWalletRecharge({ userId: user_id, amountPaise: deltaPaise, balancePaise: result.balancePaise, reference: newRef("SPW"), via: "venue" });
+    }
     return NextResponse.json({ ok: true, balance_paise: result.balancePaise });
   } catch (err) {
     return serverError("wallet:adjust", err);

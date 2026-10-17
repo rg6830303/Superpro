@@ -38,7 +38,7 @@ ${note ? `<p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#6f7f78
 export async function sendOpenEmail(
   kind: Kind,
   to: Person,
-  d: { other?: Person; category?: string; categories?: string[]; message?: string | null; entry?: { reference: string; amount_paise: number; discount_paise?: number } },
+  d: { other?: Person; category?: string; categories?: string[]; more?: string[]; message?: string | null; entry?: { reference: string; amount_paise: number; discount_paise?: number } },
 ): Promise<void> {
   if (!to?.email) return;
   const first = escapeHtml(to.full_name.trim().split(/\s+/)[0] || "there");
@@ -84,6 +84,9 @@ export async function sendOpenEmail(
         ["Amount paid", fmt(d.entry.amount_paise)],
       ],
       { label: "View your entry", href: `${SITE.url}/dashboard/sparvic-open/confirmation/${d.entry.reference}` },
+      d.more?.length
+        ? `Your DUPR also fits ${d.more.map(escapeHtml).join(", ")}. You can add ${d.more.length === 1 ? "it" : "them"} anytime from the <a href="${tab}" style="color:#1a563f;font-weight:700">tournament tab</a>. Your invoice follows in a separate email.`
+        : "Your invoice follows in a separate email.",
     );
   } else if (kind === "team_confirmed" && d.entry) {
     subject = `Your team is confirmed: ${d.category} · ${OPEN.name}`;

@@ -65,6 +65,15 @@ export type EntryRow = {
   payment_status: string;
   amount_paise: number;
   group_name: string | null;
+  /** Where the row links; defaults to the tournament page. */
+  href?: string;
+};
+
+/** The player's Sparvic Open standing, shown on the clubhouse home. */
+export type OpenStatus = {
+  confirmed: Array<{ reference: string; label: string }>;
+  pendingRefs: string[];
+  more: string[];
 };
 
 /** The same words the admin console and the order page use, so nobody has to translate. */
@@ -140,6 +149,7 @@ export function DashboardView({
   standings = [],
   badges = [],
   partnerRequests = 0,
+  openStatus,
 }: {
   session: { id: string; name: string; email: string };
   profile: PlayerProfileData;
@@ -160,6 +170,7 @@ export function DashboardView({
   standings?: RankRow[];
   badges?: UserBadge[];
   partnerRequests?: number;
+  openStatus?: OpenStatus;
 }) {
   const router = useRouter();
   const tabs = TAB_META.filter((t) => !(launch && t.member));
@@ -228,6 +239,8 @@ export function DashboardView({
               </Link>
             ))}
           </div>
+
+          {openStatus && <OpenCard s={openStatus} />}
 
           <section className="card p-6">
             <div className="flex items-center justify-between gap-3">
@@ -610,6 +623,47 @@ function FollowSheet({ view, onClose }: { view: "followers" | "following"; onClo
   );
 }
 
+function OpenCard({ s }: { s: OpenStatus }) {
+  const inIt = s.confirmed.length > 0;
+  return (
+    <section className="card p-6">
+      <div className="flex items-center justify-between gap-3">
+        <p className="eyebrow">Sparvic Open · 30 Oct – 1 Nov</p>
+        <Link href="/dashboard/sparvic-open" className="text-xs font-semibold text-volt-deep hover:underline">Tournament tab</Link>
+      </div>
+      <h2 className="mt-2 text-2xl">{inIt ? "You're in the Sparvic Open" : "Registration is open"}</h2>
+      {inIt && (
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {s.confirmed.map((c) => (
+            <li key={`${c.reference}-${c.label}`}>
+              <Link href={`/dashboard/sparvic-open/confirmation/${c.reference}`} className="chip-volt">{c.label} · Confirmed</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {s.pendingRefs.length > 0 && (
+        <p className="mt-3 text-sm text-signal">{s.pendingRefs.length} entr{s.pendingRefs.length === 1 ? "y is" : "ies are"} awaiting payment.</p>
+      )}
+      {s.more.length > 0 ? (
+        <>
+          <p className="mt-3 text-sm text-ink/65">
+            Your DUPR {inIt ? "also " : ""}fits {s.more.length} {inIt ? "more " : ""}categor{s.more.length === 1 ? "y" : "ies"}: {s.more.join(", ")}.
+          </p>
+          <Link href="/dashboard/sparvic-open" className="btn-volt btn-sm mt-4">
+            <Trophy size={14} /> {inIt ? "Add more categories" : "Register now"}
+          </Link>
+        </>
+      ) : (
+        !inIt && (
+          <Link href="/dashboard/sparvic-open" className="btn-volt btn-sm mt-4">
+            <Trophy size={14} /> See categories
+          </Link>
+        )
+      )}
+    </section>
+  );
+}
+
 function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) {
   return (
     <div className="mb-6">
@@ -691,7 +745,7 @@ function BookingsSection({ games, coaching, entries, orders }: { games: GameRow[
                   {entries.map((e) => (
                     <tr key={e.reference}>
                       <td className="font-mono text-xs text-volt-deep">{e.reference}</td>
-                      <td><Link href={`/tournaments/${e.tournament_slug}`} className="font-semibold hover:underline">{e.tournament_title}</Link></td>
+                      <td><Link href={e.href ?? `/tournaments/${e.tournament_slug}`} className="font-semibold hover:underline">{e.tournament_title}</Link></td>
                       <td className="whitespace-nowrap">{formatDate(e.starts_on)}</td>
                       <td>{e.team_name}</td>
                       <td className="capitalize">{e.category ?? "—"}</td>

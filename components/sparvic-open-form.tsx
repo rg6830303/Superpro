@@ -136,6 +136,20 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
     <div className="so-main space-y-5">
       {earlyBird && <div className="so-earlybird">🎉 Congratulations! You joined Sparvic before launch, so you get an early-bird {OPEN.earlyBirdPct}% off your tournament total. The discount is applied at payment.</div>}
 
+      {paid.size > 0 && !blocked && (() => {
+        const open = OPEN_CATEGORIES.filter((c) => !paid.has(c.id) && !categoryBlock(c, facts));
+        return (
+          <section className="so-accepted">
+            <p className="font-semibold text-ink">You&apos;re confirmed in {[...paid].map(label).join(", ")}.</p>
+            <p className="mt-1 text-sm text-ink/65">
+              {open.length
+                ? `Your DUPR also fits ${open.length} more categor${open.length === 1 ? "y" : "ies"}: ${open.map((c) => c.label).join(", ")}. Tick them below to add them to your registration.`
+                : "There are no other categories your DUPR fits right now."}
+            </p>
+          </section>
+        );
+      })()}
+
       {/* Requests waiting for you */}
       {incoming.length > 0 && (
         <section className="so-requests">

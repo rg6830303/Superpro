@@ -4,6 +4,7 @@ import { adminGate, audit, badRequest, serverError } from "@/lib/admin";
 import { query, queryOne } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { OPEN_CATEGORIES, categoryBlock, partnerBlock } from "@/lib/sparvic-open";
+import { sendTournamentInvoice } from "@/lib/receipts";
 import { afterEntryPaid, catLabel, factsOf, member, paidCategories, type OpenEntry } from "@/lib/sparvic-open-server";
 import { sendOpenEmail } from "@/lib/sparvic-open-emails";
 import { createNotification } from "@/lib/notifications";
@@ -114,7 +115,9 @@ export async function POST(req: Request) {
         const e = await entryOf(d.reference);
         if (!e || !e.user_id) return badRequest("Entry not found.");
         if (e.payment_status !== "paid") return badRequest("Only paid entries have a confirmation.");
-        await sendOpenEmail("entry_confirmed", await member(e.user_id), { entry: e, categories: e.categories.map((c) => catLabel(c.category)) });
+        const payer = await member(e.user_id);
+        await sendOpenEmail("entry_confirmed", payer, { entry: e, categories: e.categories.map((c) => catLabel(c.category)) });
+        if (payer) await sendTournamentInvoice(e, { name: payer.full_name, email: payer.email, phone: payer.phone });
         await audit(gate, "sparvic_open.entry_resend_email", "open_entries", e.id, { reference: e.reference });
         return NextResponse.json({ ok: true });
       }

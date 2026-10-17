@@ -1,4 +1,5 @@
-import { PAIRING_ENABLED } from "@/lib/sparvic-open";
+import { OPEN, OPEN_CATEGORIES, PAIRING_ENABLED } from "@/lib/sparvic-open";
+import { catLabel, entriesForUser, moreEligible } from "@/lib/sparvic-open-server";
 import { getLeaderboard } from "@/lib/leaderboard";
 import { listUserBadges } from "@/lib/badges-server";
 import type { Metadata } from "next";
@@ -19,6 +20,7 @@ import {
   type CoachRow,
   type EntryRow,
   type OrderRow,
+  type OpenStatus,
   type TabKey,
 } from "@/components/dashboard-view";
 
@@ -80,6 +82,32 @@ export async function renderDashboard(tab: TabKey) {
     ).catch(() => []),
   ]);
 
+  // Sparvic Open entries live in their own table: fold them into the
+  // tournaments list and build the clubhouse-home card from them.
+  const [openEntries, more] = await Promise.all([entriesForUser(session.id), moreEligible(session.id).catch(() => [])]);
+  const live = openEntries.filter((e) => e.payment_status !== "cancelled");
+  const mine = (e: (typeof live)[number]) => (e.as_partner ? e.categories.filter((c) => c.partner_user_id === session.id) : e.categories);
+  const openRows: EntryRow[] = live.flatMap((e) =>
+    mine(e).map((c) => ({
+      reference: e.reference,
+      tournament_title: OPEN.name,
+      tournament_slug: OPEN.slug,
+      starts_on: "2026-10-30",
+      category: catLabel(c.category),
+      team_name: e.as_partner ? `${e.player_name} & you` : c.partner_name ? `You & ${c.partner_name}` : e.player_name,
+      status: "registered",
+      payment_status: e.payment_status,
+      amount_paise: e.as_partner ? 0 : OPEN_CATEGORIES.find((x) => x.id === c.category)?.feePaise ?? 0,
+      group_name: null,
+      href: e.payment_status === "paid" ? `/dashboard/sparvic-open/confirmation/${e.reference}` : "/dashboard/sparvic-open",
+    })),
+  );
+  const openStatus: OpenStatus = {
+    confirmed: live.filter((e) => e.payment_status === "paid").flatMap((e) => mine(e).map((c) => ({ reference: e.reference, label: catLabel(c.category) }))),
+    pendingRefs: live.filter((e) => e.payment_status === "pending" && !e.as_partner).map((e) => e.reference),
+    more: more.map(catLabel),
+  };
+
   const launch = surfaceOfHost((await headers()).get("host")) === "main";
   const following = await query<{ n: number }>(
     `SELECT count(*)::int AS n FROM follows WHERE follower_id = $1`,
@@ -127,7 +155,8 @@ export async function renderDashboard(tab: TabKey) {
       walletTx={walletTx}
       games={games}
       coaching={coaching}
-      entries={entries}
+      entries={[...openRows, ...entries]}
+      openStatus={openStatus}
       orders={orders}
       notifications={notifications}
       unreadCount={unreadCount}

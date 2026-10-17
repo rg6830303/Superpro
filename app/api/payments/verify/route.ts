@@ -6,7 +6,7 @@ import { formatDate, formatTimeRange } from "@/lib/dates";
 import { postSlotToGroup } from "@/lib/games";
 import { fulfilOnlineOrder, asLines } from "@/lib/orders";
 import { announceSlots } from "@/lib/booking";
-import { verifyRazorpaySignature } from "@/lib/razorpay";
+import { isPaymentCaptured, verifyRazorpaySignature } from "@/lib/razorpay";
 import { adjustWallet } from "@/lib/wallet";
 import { bookingReceiptMessage, orderReceiptMessage, sendWhatsApp } from "@/lib/whatsapp";
 import { markPaid } from "@/lib/coaching-registrations";
@@ -16,6 +16,7 @@ import { sendRegistrationEmail } from "@/lib/coaching-emails";
 import { afterEntryPaid, markOpenEntryPaid } from "@/lib/sparvic-open-server";
 import { OPEN, OPEN_CATEGORIES } from "@/lib/sparvic-open";
 import { createNotification } from "@/lib/notifications";
+import { afterWalletRecharge } from "@/lib/receipts";
 
 export const runtime = "nodejs";
 
@@ -235,6 +236,11 @@ async function settleCoaching(p: Payload) {
 
 async function settleOpenEntry(p: Payload) {
   if (!p.reference) return NextResponse.json({ error: "Missing entry reference." }, { status: 400 });
+  // Nothing is confirmed or mailed until Razorpay reports the money captured.
+  // If it isn't yet, the confirmation page re-checks and settles it then.
+  if (!(await isPaymentCaptured(p.razorpay_order_id, p.razorpay_payment_id))) {
+    return NextResponse.json({ error: "Payment not captured yet. It will confirm automatically once it completes.", pending: true }, { status: 409 });
+  }
   // Only matches when the order id is the one we created for this entry.
   const entry = await markOpenEntryPaid(p.reference, p.razorpay_order_id, p.razorpay_payment_id);
   if (!entry) {
@@ -404,6 +410,11 @@ async function settleCheckout(p: Payload) {
  */
 async function settleTopup(p: Payload) {
   if (!p.reference) return NextResponse.json({ error: "Missing top-up reference." }, { status: 400 });
+  // Credit (and mail) only once Razorpay reports the money captured; the
+  // wallet reconciler picks up anything still in flight.
+  if (!(await isPaymentCaptured(p.razorpay_order_id, p.razorpay_payment_id))) {
+    return NextResponse.json({ error: "Payment not captured yet. Your wallet updates automatically once it completes.", pending: true }, { status: 409 });
+  }
 
   const rows = await query<{ id: string; user_id: string; amount_paise: number }>(
     `UPDATE wallet_topups
@@ -432,6 +443,16 @@ async function settleTopup(p: Payload) {
     refId: topup.id,
     createdBy: "razorpay",
   });
+  if (result.ok) {
+    await afterWalletRecharge({
+      userId: topup.user_id,
+      amountPaise: topup.amount_paise,
+      balancePaise: result.balancePaise,
+      reference: p.reference,
+      paymentId: p.razorpay_payment_id,
+      via: "online",
+    });
+  }
 
   return NextResponse.json({ ok: true, balance_paise: result.ok ? result.balancePaise : null });
 }

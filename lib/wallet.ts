@@ -4,6 +4,7 @@ import { WALLET_FLOOR_PAISE } from "@/lib/postpaid";
 // Re-exported so server callers can keep importing everything from one place.
 export { WALLET_FLOOR_PAISE, canSpend, duesPaise, isBlocked } from "@/lib/postpaid";
 import { capturedPayment, fetchOrderPayments, isRazorpayEnabled } from "@/lib/razorpay";
+import { afterWalletRecharge } from "@/lib/receipts";
 
 /**
  * Sparvic wallet — prepaid store credit, held in PAISE on `users`.
@@ -225,6 +226,14 @@ export async function reconcilePendingTopups(userId?: string): Promise<Reconcile
     if (credit.ok) {
       result.credited += 1;
       result.creditedPaise += amount;
+      await afterWalletRecharge({
+        userId: row.user_id,
+        amountPaise: amount,
+        balancePaise: credit.balancePaise,
+        reference: row.reference,
+        paymentId: captured.id,
+        via: "online",
+      });
     }
   }
 

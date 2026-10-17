@@ -11,6 +11,7 @@ import { LAUNCH_AT } from "@/lib/site";
 import { ELIGIBILITY, MATCH_FORMAT, OPEN, OPEN_CATEGORIES, OPEN_RULES } from "@/lib/sparvic-open";
 import { entriesForUser, pairsFor } from "@/lib/sparvic-open-server";
 import { SparvicOpenForm } from "@/components/sparvic-open-form";
+import { SparvicOpenSchedule } from "@/components/sparvic-open-schedule";
 import { JsonLd } from "@/components/json-ld";
 import { sparvicOpenLd } from "@/lib/seo";
 
@@ -33,9 +34,12 @@ export default async function SparvicOpenPage() {
   const clubhouse = await inClubhouse();
   const session = clubhouse ? await getPlayerSession() : null;
   let form: React.ReactNode = null;
+  let mine: string[] = [];
   if (clubhouse && session) {
     await ensureSchema();
     const [profile, entries, pairs] = await Promise.all([getUserRow(session.id), entriesForUser(session.id), pairsFor(session.id)]);
+    mine = [...new Set(entries.filter((e) => e.payment_status === "paid").flatMap((e) =>
+      (e.as_partner ? e.categories.filter((c) => c.partner_user_id === session.id) : e.categories).map((c) => c.category)))];
     if (profile) {
       form = (
         <SparvicOpenForm
@@ -88,6 +92,7 @@ export default async function SparvicOpenPage() {
       {clubhouse ? (
         <>
           <div className="so-form-wrap mt-6">{form}</div>
+          <div className="mt-10"><SparvicOpenSchedule mine={mine} /></div>
           <details className="so-details mt-8">
             <summary>Tournament details: categories, prizes, eligibility, format and rules</summary>
             <div className="mt-6">
@@ -162,6 +167,7 @@ export default async function SparvicOpenPage() {
       ) : (
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="space-y-8 min-w-0">
+          <SparvicOpenSchedule />
           <section>
             <h2 className="headline-section">Categories &amp; entry fees</h2>
             <p className="mt-1 text-sm text-ink/60">Doubles fees are per team. Enter as many categories as you&apos;re eligible for.</p>

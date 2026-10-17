@@ -1,5 +1,9 @@
 import { SparvicOpenFeature } from "@/components/sparvic-open-feature";
+import { SparvicOpenSchedule } from "@/components/sparvic-open-schedule";
 import { inClubhouse } from "@/lib/booking-context";
+import { getPlayerSession } from "@/lib/auth";
+import { ensureSchema } from "@/lib/schema";
+import { catLabel, moreEligible, paidCategories } from "@/lib/sparvic-open-server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, MapPin, Trophy, Users } from "lucide-react";
@@ -90,7 +94,20 @@ function TournamentCard({ t, base }: { t: Tournament; base: string }) {
 
 export default async function TournamentsPage() {
   const tournaments = await getTournaments();
-  const base = (await inClubhouse()) ? "/dashboard/tournaments" : "/tournaments";
+  const clubhouse = await inClubhouse();
+  const base = clubhouse ? "/dashboard/tournaments" : "/tournaments";
+  // Inside the clubhouse the Sparvic Open card shows the player's own standing.
+  const session = clubhouse ? await getPlayerSession() : null;
+  let confirmed: string[] = [];
+  let mine: string[] = [];
+  let more = 0;
+  if (session) {
+    await ensureSchema().catch(() => {});
+    const [paid, extra] = await Promise.all([paidCategories(session.id), moreEligible(session.id).catch(() => [])]);
+    mine = [...paid];
+    confirmed = mine.map(catLabel);
+    more = extra.length;
+  }
 
   const open = tournaments.filter((t) => t.status === "open");
   const upcoming = tournaments.filter((t) => t.status === "announced" || t.status === "closed");
@@ -106,7 +123,8 @@ export default async function TournamentsPage() {
       </p>
 
       <div className="mt-10">
-        <SparvicOpenFeature href={base === "/tournaments" ? "/sparvic-open" : "/dashboard/sparvic-open"} />
+        <SparvicOpenFeature href={clubhouse ? "/dashboard/sparvic-open" : "/sparvic-open"} confirmed={confirmed} more={more} />
+        <div className="mt-8"><SparvicOpenSchedule mine={mine} compact /></div>
       </div>
 
       {tournaments.length === 0 ? null : (
