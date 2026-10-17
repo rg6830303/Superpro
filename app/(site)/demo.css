@@ -989,3 +989,18 @@
 .so-mini:hover{background:#2a2266;transform:translateY(-1px)}
 .so-mini i{font-style:normal}.so-mini-arrow{display:none}
 @media(max-width:520px){.so-mini i,.so-mini b:not(.so-mini-arrow){display:none}.so-mini-arrow{display:inline}.so-mini{margin-left:8px}}
+
+/* ── Performance pass ──────────────────────────────────────────────────────
+   Jank came from two places: every translucent card re-blurring the moving
+   backdrop on every frame (backdrop-filter over animated 70px-blurred blobs),
+   and each navigation replaying a full-page blur + staggered rise. The colour
+   fields now hold still, cards are near-opaque without backdrop blur, and a
+   page change is a short opacity fade (none at all on back/forward). */
+.demo-blob,.demo-court-grid{animation:none!important;will-change:auto}
+.demo-ui :is(.card,.card-hover){background:#fffffff2;backdrop-filter:none}
+.demo-ui .route-shell{animation:demo-page-fade .22s ease-out both!important;filter:none!important}
+@keyframes demo-page-fade{from{opacity:.0001}to{opacity:1}}
+.demo-ui .route-shell>*>:is(section,div,header):not(.fixed){animation:none!important}
+html[data-nav=back] .demo-ui .route-shell{animation:none!important}
+.demo-clubhouse .route-shell{animation-duration:.15s!important}
+@media(max-width:760px){.demo-ball{display:none}.demo-sidebar,.demo-header{backdrop-filter:none}}

@@ -1,3 +1,4 @@
+import { forget } from "@/lib/memo";
 import { NextResponse } from "next/server";
 import { getAdminSession, type AdminPayload } from "@/lib/auth";
 import { query } from "@/lib/db";
@@ -23,6 +24,8 @@ export async function audit(
   entityId?: string,
   meta?: Record<string, unknown>,
 ): Promise<void> {
+  // An admin just changed something: drop this instance's cached public reads.
+  forget();
   await query(
     `INSERT INTO audit_log (admin_email, action, entity, entity_id, meta) VALUES ($1,$2,$3,$4,$5::jsonb)`,
     [admin.email, action, entity ?? null, entityId ?? null, meta ? JSON.stringify(meta) : null],

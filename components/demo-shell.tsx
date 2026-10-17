@@ -102,6 +102,7 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
   // App-style navigation: a thin progress bar while the next page loads, and a
   // direction hint (forward / back) so pages slide in from the right side.
   const [navigating, setNavigating] = useState(false);
+  const popped = useRef(false);
   useEffect(() => { setNavigating(false); }, [pathname]);
   useEffect(() => {
     const root = document.documentElement;
@@ -114,16 +115,22 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
       setNavigating(true);
       const toClubhouse = url.pathname === "/dashboard" || url.pathname.startsWith("/dashboard/");
       const fromClubhouse = location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");
-      if (toClubhouse !== fromClubhouse) {
+      // Only a real crossing by a signed-in player (signed out, /dashboard
+      // just bounces to the login page) gets the overlay.
+      if (signedIn && toClubhouse !== fromClubhouse) {
         try { sessionStorage.setItem("sparvic:iface", toClubhouse ? "clubhouse" : "website"); } catch {}
         startTransition(toClubhouse ? "enter" : "leave");
       }
     };
-    const onPop = () => { root.dataset.nav = "back"; };
+    // Back/forward never replays the portal overlay: it is for deliberate switches.
+    const onPop = () => { root.dataset.nav = "back"; popped.current = true; };
+    const onAnyClick = () => { popped.current = false; };
+    document.addEventListener("click", onAnyClick, true);
     document.addEventListener("click", onClick);
     window.addEventListener("popstate", onPop);
-    return () => { document.removeEventListener("click", onClick); window.removeEventListener("popstate", onPop); };
-  }, []);
+    return () => { document.removeEventListener("click", onAnyClick, true); document.removeEventListener("click", onClick); window.removeEventListener("popstate", onPop); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn]);
   // Crossing between the two interfaces gets its own transition. It covers
   // the screen from the tap until the new interface has rendered (so the
   // half-loaded page and its footer are never seen), shows for at least a
@@ -140,7 +147,11 @@ export function DemoShell({ children, playerName }: { children: React.ReactNode;
     const mode = clubhouse ? "clubhouse" : "website";
     let prev: string | null = null;
     try { prev = sessionStorage.getItem("sparvic:iface"); sessionStorage.setItem("sparvic:iface", mode); } catch {}
-    if (prev && prev !== mode) startTransition(mode === "clubhouse" ? "enter" : "leave");
+    // Plays once per real switch. The click handler has usually started it
+    // already (and stored the new mode, so prev matches here); back/forward,
+    // reloads and in-portal tab changes never trigger it.
+    if (prev && prev !== mode && !popped.current) startTransition(mode === "clubhouse" ? "enter" : "leave");
+    popped.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubhouse]);
   useEffect(() => {

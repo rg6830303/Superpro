@@ -289,7 +289,7 @@ export function SparvicOpenForm({ profile, entries, pairs, razorpayEnabled, earl
                   <p className="truncate text-sm font-semibold text-ink">{p.other_name}</p>
                   <p className="text-[11px] text-ink/55">{label(p.category)} · {p.team_entry_ref ? `team registered (${p.team_entry_ref})` : "paired, awaiting payment"}</p>
                 </div>
-                {p.other_handle && <Link href={`/players/${p.other_handle}`} className="text-xs font-semibold text-volt-deep hover:underline">Profile</Link>}
+                {p.other_handle && <Link href={`/dashboard/players/${p.other_handle}`} className="text-xs font-semibold text-volt-deep hover:underline">Profile</Link>}
               </li>
             ))}
           </ul>

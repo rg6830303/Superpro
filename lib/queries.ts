@@ -1,4 +1,5 @@
 import { query, isDbConfigured } from "@/lib/db";
+import { memo } from "@/lib/memo";
 import { ensureSchema } from "@/lib/schema";
 import { istToday, addDays } from "@/lib/dates";
 import type { Coach, GameSession, Product, Tournament, Venue } from "@/lib/types";
@@ -42,7 +43,7 @@ const FALLBACK_TOURNAMENTS: Tournament[] = [];
 
 // ── Shop ────────────────────────────────────────────────────────────────────
 
-export async function getProducts(category?: string): Promise<Product[]> {
+async function getProductsUncached(category?: string): Promise<Product[]> {
   const filteredFallback = category
     ? FALLBACK_PRODUCTS.filter((p) => p.category === category)
     : FALLBACK_PRODUCTS;
@@ -60,7 +61,7 @@ export async function getProducts(category?: string): Promise<Product[]> {
   );
 }
 
-export async function getFeaturedProducts(limit = 4): Promise<Product[]> {
+async function getFeaturedProductsUncached(limit = 4): Promise<Product[]> {
   return safe(
     "getFeaturedProducts",
     async () =>
@@ -72,7 +73,7 @@ export async function getFeaturedProducts(limit = 4): Promise<Product[]> {
   );
 }
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+async function getProductBySlugUncached(slug: string): Promise<Product | null> {
   const fallback = FALLBACK_PRODUCTS.find((p) => p.slug === slug) ?? null;
   return safe(
     "getProductBySlug",
@@ -84,7 +85,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   );
 }
 
-export async function getRelatedProducts(category: string, excludeSlug: string, limit = 3): Promise<Product[]> {
+async function getRelatedProductsUncached(category: string, excludeSlug: string, limit = 3): Promise<Product[]> {
   const fallback = FALLBACK_PRODUCTS.filter((p) => p.category === category && p.slug !== excludeSlug).slice(0, limit);
   return safe(
     "getRelatedProducts",
@@ -99,7 +100,7 @@ export async function getRelatedProducts(category: string, excludeSlug: string, 
 
 // ── Daily games ─────────────────────────────────────────────────────────────
 
-export async function getVenues(): Promise<Venue[]> {
+async function getVenuesUncached(): Promise<Venue[]> {
   return safe(
     "getVenues",
     async () => query<Venue>(`SELECT * FROM venues WHERE active ORDER BY sort_order, name`),
@@ -116,7 +117,7 @@ export async function getVenues(): Promise<Venue[]> {
  * count is what the games page sorts and labels by: being told a friend booked
  * a court is only useful if the court is then easy to find.
  */
-export async function getWeekSessions(days = 21, viewerId: string | null = null, pastDays = 0): Promise<GameSession[]> {
+async function getWeekSessionsUncached(days = 21, viewerId: string | null = null, pastDays = 0): Promise<GameSession[]> {
   const from = addDays(istToday(), -pastDays);
   const to = addDays(istToday(), days - 1);
   return safe(
@@ -235,7 +236,7 @@ export async function getSessionsByIds(ids: string[]): Promise<GameSession[]> {
  */
 const PUBLIC_COACH_COLUMNS = "id, slug, name, headline, bio, specialties, dupr, experience_years, rate_paise, languages, image_url, whatsapp, available_days, active, sort_order, created_at";
 
-export async function getCoaches(): Promise<Coach[]> {
+async function getCoachesUncached(): Promise<Coach[]> {
   return safe(
     "getCoaches",
     async () => query<Coach>(`SELECT ${PUBLIC_COACH_COLUMNS} FROM coaches WHERE active ORDER BY sort_order, name`),
@@ -243,7 +244,7 @@ export async function getCoaches(): Promise<Coach[]> {
   );
 }
 
-export async function getCoachBySlug(slug: string): Promise<Coach | null> {
+async function getCoachBySlugUncached(slug: string): Promise<Coach | null> {
   const fallback = FALLBACK_COACHES.find((c) => c.slug === slug) ?? null;
   return safe(
     "getCoachBySlug",
@@ -257,7 +258,7 @@ export async function getCoachBySlug(slug: string): Promise<Coach | null> {
 
 // ── Tournaments ─────────────────────────────────────────────────────────────
 
-export async function getTournaments(): Promise<Tournament[]> {
+async function getTournamentsUncached(): Promise<Tournament[]> {
   return safe(
     "getTournaments",
     async () =>
@@ -277,7 +278,7 @@ export async function getTournaments(): Promise<Tournament[]> {
   );
 }
 
-export async function getTournamentBySlug(slug: string): Promise<Tournament | null> {
+async function getTournamentBySlugUncached(slug: string): Promise<Tournament | null> {
   const fallback = FALLBACK_TOURNAMENTS.find((t) => t.slug === slug) ?? null;
   return safe(
     "getTournamentBySlug",
@@ -335,7 +336,7 @@ export type Announcement = {
 
 const FALLBACK_ANNOUNCEMENTS: Announcement[] = [];
 
-export async function getAnnouncements(limit = 3): Promise<Announcement[]> {
+async function getAnnouncementsUncached(limit = 3): Promise<Announcement[]> {
   return safe(
     "getAnnouncements",
     async () =>
@@ -403,7 +404,7 @@ export type CommunitySnapshot = {
  * on court this week, and a row of faces. Photos first, so the row looks like
  * people rather than a strip of initials.
  */
-export async function getCommunitySnapshot(): Promise<CommunitySnapshot> {
+async function getCommunitySnapshotUncached(): Promise<CommunitySnapshot> {
   return safe(
     "community",
     async () => {
@@ -440,3 +441,51 @@ export async function getCommunitySnapshot(): Promise<CommunitySnapshot> {
     { players: 0, onCourtThisWeek: 0, faces: [] },
   );
 }
+
+/** Cached for 60s per instance (lib/memo). */
+export const getProducts = (...args: Parameters<typeof getProductsUncached>) =>
+  memo(`getProducts:${JSON.stringify(args)}`, 60000, () => getProductsUncached(...args));
+
+/** Cached for 60s per instance (lib/memo). */
+export const getFeaturedProducts = (...args: Parameters<typeof getFeaturedProductsUncached>) =>
+  memo(`getFeaturedProducts:${JSON.stringify(args)}`, 60000, () => getFeaturedProductsUncached(...args));
+
+/** Cached for 60s per instance (lib/memo). */
+export const getProductBySlug = (...args: Parameters<typeof getProductBySlugUncached>) =>
+  memo(`getProductBySlug:${JSON.stringify(args)}`, 60000, () => getProductBySlugUncached(...args));
+
+/** Cached for 60s per instance (lib/memo). */
+export const getRelatedProducts = (...args: Parameters<typeof getRelatedProductsUncached>) =>
+  memo(`getRelatedProducts:${JSON.stringify(args)}`, 60000, () => getRelatedProductsUncached(...args));
+
+/** Cached for 120s per instance (lib/memo). */
+export const getVenues = (...args: Parameters<typeof getVenuesUncached>) =>
+  memo(`getVenues:${JSON.stringify(args)}`, 120000, () => getVenuesUncached(...args));
+
+/** Cached for 60s per instance (lib/memo). */
+export const getCoaches = (...args: Parameters<typeof getCoachesUncached>) =>
+  memo(`getCoaches:${JSON.stringify(args)}`, 60000, () => getCoachesUncached(...args));
+
+/** Cached for 60s per instance (lib/memo). */
+export const getCoachBySlug = (...args: Parameters<typeof getCoachBySlugUncached>) =>
+  memo(`getCoachBySlug:${JSON.stringify(args)}`, 60000, () => getCoachBySlugUncached(...args));
+
+/** Cached for 30s per instance (lib/memo). */
+export const getTournaments = (...args: Parameters<typeof getTournamentsUncached>) =>
+  memo(`getTournaments:${JSON.stringify(args)}`, 30000, () => getTournamentsUncached(...args));
+
+/** Cached for 30s per instance (lib/memo). */
+export const getTournamentBySlug = (...args: Parameters<typeof getTournamentBySlugUncached>) =>
+  memo(`getTournamentBySlug:${JSON.stringify(args)}`, 30000, () => getTournamentBySlugUncached(...args));
+
+/** Cached for 30s per instance (lib/memo). */
+export const getAnnouncements = (...args: Parameters<typeof getAnnouncementsUncached>) =>
+  memo(`getAnnouncements:${JSON.stringify(args)}`, 30000, () => getAnnouncementsUncached(...args));
+
+/** Cached for 30s per instance (lib/memo). */
+export const getCommunitySnapshot = (...args: Parameters<typeof getCommunitySnapshotUncached>) =>
+  memo(`getCommunitySnapshot:${JSON.stringify(args)}`, 30000, () => getCommunitySnapshotUncached(...args));
+
+/** Cached for 8s per instance (lib/memo). */
+export const getWeekSessions = (...args: Parameters<typeof getWeekSessionsUncached>) =>
+  args[1] ? getWeekSessionsUncached(...args) : memo(`getWeekSessions:${JSON.stringify(args)}`, 8000, () => getWeekSessionsUncached(...args));
